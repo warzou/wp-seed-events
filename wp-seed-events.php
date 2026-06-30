@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.0
+ * Version: 0.1.0-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WP_SEED_EVENTS_VERSION', '0.1.0' );
+define( 'WP_SEED_EVENTS_VERSION', '0.1.0-dev' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
