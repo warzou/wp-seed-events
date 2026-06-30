@@ -110,10 +110,21 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 
 	wp_nonce_field( 'wp_seed_events_save_occurrences', 'wp_seed_events_occurrences_nonce' );
 
+	$previous_occurrence = array();
+
 	for ( $index = 0; $index < 5; $index++ ) {
-		$occurrence = isset( $occurrences[ $index ] ) && is_array( $occurrences[ $index ] ) ? $occurrences[ $index ] : array();
-		$is_open    = 0 === $index || ! empty( $occurrence['start_date'] );
-		$summary    = $is_open ? 'Date ' . ( $index + 1 ) : 'Ajouter une autre date';
+		$occurrence           = isset( $occurrences[ $index ] ) && is_array( $occurrences[ $index ] ) ? $occurrences[ $index ] : array();
+		$has_saved_occurrence = array() !== $occurrence;
+
+		if ( ! $has_saved_occurrence && 0 < $index && array() !== $previous_occurrence ) {
+			$occurrence['start_time'] = $previous_occurrence['start_time'] ?? '';
+			$occurrence['end_time']   = $previous_occurrence['end_time'] ?? '';
+			$occurrence['all_day']    = $previous_occurrence['all_day'] ?? '';
+		}
+
+		$is_open             = 0 === $index || ! empty( $occurrence['start_date'] );
+		$summary             = $is_open ? 'Date ' . ( $index + 1 ) : 'Ajouter une autre date';
+		$previous_occurrence = $occurrence;
 		?>
 		<details <?php echo $is_open ? 'open' : ''; ?>>
 			<summary><?php echo esc_html( $summary ); ?></summary>
