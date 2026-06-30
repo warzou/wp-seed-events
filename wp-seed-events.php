@@ -16,9 +16,11 @@ define( 'WP_SEED_EVENTS_VERSION', '0.1.0' );
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
+add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_contacts_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_place', 'wp_seed_events_add_place_address_meta_box' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_occurrences' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_place' );
+add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_contacts' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 
 function wp_seed_events_register_event_post_type() {
@@ -350,4 +352,139 @@ function wp_seed_events_save_place_address( $post_id ) {
 	}
 
 	update_post_meta( $post_id, '_wp_seed_place_address', $address );
+}
+
+function wp_seed_events_contact_roles() {
+	return array(
+		'organizer'            => 'Organisateur',
+		'speaker'              => 'Intervenant',
+		'registration_contact' => 'Contact inscription',
+		'information_contact'  => 'Contact information',
+	);
+}
+
+function wp_seed_events_add_contacts_meta_box() {
+	add_meta_box(
+		'wp_seed_events_contacts',
+		'Qui contacter ou qui intervient ?',
+		'wp_seed_events_render_contacts_meta_box',
+		'wp_seed_event',
+		'normal',
+		'default'
+	);
+}
+
+function wp_seed_events_render_contacts_meta_box( $post ) {
+	$contacts = get_post_meta( $post->ID, '_wp_seed_event_contacts', true );
+	$roles    = wp_seed_events_contact_roles();
+
+	if ( ! is_array( $contacts ) ) {
+		$contacts = array();
+	}
+
+	wp_nonce_field( 'wp_seed_events_save_contacts', 'wp_seed_events_contacts_nonce' );
+
+	for ( $index = 0; $index < 5; $index++ ) {
+		$contact = isset( $contacts[ $index ] ) && is_array( $contacts[ $index ] ) ? $contacts[ $index ] : array();
+		$is_open = 0 === $index || ! empty( $contact['name'] );
+		$summary = $is_open && ! empty( $contact['name'] ) ? $contact['name'] : 'Ajouter un contact ' . ( $index + 1 );
+		?>
+		<details <?php echo $is_open ? 'open' : ''; ?>>
+			<summary><?php echo esc_html( $summary ); ?></summary>
+			<p>
+				<label>
+					Rôle<br />
+					<select name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][role]">
+						<?php foreach ( $roles as $role_value => $role_label ) : ?>
+							<option value="<?php echo esc_attr( $role_value ); ?>" <?php selected( $contact['role'] ?? '', $role_value ); ?>><?php echo esc_html( $role_label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+			</p>
+			<p>
+				<label>
+					Nom<br />
+					<input type="text" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][name]" value="<?php echo esc_attr( $contact['name'] ?? '' ); ?>" />
+				</label>
+			</p>
+			<p>
+				<label>
+					Téléphone<br />
+					<input type="tel" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][phone]" value="<?php echo esc_attr( $contact['phone'] ?? '' ); ?>" />
+				</label>
+			</p>
+			<p>
+				<label>
+					Email<br />
+					<input type="email" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][email]" value="<?php echo esc_attr( $contact['email'] ?? '' ); ?>" />
+				</label>
+			</p>
+			<p>
+				<label>
+					Lien optionnel<br />
+					<input type="url" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][link]" value="<?php echo esc_attr( $contact['link'] ?? '' ); ?>" />
+				</label>
+			</p>
+		</details>
+		<?php
+	}
+}
+
+function wp_seed_events_save_contacts( $post_id ) {
+	if ( ! isset( $_POST['wp_seed_events_contacts_nonce'] ) ) {
+		return;
+	}
+
+	$nonce = sanitize_text_field( wp_unslash( $_POST['wp_seed_events_contacts_nonce'] ) );
+
+	if ( ! wp_verify_nonce( $nonce, 'wp_seed_events_save_contacts' ) ) {
+		return;
+	}
+
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$raw_contacts = isset( $_POST['wp_seed_events_contacts'] ) && is_array( $_POST['wp_seed_events_contacts'] ) ? wp_unslash( $_POST['wp_seed_events_contacts'] ) : array();
+	$roles        = wp_seed_events_contact_roles();
+	$contacts     = array();
+
+	foreach ( $raw_contacts as $raw_contact ) {
+		if ( ! is_array( $raw_contact ) ) {
+			continue;
+		}
+
+		$role  = isset( $raw_contact['role'] ) ? sanitize_key( $raw_contact['role'] ) : 'organizer';
+		$name  = isset( $raw_contact['name'] ) ? sanitize_text_field( $raw_contact['name'] ) : '';
+		$phone = isset( $raw_contact['phone'] ) ? sanitize_text_field( $raw_contact['phone'] ) : '';
+		$email = isset( $raw_contact['email'] ) ? sanitize_email( $raw_contact['email'] ) : '';
+		$link  = isset( $raw_contact['link'] ) ? esc_url_raw( $raw_contact['link'] ) : '';
+
+		if ( '' === $name ) {
+			continue;
+		}
+
+		if ( ! isset( $roles[ $role ] ) ) {
+			$role = 'organizer';
+		}
+
+		$contacts[] = array(
+			'role'  => $role,
+			'name'  => $name,
+			'phone' => $phone,
+			'email' => $email,
+			'link'  => $link,
+		);
+	}
+
+	if ( array() === $contacts ) {
+		delete_post_meta( $post_id, '_wp_seed_event_contacts' );
+		return;
+	}
+
+	update_post_meta( $post_id, '_wp_seed_event_contacts', $contacts );
 }
