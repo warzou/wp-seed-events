@@ -15,7 +15,11 @@ define( 'WP_SEED_EVENTS_VERSION', '0.1.0' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
+add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
+add_action( 'add_meta_boxes_wp_seed_place', 'wp_seed_events_add_place_address_meta_box' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_occurrences' );
+add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_place' );
+add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 
 function wp_seed_events_register_event_post_type() {
 	register_post_type(
@@ -33,6 +37,25 @@ function wp_seed_events_register_event_post_type() {
 			'show_ui'      => true,
 			'show_in_menu' => true,
 			'menu_icon'    => 'dashicons-calendar-alt',
+			'supports'     => array( 'title' ),
+			'show_in_rest' => false,
+		)
+	);
+
+	register_post_type(
+		'wp_seed_place',
+		array(
+			'labels'       => array(
+				'name'          => 'Lieux',
+				'singular_name' => 'Lieu',
+				'menu_name'     => 'Lieux',
+				'add_new_item'  => 'Ajouter un lieu',
+				'edit_item'     => 'Modifier le lieu',
+				'all_items'     => 'Tous les lieux',
+			),
+			'public'       => false,
+			'show_ui'      => true,
+			'show_in_menu' => 'edit.php?post_type=wp_seed_event',
 			'supports'     => array( 'title' ),
 			'show_in_rest' => false,
 		)
@@ -168,4 +191,163 @@ function wp_seed_events_save_occurrences( $post_id ) {
 	}
 
 	update_post_meta( $post_id, '_wp_seed_event_occurrences', $occurrences );
+}
+
+function wp_seed_events_add_place_meta_box() {
+	add_meta_box(
+		'wp_seed_events_place',
+		'Où a lieu mon évènement ?',
+		'wp_seed_events_render_place_meta_box',
+		'wp_seed_event',
+		'normal',
+		'default'
+	);
+}
+
+function wp_seed_events_render_place_meta_box( $post ) {
+	$selected_place_id = (int) get_post_meta( $post->ID, '_wp_seed_event_place_id', true );
+	$places            = get_posts(
+		array(
+			'post_type'      => 'wp_seed_place',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+		)
+	);
+
+	wp_nonce_field( 'wp_seed_events_save_event_place', 'wp_seed_events_place_nonce' );
+	?>
+	<p>
+		<label>
+			Choisir un lieu existant<br />
+			<select name="wp_seed_event_place_id">
+				<option value="">Aucun lieu</option>
+				<?php foreach ( $places as $place ) : ?>
+					<?php $address = get_post_meta( $place->ID, '_wp_seed_place_address', true ); ?>
+					<option value="<?php echo esc_attr( (string) $place->ID ); ?>" <?php selected( $selected_place_id, $place->ID ); ?>>
+						<?php echo esc_html( $address ? $place->post_title . ' - ' . $address : $place->post_title ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+	</p>
+	<p><strong>Créer un nouveau lieu</strong></p>
+	<p>
+		<label>
+			Nom du lieu<br />
+			<input type="text" name="wp_seed_new_place_name" value="" />
+		</label>
+	</p>
+	<p>
+		<label>
+			Adresse<br />
+			<input type="text" name="wp_seed_new_place_address" value="" />
+		</label>
+	</p>
+	<?php
+}
+
+function wp_seed_events_add_place_address_meta_box() {
+	add_meta_box(
+		'wp_seed_events_place_address',
+		'Adresse',
+		'wp_seed_events_render_place_address_meta_box',
+		'wp_seed_place',
+		'normal',
+		'default'
+	);
+}
+
+function wp_seed_events_render_place_address_meta_box( $post ) {
+	$address = get_post_meta( $post->ID, '_wp_seed_place_address', true );
+
+	wp_nonce_field( 'wp_seed_events_save_place_address', 'wp_seed_events_place_address_nonce' );
+	?>
+	<p>
+		<label>
+			Adresse<br />
+			<input type="text" name="wp_seed_place_address" value="<?php echo esc_attr( $address ); ?>" />
+		</label>
+	</p>
+	<?php
+}
+
+function wp_seed_events_save_event_place( $post_id ) {
+	if ( ! isset( $_POST['wp_seed_events_place_nonce'] ) ) {
+		return;
+	}
+
+	$nonce = sanitize_text_field( wp_unslash( $_POST['wp_seed_events_place_nonce'] ) );
+
+	if ( ! wp_verify_nonce( $nonce, 'wp_seed_events_save_event_place' ) ) {
+		return;
+	}
+
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$place_id    = isset( $_POST['wp_seed_event_place_id'] ) ? (int) $_POST['wp_seed_event_place_id'] : 0;
+	$place_name  = isset( $_POST['wp_seed_new_place_name'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_name'] ) ) : '';
+	$address     = isset( $_POST['wp_seed_new_place_address'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_address'] ) ) : '';
+
+	if ( '' !== $place_name ) {
+		$new_place_id = wp_insert_post(
+			array(
+				'post_type'   => 'wp_seed_place',
+				'post_status' => 'publish',
+				'post_title'  => $place_name,
+				'post_author' => get_current_user_id(),
+			)
+		);
+
+		if ( ! is_wp_error( $new_place_id ) && $new_place_id ) {
+			$place_id = (int) $new_place_id;
+
+			if ( '' !== $address ) {
+				update_post_meta( $place_id, '_wp_seed_place_address', $address );
+			}
+		}
+	}
+
+	if ( $place_id > 0 && 'wp_seed_place' === get_post_type( $place_id ) ) {
+		update_post_meta( $post_id, '_wp_seed_event_place_id', $place_id );
+		return;
+	}
+
+	delete_post_meta( $post_id, '_wp_seed_event_place_id' );
+}
+
+function wp_seed_events_save_place_address( $post_id ) {
+	if ( ! isset( $_POST['wp_seed_events_place_address_nonce'] ) ) {
+		return;
+	}
+
+	$nonce = sanitize_text_field( wp_unslash( $_POST['wp_seed_events_place_address_nonce'] ) );
+
+	if ( ! wp_verify_nonce( $nonce, 'wp_seed_events_save_place_address' ) ) {
+		return;
+	}
+
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$address = isset( $_POST['wp_seed_place_address'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_place_address'] ) ) : '';
+
+	if ( '' === $address ) {
+		delete_post_meta( $post_id, '_wp_seed_place_address' );
+		return;
+	}
+
+	update_post_meta( $post_id, '_wp_seed_place_address', $address );
 }
