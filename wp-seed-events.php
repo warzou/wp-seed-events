@@ -25,6 +25,7 @@ add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_contacts' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_media' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
+add_action( 'edit_form_after_title', 'wp_seed_events_render_description_label' );
 
 function wp_seed_events_register_event_post_type() {
 	wp_seed_events_enable_event_thumbnail_support();
@@ -71,6 +72,15 @@ function wp_seed_events_register_event_post_type() {
 			'show_in_rest' => false,
 		)
 	);
+}
+
+function wp_seed_events_render_description_label( $post ) {
+	if ( ! $post || 'wp_seed_event' !== $post->post_type ) {
+		return;
+	}
+	?>
+	<p><strong>Description de l'évènement</strong></p>
+	<?php
 }
 
 function wp_seed_events_enable_event_thumbnail_support() {
