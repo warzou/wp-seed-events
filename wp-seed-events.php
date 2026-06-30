@@ -48,7 +48,7 @@ function wp_seed_events_register_event_post_type() {
 			'show_ui'      => true,
 			'show_in_menu' => true,
 			'menu_icon'    => 'dashicons-calendar-alt',
-			'supports'     => array( 'title', 'thumbnail' ),
+			'supports'     => array( 'title', 'editor', 'thumbnail' ),
 			'show_in_rest' => false,
 		)
 	);
@@ -113,7 +113,7 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 	for ( $index = 0; $index < 5; $index++ ) {
 		$occurrence = isset( $occurrences[ $index ] ) && is_array( $occurrences[ $index ] ) ? $occurrences[ $index ] : array();
 		$is_open    = 0 === $index || ! empty( $occurrence['start_date'] );
-		$summary    = $is_open ? 'Occurrence ' . ( $index + 1 ) : 'Ajouter une occurrence ' . ( $index + 1 );
+		$summary    = $is_open ? 'Date ' . ( $index + 1 ) : 'Ajouter une autre date';
 		?>
 		<details <?php echo $is_open ? 'open' : ''; ?>>
 			<summary><?php echo esc_html( $summary ); ?></summary>
