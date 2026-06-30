@@ -29,7 +29,7 @@ L'utilisateur commence par creer un nouvel evenement.
 Il renseigne d'abord les informations qui permettent de comprendre l'evenement :
 
 - son nom ;
-- une description claire ;
+- une description claire, fortement recommandee avant publication ;
 - la ou les dates ;
 - le lieu si necessaire ;
 - les informations pratiques utiles aux visiteurs.
@@ -59,7 +59,7 @@ Les actions principales doivent etre visibles :
 
 - copier le lien public ;
 - telecharger le QR Code ;
-- telecharger l'invitation calendrier ;
+- proposer l'action Ajouter a mon calendrier ;
 - previsualiser la page publique.
 
 Le partage doit etre pense pour les usages concrets : affiche, flyer, message,
@@ -99,7 +99,7 @@ Cette section repond a la question : de quoi s'agit-il ?
 Elle contient :
 
 - le nom de l'evenement ;
-- une description ;
+- une description recommandee avant publication ;
 - une intention ou phrase courte de presentation si utile.
 
 ### Dates
@@ -132,8 +132,8 @@ Le lieu ne doit jamais etre une source de ressaisie inutile.
 
 Cette section repond a la question : quels supports accompagnent l'evenement ?
 
-Elle permet d'ajouter une image, une affiche ou un document utile a la
-communication.
+Elle permet d'ajouter une image de communication, une affiche, un flyer, une
+galerie ou un document utile a la communication.
 
 Les medias doivent soutenir l'evenement, pas compliquer sa creation.
 
@@ -159,7 +159,7 @@ Elle regroupe les actions de partage une fois que l'evenement est pret :
 
 - lien public ;
 - QR Code ;
-- invitation calendrier ;
+- Ajouter a mon calendrier ;
 - previsualisation.
 
 ## Champs indispensables en V1
@@ -176,15 +176,16 @@ pour l'utilisateur ou pour le visiteur.
 
 - Heure de debut.
 - Heure de fin.
-- Description.
+- Description recommandee avant publication.
 - Phrase courte de presentation.
 - Lieu.
 - Adresse.
 - Ville.
 - Indications d'acces.
+- Image de communication.
 - Image ou affiche.
 - Document associe.
-- Contact principal.
+- Contacts ou intervenants.
 - Informations pratiques.
 
 ## Actions proposees
@@ -202,7 +203,7 @@ parcours.
 
 - Copier le lien.
 - Telecharger le QR Code.
-- Telecharger l'ICS.
+- Ajouter a mon calendrier.
 - Previsualiser.
 
 ### Apres la fin de l'evenement
@@ -269,6 +270,9 @@ La creation d'un lieu doit rester legere :
 Un evenement peut aussi etre cree sans lieu physique lorsque le lieu n'est pas
 encore connu ou n'est pas pertinent.
 
+En V1, un evenement possede un seul lieu principal, meme s'il possede plusieurs
+dates. Les evenements multi-lieux sont hors V1.
+
 ## Erreurs UX a eviter
 
 WP Seed Events ne doit jamais provoquer les erreurs suivantes :
@@ -284,6 +288,7 @@ WP Seed Events ne doit jamais provoquer les erreurs suivantes :
 - demander a l'utilisateur de choisir manuellement un statut temporel ;
 - rendre les brouillons difficiles a retrouver ;
 - confondre evenement termine et evenement archive ;
+- archiver automatiquement un evenement termine ;
 - presenter les evenements passes comme s'ils etaient encore a venir ;
 - multiplier les choix avant que l'utilisateur ait fini l'essentiel ;
 - utiliser des ecrans denses pour des besoins simples ;
@@ -315,17 +320,18 @@ Nouvel evenement, publication, partage, fin de l'evenement, archive.
 
 La V1 doit rester volontairement sobre. Elle doit permettre de creer un
 evenement avec un nom et au moins une date, puis d'ajouter progressivement les
-informations utiles au public : description, lieu, medias, contact et
-informations pratiques.
+informations utiles au public : description, lieu, medias, contacts ou
+intervenants et informations pratiques.
 
 La valeur principale de l'outil est de transformer une initiative en reference
 publique claire, facile a partager et facile a retrouver.
 
-## Points restant a arbitrer
+## Decisions V1
 
-- La description doit-elle rester optionnelle en V1 ou devenir obligatoire avant publication ?
-- Le contact principal doit-il etre gere des la V1 ou reporte apres le socle minimal ?
-- Les informations pratiques doivent-elles etre un texte libre unique ou plusieurs blocs courts ?
-- Un evenement avec plusieurs dates doit-il toujours partager le meme lieu en V1 ?
-- L'archive doit-elle etre proposee automatiquement apres la fin ou rester uniquement une action manuelle ?
-- Le libelle public de l'invitation calendrier doit-il afficher "ICS" ou un terme plus comprehensible comme "Ajouter au calendrier" ?
+- La description est recommandee avant publication, sans bloquer les brouillons.
+- La V1 accepte plusieurs contacts ou intervenants simples.
+- Les informations pratiques sont en texte libre.
+- Un evenement possede un lieu principal unique, meme avec plusieurs dates.
+- L'archivage est manuel.
+- Le libelle public est Ajouter a mon calendrier, pas ICS.
+- L'image de communication est prevue avec fallback si rien n'est fourni.

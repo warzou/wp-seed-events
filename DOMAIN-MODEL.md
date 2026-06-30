@@ -27,9 +27,9 @@ communication :
 - promesse ou intention ;
 - informations utiles ;
 - occurrences ;
-- lieu éventuel ;
+- lieu principal éventuel ;
 - médias ;
-- contact éventuel ;
+- contacts ou intervenants éventuels ;
 - lien public de référence.
 
 L'évènement est l'objet central du domaine.
@@ -64,8 +64,8 @@ Il peut décrire :
 
 Un lieu peut être utilisé par plusieurs évènements.
 
-Un évènement peut aussi ne pas avoir de lieu physique si cette information n'est
-pas pertinente.
+En V1, un évènement possède au maximum un lieu principal, même s'il possède
+plusieurs occurrences. Les évènements multi-lieux sont hors V1.
 
 ### Média
 
@@ -76,17 +76,18 @@ Il peut servir à :
 - illustrer l'évènement ;
 - enrichir la communication ;
 - fournir une affiche ;
-- accompagner le partage public.
+- accompagner le partage public ;
+- fournir une image de communication.
 
 Un évènement peut posséder plusieurs médias.
 
 Le média n'est pas le contenu principal de l'évènement. Il soutient sa
 communication.
 
-### Contact
+### Contact / Intervenant
 
-Un contact représente la personne, l'équipe ou le canal à joindre pour obtenir
-des informations sur l'évènement.
+Un contact ou intervenant représente la personne, l'équipe ou le canal utile à la
+compréhension ou à l'organisation de l'évènement.
 
 Il peut contenir :
 
@@ -95,7 +96,11 @@ Il peut contenir :
 - un moyen de contact ;
 - une consigne de prise de contact.
 
-Le contact est facultatif.
+En V1, un évènement peut comporter plusieurs contacts ou intervenants simples.
+Ils peuvent représenter un organisateur, un intervenant, un contact inscription
+ou un contact information.
+
+La liaison future avec un annuaire WP Seed Content reste optionnelle et hors V1.
 
 ### Information pratique
 
@@ -111,7 +116,8 @@ Exemples :
 - public concerné ;
 - matériel à prévoir.
 
-Ces informations doivent rester orientées visiteur et communication.
+En V1, les informations pratiques sont saisies en texte libre. Il n'y a pas de
+blocs structurés complexes.
 
 ### QR Code
 
@@ -130,6 +136,8 @@ l'évènement.
 Elle permet à une personne d'ajouter l'évènement à son propre outil de rappel ou
 de calendrier.
 
+Le libellé public retenu est Ajouter à mon calendrier.
+
 Elle est produite à partir des informations de l'évènement et de ses occurrences.
 
 ## Relations entre les objets
@@ -138,7 +146,7 @@ Un évènement possède toujours une ou plusieurs occurrences.
 
 Une occurrence appartient toujours à un seul évènement.
 
-Un évènement peut posséder un lieu.
+Un évènement peut posséder un lieu principal.
 
 Un lieu peut être partagé par plusieurs évènements.
 
@@ -146,10 +154,11 @@ Un évènement peut posséder plusieurs médias.
 
 Un média appartient à la communication d'un évènement.
 
-Un évènement peut posséder un contact.
+Un évènement peut posséder plusieurs contacts ou intervenants.
 
-Un contact peut être commun à plusieurs évènements si la même personne ou équipe
-est responsable de plusieurs communications.
+Un contact ou intervenant reste une information simple liée à l'évènement en V1.
+Une liaison future avec un annuaire WP Seed Content pourra exister, mais elle
+restera optionnelle.
 
 Un évènement peut posséder plusieurs informations pratiques.
 
@@ -161,10 +170,11 @@ L'invitation calendrier reprend les informations temporelles de l'évènement.
 
 ## Cycle de vie d'un évènement
 
-Le cycle de vie combine deux dimensions :
+Le cycle de vie combine trois dimensions :
 
 - l'état éditorial, décidé par l'équipe qui prépare la communication ;
-- le statut temporel, déduit des occurrences.
+- le statut temporel, déduit des occurrences ;
+- l'état métier annulé, choisi explicitement si l'évènement ne se tient pas.
 
 ### Brouillon
 
@@ -179,6 +189,17 @@ L'évènement est validé pour la communication.
 
 Sa page publique peut devenir la référence vers laquelle pointent les supports de
 communication.
+
+### Dépublié
+
+L'évènement n'est plus visible publiquement, sans être supprimé.
+
+### Annulé
+
+L'évènement ne se tiendra pas.
+
+Il reste consultable lorsqu'il a déjà été publié ou partagé, et il doit être
+clairement marqué comme annulé.
 
 ### À venir
 
@@ -202,8 +223,7 @@ Ce statut est déduit des dates.
 
 L'évènement n'est plus mis en avant dans la communication courante.
 
-L'archivage peut être utile pour conserver une trace sans continuer à présenter
-l'évènement comme actif.
+L'archivage est manuel. Un évènement terminé n'est pas automatiquement archivé.
 
 ## Ce qui est calculé
 
@@ -242,6 +262,8 @@ Une invitation calendrier doit refléter les occurrences de l'évènement.
 
 Un lieu peut être partagé par plusieurs évènements.
 
+Un évènement possède au maximum un lieu principal en V1.
+
 Un média soutient la communication d'un évènement, mais ne définit pas
 l'évènement à lui seul.
 
@@ -269,57 +291,59 @@ Les éléments suivants ne font pas partie du domaine V1 :
 - gestion de ressources internes ;
 - synchronisation avec des services externes ;
 - statistiques avancées ;
-- parcours participant complet.
+- parcours participant complet ;
+- évènements multi-lieux ;
+- récurrence complexe.
 
 Ces sujets peuvent exister autour d'un évènement, mais ils ne définissent pas le
 coeur métier de WP Seed Events en V1.
 
-## Zones d'ambiguïté à clarifier
+## Décisions V1 validées
 
-### Lieu par évènement ou par occurrence
+### Lieu principal unique
 
-Le modèle actuel considère qu'un évènement possède éventuellement un lieu.
+En V1, un évènement possède au maximum un lieu principal.
 
-Une question reste ouverte : un évènement multi-occurrences peut-il avoir des
-lieux différents selon les occurrences ?
+Ce choix reste valable même si l'évènement possède plusieurs occurrences.
 
-Pour garder la V1 simple, le choix recommandé est de commencer avec un lieu au
-niveau de l'évènement, puis de réévaluer ce besoin plus tard.
+Les évènements multi-lieux sont hors V1.
 
-### Contact unique ou contacts multiples
+### Contacts et intervenants multiples
 
-Le modèle décrit un contact facultatif.
+En V1, un évènement peut comporter plusieurs contacts ou intervenants simples.
 
-Une question reste ouverte : certains évènements auront-ils besoin de plusieurs
-contacts, par exemple un contact presse et un contact organisation ?
+Ils peuvent représenter :
 
-Pour la V1, un contact principal semble suffisant.
+- un organisateur ;
+- un intervenant ;
+- un contact inscription ;
+- un contact information.
 
-### Informations pratiques structurées ou libres
+### Informations pratiques libres
 
-Les informations pratiques peuvent être très variées.
+En V1, les informations pratiques sont saisies en texte libre.
 
-Une question reste ouverte : faut-il les organiser par type ou les garder sous
-forme de blocs simples ?
+Il n'y a pas de blocs structurés complexes.
 
-Pour la V1, une approche simple et lisible côté visiteur est préférable.
+### Description recommandée
 
-### Archivage
+La description n'est pas obligatoire pour enregistrer un brouillon.
 
-L'archivage est utile, mais son rôle exact reste à cadrer.
+Elle est fortement recommandée avant publication.
 
-Une question reste ouverte : l'archivage doit-il être une décision explicite ou
-une conséquence naturelle du temps passé ?
+### Archivage manuel
 
-Pour la V1, il vaut mieux distinguer clairement "terminé" et "archivé".
+L'archivage est manuel.
+
+Un évènement terminé n'est pas automatiquement archivé.
 
 ## Résumé
 
 WP Seed Events repose sur un objet central : l'évènement.
 
 Un évènement existe pour communiquer clairement une initiative au public. Il
-possède au moins une occurrence, peut être associé à un lieu, à des médias, à un
-contact et à des informations pratiques.
+possède au moins une occurrence, peut être associé à un lieu principal, à des
+médias, à plusieurs contacts ou intervenants et à des informations pratiques.
 
 La page publique de l'évènement est la référence unique. Le QR Code et
 l'invitation calendrier sont des sorties produites à partir de cette référence et

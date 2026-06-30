@@ -4,9 +4,10 @@
 
 Nom : WP Seed Events
 
-Nature : plugin WordPress autonome, à concevoir puis développer progressivement.
+Nature : plugin WordPress autonome, à développer progressivement.
 
-Etat actuel : dépôt initialisé pour cadrage produit uniquement.
+Etat actuel : dépôt initialisé, documentation de conception consolidée et
+bootstrap plugin minimal réalisé.
 
 ## Décision structurante
 
@@ -33,16 +34,22 @@ dépendance obligatoire.
 - logique Divi avancée ;
 - constructeur d'affichage ;
 - dépendance obligatoire à WP Seed Content Kit ;
-- logique WordPress écrite avant validation de conception.
+- logique WordPress hors lot validé.
 
 ## Etat du dépôt
 
-Ce dépôt ne contient pour l'instant que des fichiers de cadrage.
+Ce dépôt contient :
 
-Il ne contient pas :
+- les fichiers de cadrage produit, fonctionnel, architecture et validation ;
+- le fichier principal minimal `wp-seed-events.php` créé au Lot 0.
 
-- de fichier plugin principal ;
-- de code PHP fonctionnel ;
+Il ne contient pas encore :
+
+- de fonctionnalité métier ;
+- de CPT ;
+- de shortcode ;
+- d'écran admin ;
+- de champs évènement ;
 - de dépendance Composer ;
 - de dépendance npm ;
 - de test runtime ;
@@ -64,4 +71,3 @@ Ordre attendu :
 7. tests et validation WordPress.
 
 Les commits ne doivent pas être créés sans validation humaine explicite.
-

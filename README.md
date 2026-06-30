@@ -46,10 +46,13 @@ WP Seed Events ne doit pas devenir :
 
 ## Statut actuel
 
-Le dépôt est en phase d'initialisation supervisée.
+Le dépôt est en phase d'implémentation incrémentale supervisée.
 
-Aucun code plugin n'existe encore. Aucun fichier d'entrée WordPress
-`wp-seed-events.php` ne doit être créé à ce stade.
+Le Lot 0 est réalisé : le fichier principal minimal `wp-seed-events.php` existe
+et fournit un bootstrap plugin activable.
 
-La prochaine étape est la conception produit détaillée, pas l'implémentation.
+Aucune fonctionnalité métier n'est encore implémentée : aucun CPT, aucun
+shortcode, aucun écran admin, aucun champ et aucune intégration WP Seed Content.
 
+Les prochaines étapes doivent suivre le plan d'implémentation validé, lot par
+lot, avec validation humaine avant commit ou passage au lot suivant.

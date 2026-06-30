@@ -55,10 +55,8 @@ Cette relation ne devra jamais empêcher WP Seed Events de fonctionner seul.
 
 ## Règles anti-dérive
 
-- Aucun code WordPress avant validation du cadrage.
-- Aucun fichier `wp-seed-events.php` pendant la phase actuelle.
+- Aucun code métier WordPress sans validation du lot correspondant.
 - Aucune dépendance Composer ou npm sans décision explicite.
 - Aucun couplage obligatoire à WP Seed Content Kit.
 - Aucun ajout Divi tant que le coeur évènement n'est pas stabilisé.
 - Aucun moteur de templates avancé dans le coeur V1.
-
