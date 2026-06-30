@@ -576,7 +576,9 @@ function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
 	wp_enqueue_script( 'jquery' );
 	wp_add_inline_script(
 		'jquery',
-		"jQuery(function($){$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input=\"'+key+'\"]').val(attachment.id);$('[data-wp-seed-media-label=\"'+key+'\"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input=\"'+key+'\"]').val('');$('[data-wp-seed-media-label=\"'+key+'\"]').text('Aucun fichier choisi');});});"
+		<<<'JS'
+jQuery(function($){$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input="'+key+'"]').val(attachment.id);$('[data-wp-seed-media-label="'+key+'"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input="'+key+'"]').val('');$('[data-wp-seed-media-label="'+key+'"]').text('Aucun fichier choisi');});});
+JS
 	);
 }
 
