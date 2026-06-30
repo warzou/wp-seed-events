@@ -2,380 +2,454 @@
 
 ## Intention
 
-Ce plan decoupe la V1 de WP Seed Events en petits lots operationnels.
+Ce plan decoupe la V1 de WP Seed Events en petits lots de valeur utilisateur.
 
-Chaque lot doit etre livre, teste et valide avant le suivant. Les noms de fichiers
-ci-dessous sont indicatifs et devront etre confirmes par l'architecture
-WordPress.
+Chaque lot doit produire un resultat visible, testable et validable du point de
+vue d'une personne qui cree, publie ou partage des evenements.
+
+Le decoupage reste volontairement progressif : un lot ajoute une seule capacite
+principale, sans derive vers agenda, billetterie, annuaire complet ou builder.
 
 ## Lot 0 - Bootstrap plugin
 
-Objectif : creer un plugin WordPress activable, sans fonctionnalite metier.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux installer et activer WP Seed Events sans erreur.
 
-- fichier d'entree du plugin ;
-- dossier de base du plugin ;
-- fichier de desinstallation ou note de cycle de vie si retenu ;
-- documentation courte de lancement local.
+### Objectif metier
 
-Validations attendues :
+Poser un socle fiable avant toute fonctionnalite evenementielle.
 
-- le plugin s'active ;
-- le plugin se desactive sans erreur ;
-- aucune fonctionnalite metier n'est encore exposee ;
-- aucune dependance externe n'est requise.
+### Elements techniques probables
 
-Risques :
+- fichier principal du plugin ;
+- identification du plugin ;
+- version du plugin ;
+- protection d'acces direct.
 
-- introduire trop tot une structure lourde ;
-- ajouter une dependance inutile ;
-- commencer le metier avant le socle.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur active le plugin, le desactive, puis le reactive sans erreur
+visible.
 
-- plugin activable, vide fonctionnellement, pret pour le lot 1.
+### Dependances
 
-## Lot 1 - CPT Evenement
+Aucune.
 
-Objectif : creer le contenu evenement public minimal.
+### Livrable
 
-Fichiers probables :
+Un plugin activable, sans fonctionnalite visible et sans logique metier.
 
-- module de declaration du contenu evenement ;
-- module d'activation du plugin ;
-- documentation interne du type de contenu.
+## Lot 1 - Evenement public minimal
 
-Validations attendues :
+### Valeur utilisateur
 
-- un evenement peut exister comme contenu public dedie ;
-- brouillon et publication fonctionnent ;
-- la page publique de base existe ;
-- aucun autre objet metier n'est cree.
+Je peux creer un premier evenement brouillon, le publier, puis ouvrir sa page.
 
-Risques :
+### Objectif metier
 
-- ajouter trop d'options editoriales ;
-- melanger evenement et page classique ;
-- ouvrir deja les occurrences, lieux ou contacts.
+Donner a chaque evenement une reference publique stable.
 
-Critere de sortie :
+### Elements techniques probables
 
-- evenement minimal cree, consultable et publiable.
+- contenu editorial dedie aux evenements ;
+- liste d'evenements ;
+- edition minimale ;
+- publication et brouillon ;
+- page publique de base.
 
-## Lot 2 - Champs evenement essentiels
+### Validation fonctionnelle
 
-Objectif : ajouter titre, description, dates simples et etat annule.
+L'utilisateur cree un evenement brouillon, le retrouve dans la liste, le publie
+et consulte sa page publique.
 
-Fichiers probables :
+### Dependances
 
-- module des champs evenement ;
-- module de validation metier ;
-- module d'administration minimale.
+- Lot 0.
 
-Validations attendues :
+### Livrable
 
-- titre obligatoire ;
-- description recommandee mais non bloquante ;
-- une date simple peut etre saisie ;
-- l'etat annule peut etre choisi ;
-- un evenement annule reste consultable et marque clairement.
+Un evenement minimal peut exister, etre publie et etre consulte.
 
-Risques :
+## Lot 2 - Informations essentielles
 
-- bloquer inutilement les brouillons ;
-- confondre annulation et suppression ;
-- rendre les dates trop complexes.
+### Valeur utilisateur
 
-Critere de sortie :
+Je peux renseigner les informations de base de mon evenement : titre,
+description, premiere date et annulation si besoin.
 
-- evenement simple publiable avec date et annulation visible.
+### Objectif metier
+
+Permettre la creation d'un evenement comprehensible par le public, sans forcer
+des informations non indispensables.
+
+### Elements techniques probables
+
+- titre ;
+- description ;
+- date simple ;
+- etat annule ;
+- messages d'aide ou de validation simples.
+
+### Validation fonctionnelle
+
+L'utilisateur cree un evenement avec un titre et une date, ajoute une description
+si elle est prete, puis verifie qu'un evenement annule est clairement marque
+comme annule.
+
+### Dependances
+
+- Lot 1.
+
+### Livrable
+
+Un evenement simple contient les informations minimales utiles et peut etre
+marque comme annule.
 
 ## Lot 3 - Occurrences
 
-Objectif : gerer plusieurs dates simples sans recurrence complexe.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux ajouter plusieurs dates simples a un meme evenement.
 
-- module occurrences ;
-- module de calcul temporel ;
-- ajustement des champs evenement ;
-- tests de cas dates.
+### Objectif metier
 
-Validations attendues :
+Representer les moments ou l'evenement a lieu, sans gerer de recurrence
+complexe.
 
-- plusieurs occurrences peuvent etre ajoutees ;
-- elles sont affichees dans un ordre comprehensible ;
-- la derniere occurrence ne peut pas etre supprimee sans remplacement ;
-- les statuts a venir, en cours et termine sont calcules.
+### Elements techniques probables
 
-Risques :
+- stockage de plusieurs dates ;
+- heure de debut optionnelle ;
+- heure de fin optionnelle ;
+- ordre chronologique ;
+- calcul de statut temporel.
 
-- creer un calendrier avance ;
-- gerer des exceptions de recurrence ;
-- disperser la logique temporelle.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur ajoute deux dates a un evenement, les retrouve dans un ordre
+comprehensible, puis constate que l'evenement passe automatiquement de "a venir"
+a "termine" selon les dates.
 
-- plusieurs dates simples fonctionnent et pilotent le statut temporel.
+### Dependances
+
+- Lot 2.
+
+### Livrable
+
+Un evenement peut porter plusieurs occurrences simples et un statut temporel
+calcule.
 
 ## Lot 4 - Lieux
 
-Objectif : ajouter un lieu principal reutilisable.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux choisir un lieu deja utilise ou creer un nouveau lieu pour mon evenement.
 
-- module lieu ;
-- module d'association evenement-lieu ;
-- interface de choix ou creation rapide ;
-- ajustement du rendu public.
+### Objectif metier
 
-Validations attendues :
+Eviter la ressaisie des lieux tout en gardant un lieu principal unique par
+evenement en V1.
 
-- un lieu peut etre cree ;
-- un lieu peut etre reutilise ;
-- un evenement peut rester sans lieu ;
-- un evenement conserve un seul lieu principal en V1.
+### Elements techniques probables
 
-Risques :
+- lieu reutilisable ;
+- nom du lieu ;
+- adresse optionnelle ;
+- ville optionnelle ;
+- indications d'acces optionnelles ;
+- association d'un lieu principal a l'evenement.
 
-- transformer les lieux en gestion de salles ;
-- permettre les multi-lieux trop tot ;
-- rendre le lieu obligatoire.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur cree un lieu une premiere fois, le selectionne ensuite dans un
+autre evenement, puis verifie qu'un evenement peut aussi rester sans lieu.
 
-- lieu principal reutilisable operationnel et optionnel.
+### Dependances
+
+- Lot 2.
+
+### Livrable
+
+Les evenements peuvent utiliser un lieu principal reutilisable et optionnel.
 
 ## Lot 5 - Contacts / intervenants
 
-Objectif : ajouter plusieurs contacts simples lies a l'evenement.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux indiquer qui organise, qui intervient ou qui contacter pour un evenement.
 
-- module contacts evenementiels ;
-- module de roles de contact ;
-- ajustement de l'edition evenement ;
-- ajustement du rendu public.
+### Objectif metier
 
-Validations attendues :
+Clarifier les responsabilites humaines autour de l'evenement sans creer un
+annuaire complet.
 
-- plusieurs contacts peuvent etre ajoutes ;
-- les roles sont organisateur, intervenant, contact inscription et contact information ;
-- aucun annuaire externe n'est requis ;
-- l'absence de WP Seed Content ne change rien au fonctionnement.
+### Elements techniques probables
 
-Risques :
+- contacts simples lies a l'evenement ;
+- role du contact ;
+- nom ;
+- moyen de contact optionnel ;
+- consigne courte optionnelle.
 
-- creer un annuaire complet ;
-- rendre les contacts obligatoires ;
-- introduire un couplage implicite avec WP Seed Content.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur ajoute plusieurs contacts avec des roles differents, publie
+l'evenement, puis verifie que ces contacts sont lisibles sur la page publique.
 
-- contacts simples visibles et autonomes.
+### Dependances
+
+- Lot 2.
+
+### Livrable
+
+Un evenement peut afficher plusieurs contacts ou intervenants simples, sans
+dependance a un annuaire externe.
 
 ## Lot 6 - Medias
 
-Objectif : ajouter image de communication, flyer image/PDF et galerie.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux rendre mon evenement plus partageable avec une image, un flyer, un PDF ou
+une galerie.
 
-- module medias evenementiels ;
-- module image de communication ;
-- ajustement de l'edition evenement ;
-- ajustement du rendu public.
+### Objectif metier
 
-Validations attendues :
+Soutenir la communication de l'evenement sans faire du media la source de verite.
 
-- une image de communication peut etre choisie ;
-- un flyer recto ou verso peut etre associe ;
-- un PDF peut etre associe ;
-- une galerie peut etre associee ;
-- un fallback existe si aucune image n'est fournie.
+### Elements techniques probables
 
-Risques :
+- image de communication ;
+- fallback visuel ;
+- flyer recto ;
+- flyer verso ;
+- PDF associe ;
+- galerie d'images.
 
-- rendre le flyer obligatoire ;
-- faire du media la source de verite ;
-- creer un systeme media parallele.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur ajoute une image de communication et un flyer, consulte la page
+publique, puis cree aussi un evenement sans media et verifie qu'il reste
+presentable.
 
-- evenement partageable visuellement avec ou sans media fourni.
+### Dependances
+
+- Lot 2.
+
+### Livrable
+
+Un evenement est visuellement partageable avec ou sans media fourni.
 
 ## Lot 7 - Rendu public minimal
 
-Objectif : produire une page evenement propre et partageable.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux partager une page evenement claire, lisible et utile pour les visiteurs.
 
-- module de rendu public ;
-- gabarit minimal evenement ;
-- styles publics minimaux ;
-- ajustement des donnees exposees.
+### Objectif metier
 
-Validations attendues :
+Transformer les informations saisies en reference publique stable, sans builder.
 
-- ordre d'affichage respecte ;
-- annulation visible en premier si presente ;
-- image, titre, description, dates, lieu, contacts et informations pratiques sont lisibles ;
-- aucun builder n'est necessaire ;
-- WP Seed Content n'est pas requis.
+### Elements techniques probables
 
-Risques :
+- page publique evenement ;
+- ordre d'affichage V1 ;
+- affichage de l'annulation ;
+- affichage des dates ;
+- affichage du lieu ;
+- affichage des contacts ;
+- affichage des informations pratiques ;
+- rendu autonome.
 
-- transformer le rendu en moteur de templates ;
-- surcharger la page ;
-- rendre la presentation dependante d'un autre plugin.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur publie un evenement complet, ouvre sa page publique et verifie que
+les informations apparaissent dans un ordre simple : annulation si presente,
+image, titre, description, dates, lieu, contacts, informations pratiques et
+medias.
 
-- page publique V1 claire, stable et autonome.
+### Dependances
+
+- Lot 1 ;
+- Lot 2 ;
+- Lot 3 ;
+- Lot 4 ;
+- Lot 5 ;
+- Lot 6.
+
+### Livrable
+
+Une page evenement V1 propre, partageable et independante de tout builder.
 
 ## Lot 8 - Ajouter a mon calendrier
 
-Objectif : fournir le bouton calendrier avec libelle utilisateur clair.
+### Valeur utilisateur
 
-Fichiers probables :
+Un visiteur peut ajouter l'evenement a son calendrier depuis la page publique.
 
-- module calendrier ;
-- module de generation ICS ;
-- ajustement du rendu public ;
-- tests de telechargement.
+### Objectif metier
 
-Validations attendues :
+Faciliter le rappel personnel de l'evenement a partir de ses occurrences.
 
-- le libelle public utilise "Ajouter a mon calendrier" ou equivalent ;
-- les occurrences sont reprises correctement ;
-- le telechargement fonctionne ;
-- le mot ICS n'est pas le libelle principal cote visiteur.
+### Elements techniques probables
 
-Risques :
+- bouton "Ajouter a mon calendrier" ;
+- fichier calendrier ;
+- reprise des dates et horaires ;
+- libelle public non technique.
 
-- exposer un vocabulaire trop technique ;
-- oublier les evenements multi-occurrences ;
-- produire une invitation incoherente apres modification des dates.
+### Validation fonctionnelle
 
-Critere de sortie :
+Le visiteur clique sur "Ajouter a mon calendrier" et obtient une invitation qui
+reprend correctement le titre, les dates et les horaires de l'evenement.
 
-- bouton calendrier utilisable sur un evenement publie.
+### Dependances
+
+- Lot 3 ;
+- Lot 7.
+
+### Livrable
+
+Un bouton calendrier utilisable par les visiteurs sur la page evenement.
 
 ## Lot 9 - QR Code
 
-Objectif : produire un QR Code de l'URL publique.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux recuperer un QR Code qui pointe vers la page publique de mon evenement.
 
-- module QR Code ;
-- module de partage ;
-- ajustement de l'administration evenement ;
-- ajustement optionnel du rendu public.
+### Objectif metier
 
-Validations attendues :
+Faciliter le partage hors ligne sur affiche, flyer ou support imprime.
 
-- le QR Code pointe vers l'URL publique ;
-- il n'est pas genere depuis une URL temporaire ;
-- il reste disponible apres publication ;
-- son affichage public ou prive respecte la decision retenue.
+### Elements techniques probables
 
-Risques :
+- URL publique de l'evenement ;
+- generation ou association du QR Code ;
+- acces au QR Code pour l'utilisateur ;
+- affichage public seulement si pertinent.
 
-- pointer vers une mauvaise URL ;
-- generer trop tot des fichiers permanents inutiles ;
-- rendre le QR Code central alors qu'il reste un support de partage.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur publie un evenement, recupere son QR Code, le scanne et arrive sur
+la bonne page publique.
 
-- QR Code fiable pour l'evenement publie.
+### Dependances
+
+- Lot 1 ;
+- Lot 7.
+
+### Livrable
+
+Un QR Code fiable pour chaque evenement publie.
 
 ## Lot 10 - Shortcodes listes
 
-Objectif : afficher prochains evenements, evenements en cours et evenements termines.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux afficher une liste simple des prochains evenements, des evenements en
+cours ou des evenements termines dans une page existante.
 
-- module shortcodes ;
-- module de requetes evenementielles ;
-- module de rendu de liste ;
-- tests de tri temporel.
+### Objectif metier
 
-Validations attendues :
+Permettre aux visiteurs de decouvrir les evenements sans transformer le produit
+en calendrier avance.
 
-- liste des prochains evenements ;
-- liste des evenements en cours ;
-- liste des evenements termines ;
-- exclusion ou traitement clair des archives ;
-- pas de builder interne.
+### Elements techniques probables
 
-Risques :
+- point d'affichage pour prochains evenements ;
+- point d'affichage pour evenements en cours ;
+- point d'affichage pour evenements termines ;
+- tri par statut temporel ;
+- rendu de liste simple.
 
-- multiplier les options ;
-- disperser les regles temporelles ;
-- transformer les listes en calendrier avance.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur ajoute une liste a une page existante, puis verifie que les
+evenements apparaissent dans la bonne categorie selon leurs dates.
 
-- listes simples utilisables dans un contenu existant.
+### Dependances
+
+- Lot 3 ;
+- Lot 7.
+
+### Livrable
+
+Des listes simples d'evenements peuvent etre affichees ailleurs dans le site.
 
 ## Lot 11 - Duplication / archivage / annulation
 
-Objectif : ajouter les actions metier simples.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux dupliquer un evenement, archiver manuellement un evenement termine et
+annuler un evenement sans le supprimer.
 
-- module actions evenement ;
-- module duplication ;
-- module archivage ;
-- ajustement des listes d'administration.
+### Objectif metier
 
-Validations attendues :
+Simplifier la gestion courante des evenements tout en preservant leur historique
+et leur clarte publique.
 
-- la duplication cree un brouillon ;
-- elle copie titre, description, occurrences, lieu, contacts, informations pratiques et medias ;
-- l'archivage est manuel ;
-- un evenement termine n'est pas archive automatiquement ;
-- l'annulation reste distincte de la suppression.
+### Elements techniques probables
 
-Risques :
+- action de duplication ;
+- copie en brouillon ;
+- archivage manuel ;
+- restauration possible si retenue ;
+- annulation visible ;
+- distinction entre termine, archive, annule et supprime.
 
-- copier des donnees qui devraient etre revues ;
-- confondre archive et termine ;
-- rendre une action destructive trop facile.
+### Validation fonctionnelle
 
-Critere de sortie :
+L'utilisateur duplique un evenement et obtient un brouillon complet a relire. Il
+archive manuellement un evenement termine. Il annule un evenement publie et
+verifie que la page reste consultable avec un marquage clair.
 
-- actions metier fiables, explicites et reversibles quand necessaire.
+### Dependances
+
+- Lot 2 ;
+- Lot 3 ;
+- Lot 4 ;
+- Lot 5 ;
+- Lot 6 ;
+- Lot 7.
+
+### Livrable
+
+Les actions metier principales sont disponibles sans confusion entre annulation,
+archivage, fin d'evenement et suppression.
 
 ## Lot 12 - Tests reels / nettoyage / release V1
 
-Objectif : valider la V1 en conditions proches d'un usage reel.
+### Valeur utilisateur
 
-Fichiers probables :
+Je peux utiliser WP Seed Events pour un parcours V1 complet, de la creation a la
+publication, puis au partage et a l'archivage.
+
+### Objectif metier
+
+Valider que la V1 couvre correctement le coeur de communication evenementielle
+avant release.
+
+### Elements techniques probables
 
 - check-list de validation ;
 - documentation utilisateur courte ;
 - notes de release ;
-- ajustements mineurs issus des tests.
+- corrections ciblees ;
+- nettoyage des libelles et des parcours.
 
-Validations attendues :
+### Validation fonctionnelle
 
-- creation d'un evenement simple ;
-- evenement multi-occurrences ;
-- evenement avec lieu reutilise ;
-- evenement avec plusieurs contacts ;
-- evenement avec image et flyer ;
-- evenement annule ;
-- evenement termine puis archive manuellement ;
-- calendrier, QR Code et listes fonctionnels ;
-- absence de dependance obligatoire a WP Seed Content.
+Un utilisateur cree plusieurs evenements reels : un brouillon, un evenement a
+plusieurs dates, un evenement avec lieu reutilise, un evenement avec contacts, un
+evenement avec media, un evenement annule et un evenement archive. Les pages,
+listes, QR Codes et boutons calendrier fonctionnent sans dependance obligatoire a
+WP Seed Content.
 
-Risques :
+### Dependances
 
-- ajouter de nouvelles fonctions pendant le nettoyage ;
-- repousser les tests reels trop tard ;
-- melanger correctifs et nouvelles idees V2.
+- Lots 0 a 11.
 
-Critere de sortie :
+### Livrable
 
-- V1 stable, documentee, testee et prete pour validation humaine de release.
+Une V1 stable, testee, documentee et prete pour validation humaine de release.
