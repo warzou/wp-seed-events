@@ -245,6 +245,7 @@ function wp_seed_events_add_place_meta_box() {
 
 function wp_seed_events_render_place_meta_box( $post ) {
 	$selected_place_id = (int) get_post_meta( $post->ID, '_wp_seed_event_place_id', true );
+	$place_details     = get_post_meta( $post->ID, '_wp_seed_event_place_details', true );
 	$places            = get_posts(
 		array(
 			'post_type'      => 'wp_seed_place',
@@ -269,6 +270,12 @@ function wp_seed_events_render_place_meta_box( $post ) {
 					</option>
 				<?php endforeach; ?>
 			</select>
+		</label>
+	</p>
+	<p>
+		<label>
+			Informations complémentaires<br />
+			<textarea name="wp_seed_event_place_details" rows="3" style="width: 100%;"><?php echo esc_textarea( $place_details ); ?></textarea>
 		</label>
 	</p>
 	<p><strong>Créer un nouveau lieu</strong></p>
@@ -331,9 +338,16 @@ function wp_seed_events_save_event_place( $post_id ) {
 		return;
 	}
 
-	$place_id    = isset( $_POST['wp_seed_event_place_id'] ) ? (int) $_POST['wp_seed_event_place_id'] : 0;
-	$place_name  = isset( $_POST['wp_seed_new_place_name'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_name'] ) ) : '';
-	$address     = isset( $_POST['wp_seed_new_place_address'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_address'] ) ) : '';
+	$place_id      = isset( $_POST['wp_seed_event_place_id'] ) ? (int) $_POST['wp_seed_event_place_id'] : 0;
+	$place_name    = isset( $_POST['wp_seed_new_place_name'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_name'] ) ) : '';
+	$address       = isset( $_POST['wp_seed_new_place_address'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_place_address'] ) ) : '';
+	$place_details = isset( $_POST['wp_seed_event_place_details'] ) ? sanitize_textarea_field( wp_unslash( $_POST['wp_seed_event_place_details'] ) ) : '';
+
+	if ( '' !== $place_details ) {
+		update_post_meta( $post_id, '_wp_seed_event_place_details', $place_details );
+	} else {
+		delete_post_meta( $post_id, '_wp_seed_event_place_details' );
+	}
 
 	if ( '' !== $place_name ) {
 		$new_place_id = wp_insert_post(
@@ -424,20 +438,10 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 	for ( $index = 0; $index < 5; $index++ ) {
 		$contact = isset( $contacts[ $index ] ) && is_array( $contacts[ $index ] ) ? $contacts[ $index ] : array();
 		$is_open = 0 === $index || ! empty( $contact['name'] );
-		$summary = $is_open && ! empty( $contact['name'] ) ? $contact['name'] : 'Ajouter un contact ' . ( $index + 1 );
+		$summary = $is_open && ! empty( $contact['name'] ) ? $contact['name'] : '+ Ajouter une personne';
 		?>
 		<details <?php echo $is_open ? 'open' : ''; ?>>
 			<summary><?php echo esc_html( $summary ); ?></summary>
-			<p>
-				<label>
-					Rôle<br />
-					<select name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][role]">
-						<?php foreach ( $roles as $role_value => $role_label ) : ?>
-							<option value="<?php echo esc_attr( $role_value ); ?>" <?php selected( $contact['role'] ?? '', $role_value ); ?>><?php echo esc_html( $role_label ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</label>
-			</p>
 			<p>
 				<label>
 					Nom<br />
@@ -458,8 +462,18 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 			</p>
 			<p>
 				<label>
-					Lien optionnel<br />
+					Lien (facultatif)<br />
 					<input type="url" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][link]" value="<?php echo esc_attr( $contact['link'] ?? '' ); ?>" />
+				</label>
+			</p>
+			<p>
+				<label>
+					Rôle<br />
+					<select name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][role]">
+						<?php foreach ( $roles as $role_value => $role_label ) : ?>
+							<option value="<?php echo esc_attr( $role_value ); ?>" <?php selected( $contact['role'] ?? '', $role_value ); ?>><?php echo esc_html( $role_label ); ?></option>
+						<?php endforeach; ?>
+					</select>
 				</label>
 			</p>
 		</details>
@@ -528,17 +542,9 @@ function wp_seed_events_save_contacts( $post_id ) {
 
 function wp_seed_events_media_fields() {
 	return array(
-		'_wp_seed_event_flyer_pdf_id'   => array(
+		'_wp_seed_event_flyer_pdf_id' => array(
 			'label' => 'Flyer PDF',
 			'type'  => 'application/pdf',
-		),
-		'_wp_seed_event_flyer_front_id' => array(
-			'label' => 'Flyer recto',
-			'type'  => 'image',
-		),
-		'_wp_seed_event_flyer_back_id'  => array(
-			'label' => 'Flyer verso',
-			'type'  => 'image',
 		),
 	);
 }
@@ -555,6 +561,12 @@ function wp_seed_events_add_media_meta_box() {
 }
 
 function wp_seed_events_render_media_meta_box( $post ) {
+	$illustration_ids = get_post_meta( $post->ID, '_wp_seed_event_illustration_ids', true );
+
+	if ( ! is_array( $illustration_ids ) ) {
+		$illustration_ids = array();
+	}
+
 	wp_nonce_field( 'wp_seed_events_save_media', 'wp_seed_events_media_nonce' );
 
 	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
@@ -570,6 +582,26 @@ function wp_seed_events_render_media_meta_box( $post ) {
 		</p>
 		<?php
 	}
+	?>
+	<p><strong>Illustrations</strong></p>
+	<div data-wp-seed-illustrations-list>
+		<?php foreach ( $illustration_ids as $illustration_id ) : ?>
+			<?php
+			$illustration_id = absint( $illustration_id );
+
+			if ( ! $illustration_id || 'attachment' !== get_post_type( $illustration_id ) ) {
+				continue;
+			}
+			?>
+			<p data-wp-seed-illustration-item>
+				<span><?php echo esc_html( get_the_title( $illustration_id ) ); ?></span>
+				<input type="hidden" name="wp_seed_event_illustrations[]" value="<?php echo esc_attr( (string) $illustration_id ); ?>" />
+				<button type="button" class="button" data-wp-seed-illustration-remove>Retirer</button>
+			</p>
+		<?php endforeach; ?>
+	</div>
+	<p><button type="button" class="button" data-wp-seed-illustrations-select>Ajouter une illustration</button></p>
+	<?php
 }
 
 function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
@@ -588,7 +620,7 @@ function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
 	wp_add_inline_script(
 		'jquery',
 		<<<'JS'
-jQuery(function($){$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input="'+key+'"]').val(attachment.id);$('[data-wp-seed-media-label="'+key+'"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input="'+key+'"]').val('');$('[data-wp-seed-media-label="'+key+'"]').text('Aucun fichier choisi');});});
+jQuery(function($){function wpSeedAddIllustration(attachment){var label=attachment.title||attachment.filename||attachment.url;var item=$('<p data-wp-seed-illustration-item></p>');item.append($('<span></span>').text(label));item.append(' ');item.append($('<input type="hidden" name="wp_seed_event_illustrations[]" />').val(attachment.id));item.append(' ');item.append($('<button type="button" class="button" data-wp-seed-illustration-remove>Retirer</button>'));$('[data-wp-seed-illustrations-list]').append(item);}$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input="'+key+'"]').val(attachment.id);$('[data-wp-seed-media-label="'+key+'"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input="'+key+'"]').val('');$('[data-wp-seed-media-label="'+key+'"]').text('Aucun fichier choisi');});$(document).on('click','[data-wp-seed-illustrations-select]',function(e){e.preventDefault();var frame=wp.media({title:'Ajouter une illustration',button:{text:'Ajouter'},library:{type:'image'},multiple:true});frame.on('select',function(){frame.state().get('selection').each(function(attachment){wpSeedAddIllustration(attachment.toJSON());});});frame.open();});$(document).on('click','[data-wp-seed-illustration-remove]',function(e){e.preventDefault();$(this).closest('[data-wp-seed-illustration-item]').remove();});});
 JS
 	);
 }
@@ -624,11 +656,6 @@ function wp_seed_events_save_media( $post_id ) {
 
 		$mime_type = get_post_mime_type( $attachment_id );
 
-		if ( 'image' === $field['type'] && 0 !== strpos( (string) $mime_type, 'image/' ) ) {
-			delete_post_meta( $post_id, $meta_key );
-			continue;
-		}
-
 		if ( 'application/pdf' === $field['type'] && 'application/pdf' !== $mime_type ) {
 			delete_post_meta( $post_id, $meta_key );
 			continue;
@@ -636,4 +663,32 @@ function wp_seed_events_save_media( $post_id ) {
 
 		update_post_meta( $post_id, $meta_key, $attachment_id );
 	}
+
+	$raw_illustrations = isset( $_POST['wp_seed_event_illustrations'] ) && is_array( $_POST['wp_seed_event_illustrations'] ) ? wp_unslash( $_POST['wp_seed_event_illustrations'] ) : array();
+	$illustration_ids  = array();
+
+	foreach ( $raw_illustrations as $raw_illustration_id ) {
+		$attachment_id = absint( $raw_illustration_id );
+
+		if ( 0 === $attachment_id || 'attachment' !== get_post_type( $attachment_id ) ) {
+			continue;
+		}
+
+		$mime_type = get_post_mime_type( $attachment_id );
+
+		if ( 0 !== strpos( (string) $mime_type, 'image/' ) ) {
+			continue;
+		}
+
+		if ( ! in_array( $attachment_id, $illustration_ids, true ) ) {
+			$illustration_ids[] = $attachment_id;
+		}
+	}
+
+	if ( array() === $illustration_ids ) {
+		delete_post_meta( $post_id, '_wp_seed_event_illustration_ids' );
+		return;
+	}
+
+	update_post_meta( $post_id, '_wp_seed_event_illustration_ids', $illustration_ids );
 }
