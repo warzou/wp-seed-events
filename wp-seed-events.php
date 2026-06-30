@@ -17,13 +17,18 @@ add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_contacts_meta_box' );
+add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_media_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_place', 'wp_seed_events_add_place_address_meta_box' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_occurrences' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_place' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_contacts' );
+add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_media' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
+add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 
 function wp_seed_events_register_event_post_type() {
+	wp_seed_events_enable_event_thumbnail_support();
+
 	register_post_type(
 		'wp_seed_event',
 		array(
@@ -34,12 +39,16 @@ function wp_seed_events_register_event_post_type() {
 				'add_new_item'  => 'Ajouter un évènement',
 				'edit_item'     => 'Modifier l’évènement',
 				'all_items'     => 'Tous les évènements',
+				'featured_image' => 'Image principale',
+				'set_featured_image' => 'Choisir l’image principale',
+				'remove_featured_image' => 'Retirer l’image principale',
+				'use_featured_image' => 'Utiliser comme image principale',
 			),
 			'public'       => false,
 			'show_ui'      => true,
 			'show_in_menu' => true,
 			'menu_icon'    => 'dashicons-calendar-alt',
-			'supports'     => array( 'title' ),
+			'supports'     => array( 'title', 'thumbnail' ),
 			'show_in_rest' => false,
 		)
 	);
@@ -64,6 +73,23 @@ function wp_seed_events_register_event_post_type() {
 	);
 }
 
+function wp_seed_events_enable_event_thumbnail_support() {
+	if ( current_theme_supports( 'post-thumbnails', 'wp_seed_event' ) ) {
+		return;
+	}
+
+	$post_thumbnail_support = get_theme_support( 'post-thumbnails' );
+
+	if ( is_array( $post_thumbnail_support ) && isset( $post_thumbnail_support[0] ) && is_array( $post_thumbnail_support[0] ) ) {
+		$post_types   = $post_thumbnail_support[0];
+		$post_types[] = 'wp_seed_event';
+
+		add_theme_support( 'post-thumbnails', array_values( array_unique( $post_types ) ) );
+		return;
+	}
+
+	add_theme_support( 'post-thumbnails', array( 'wp_seed_event' ) );
+}
 function wp_seed_events_add_occurrences_meta_box() {
 	add_meta_box(
 		'wp_seed_events_occurrences',
@@ -487,4 +513,114 @@ function wp_seed_events_save_contacts( $post_id ) {
 	}
 
 	update_post_meta( $post_id, '_wp_seed_event_contacts', $contacts );
+}
+
+function wp_seed_events_media_fields() {
+	return array(
+		'_wp_seed_event_flyer_pdf_id'   => array(
+			'label' => 'Flyer PDF',
+			'type'  => 'application/pdf',
+		),
+		'_wp_seed_event_flyer_front_id' => array(
+			'label' => 'Flyer recto',
+			'type'  => 'image',
+		),
+		'_wp_seed_event_flyer_back_id'  => array(
+			'label' => 'Flyer verso',
+			'type'  => 'image',
+		),
+	);
+}
+
+function wp_seed_events_add_media_meta_box() {
+	add_meta_box(
+		'wp_seed_events_media',
+		'Flyer',
+		'wp_seed_events_render_media_meta_box',
+		'wp_seed_event',
+		'normal',
+		'default'
+	);
+}
+
+function wp_seed_events_render_media_meta_box( $post ) {
+	wp_nonce_field( 'wp_seed_events_save_media', 'wp_seed_events_media_nonce' );
+
+	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
+		$attachment_id = (int) get_post_meta( $post->ID, $meta_key, true );
+		$label         = $attachment_id ? get_the_title( $attachment_id ) : 'Aucun fichier choisi';
+		?>
+		<p>
+			<strong><?php echo esc_html( $field['label'] ); ?></strong><br />
+			<span data-wp-seed-media-label="<?php echo esc_attr( $meta_key ); ?>"><?php echo esc_html( $label ); ?></span><br />
+			<input type="hidden" name="wp_seed_event_media[<?php echo esc_attr( $meta_key ); ?>]" value="<?php echo esc_attr( (string) $attachment_id ); ?>" data-wp-seed-media-input="<?php echo esc_attr( $meta_key ); ?>" />
+			<button type="button" class="button" data-wp-seed-media-select="<?php echo esc_attr( $meta_key ); ?>" data-media-type="<?php echo esc_attr( $field['type'] ); ?>" data-title="<?php echo esc_attr( $field['label'] ); ?>">Choisir</button>
+			<button type="button" class="button" data-wp-seed-media-remove="<?php echo esc_attr( $meta_key ); ?>">Retirer</button>
+		</p>
+		<?php
+	}
+}
+
+function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
+	if ( 'post.php' !== $hook_suffix && 'post-new.php' !== $hook_suffix ) {
+		return;
+	}
+
+	$screen = get_current_screen();
+
+	if ( ! $screen || 'wp_seed_event' !== $screen->post_type ) {
+		return;
+	}
+
+	wp_enqueue_media();
+	wp_enqueue_script( 'jquery' );
+	wp_add_inline_script(
+		'jquery',
+		"jQuery(function($){$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input=\"'+key+'\"]').val(attachment.id);$('[data-wp-seed-media-label=\"'+key+'\"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input=\"'+key+'\"]').val('');$('[data-wp-seed-media-label=\"'+key+'\"]').text('Aucun fichier choisi');});});"
+	);
+}
+
+function wp_seed_events_save_media( $post_id ) {
+	if ( ! isset( $_POST['wp_seed_events_media_nonce'] ) ) {
+		return;
+	}
+
+	$nonce = sanitize_text_field( wp_unslash( $_POST['wp_seed_events_media_nonce'] ) );
+
+	if ( ! wp_verify_nonce( $nonce, 'wp_seed_events_save_media' ) ) {
+		return;
+	}
+
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$raw_media = isset( $_POST['wp_seed_event_media'] ) && is_array( $_POST['wp_seed_event_media'] ) ? wp_unslash( $_POST['wp_seed_event_media'] ) : array();
+
+	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
+		$attachment_id = isset( $raw_media[ $meta_key ] ) ? absint( $raw_media[ $meta_key ] ) : 0;
+
+		if ( 0 === $attachment_id || 'attachment' !== get_post_type( $attachment_id ) ) {
+			delete_post_meta( $post_id, $meta_key );
+			continue;
+		}
+
+		$mime_type = get_post_mime_type( $attachment_id );
+
+		if ( 'image' === $field['type'] && 0 !== strpos( (string) $mime_type, 'image/' ) ) {
+			delete_post_meta( $post_id, $meta_key );
+			continue;
+		}
+
+		if ( 'application/pdf' === $field['type'] && 'application/pdf' !== $mime_type ) {
+			delete_post_meta( $post_id, $meta_key );
+			continue;
+		}
+
+		update_post_meta( $post_id, $meta_key, $attachment_id );
+	}
 }
