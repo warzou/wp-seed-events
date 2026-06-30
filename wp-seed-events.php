@@ -111,6 +111,7 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 	wp_nonce_field( 'wp_seed_events_save_occurrences', 'wp_seed_events_occurrences_nonce' );
 
 	$previous_occurrence = array();
+	$visible_occurrences = 0;
 
 	for ( $index = 0; $index < 5; $index++ ) {
 		$occurrence           = isset( $occurrences[ $index ] ) && is_array( $occurrences[ $index ] ) ? $occurrences[ $index ] : array();
@@ -122,11 +123,15 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 			$occurrence['all_day']    = $previous_occurrence['all_day'] ?? '';
 		}
 
-		$is_open             = 0 === $index || ! empty( $occurrence['start_date'] );
-		$summary             = $is_open ? 'Date ' . ( $index + 1 ) : 'Ajouter une autre date';
+		$is_visible          = 0 === $index || $has_saved_occurrence;
+		$summary             = 'Date ' . ( $index + 1 );
 		$previous_occurrence = $occurrence;
+
+		if ( $is_visible ) {
+			$visible_occurrences++;
+		}
 		?>
-		<details <?php echo $is_open ? 'open' : ''; ?>>
+		<details data-wp-seed-progressive-item="occurrence" data-wp-seed-progressive-index="<?php echo esc_attr( (string) $index ); ?>" <?php echo $is_visible ? 'open' : 'hidden'; ?>>
 			<summary><?php echo esc_html( $summary ); ?></summary>
 			<p>
 				<label>
@@ -161,6 +166,9 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 		</details>
 		<?php
 	}
+	?>
+	<p><button type="button" class="button" data-wp-seed-progressive-add="occurrence" <?php echo 5 <= $visible_occurrences ? 'hidden' : ''; ?>>+ Ajouter une autre date</button></p>
+	<?php
 }
 
 function wp_seed_events_save_occurrences( $post_id ) {
@@ -435,12 +443,19 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 
 	wp_nonce_field( 'wp_seed_events_save_contacts', 'wp_seed_events_contacts_nonce' );
 
+	$visible_contacts = 0;
+
 	for ( $index = 0; $index < 5; $index++ ) {
-		$contact = isset( $contacts[ $index ] ) && is_array( $contacts[ $index ] ) ? $contacts[ $index ] : array();
-		$is_open = 0 === $index || ! empty( $contact['name'] );
-		$summary = $is_open && ! empty( $contact['name'] ) ? $contact['name'] : '+ Ajouter une personne';
+		$contact           = isset( $contacts[ $index ] ) && is_array( $contacts[ $index ] ) ? $contacts[ $index ] : array();
+		$has_saved_contact = array() !== $contact;
+		$is_visible        = 0 === $index || $has_saved_contact;
+		$summary           = $is_visible && ! empty( $contact['name'] ) ? $contact['name'] : 'Personne ' . ( $index + 1 );
+
+		if ( $is_visible ) {
+			$visible_contacts++;
+		}
 		?>
-		<details <?php echo $is_open ? 'open' : ''; ?>>
+		<details data-wp-seed-progressive-item="contact" data-wp-seed-progressive-index="<?php echo esc_attr( (string) $index ); ?>" <?php echo $is_visible ? 'open' : 'hidden'; ?>>
 			<summary><?php echo esc_html( $summary ); ?></summary>
 			<p>
 				<label>
@@ -479,6 +494,9 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 		</details>
 		<?php
 	}
+	?>
+	<p><button type="button" class="button" data-wp-seed-progressive-add="contact" <?php echo 5 <= $visible_contacts ? 'hidden' : ''; ?>>+ Ajouter une personne</button></p>
+	<?php
 }
 
 function wp_seed_events_save_contacts( $post_id ) {
@@ -621,6 +639,12 @@ function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
 		'jquery',
 		<<<'JS'
 jQuery(function($){function wpSeedAddIllustration(attachment){var label=attachment.title||attachment.filename||attachment.url;var item=$('<p data-wp-seed-illustration-item></p>');item.append($('<span></span>').text(label));item.append(' ');item.append($('<input type="hidden" name="wp_seed_event_illustrations[]" />').val(attachment.id));item.append(' ');item.append($('<button type="button" class="button" data-wp-seed-illustration-remove>Retirer</button>'));$('[data-wp-seed-illustrations-list]').append(item);}$(document).on('click','[data-wp-seed-media-select]',function(e){e.preventDefault();var button=$(this);var key=button.data('wp-seed-media-select');var type=button.data('media-type');var frame=wp.media({title:button.data('title'),button:{text:'Choisir'},library:{type:type},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('[data-wp-seed-media-input="'+key+'"]').val(attachment.id);$('[data-wp-seed-media-label="'+key+'"]').text(attachment.title||attachment.filename||attachment.url);});frame.open();});$(document).on('click','[data-wp-seed-media-remove]',function(e){e.preventDefault();var key=$(this).data('wp-seed-media-remove');$('[data-wp-seed-media-input="'+key+'"]').val('');$('[data-wp-seed-media-label="'+key+'"]').text('Aucun fichier choisi');});$(document).on('click','[data-wp-seed-illustrations-select]',function(e){e.preventDefault();var frame=wp.media({title:'Ajouter une illustration',button:{text:'Ajouter'},library:{type:'image'},multiple:true});frame.on('select',function(){frame.state().get('selection').each(function(attachment){wpSeedAddIllustration(attachment.toJSON());});});frame.open();});$(document).on('click','[data-wp-seed-illustration-remove]',function(e){e.preventDefault();$(this).closest('[data-wp-seed-illustration-item]').remove();});});
+JS
+	);
+	wp_add_inline_script(
+		'jquery',
+		<<<'JS'
+jQuery(function($){function refreshButton(type){var hasHidden=$('[data-wp-seed-progressive-item="'+type+'"][hidden]').length>0;$('[data-wp-seed-progressive-add="'+type+'"]').prop('hidden',!hasHidden);}function copyPreviousOccurrenceValues(item){var previous=item.prevAll('[data-wp-seed-progressive-item="occurrence"]').first();if(!previous.length){return;}var startInput=item.find('input[name$="[start_time]"]');var endInput=item.find('input[name$="[end_time]"]');if(!startInput.val()){startInput.val(previous.find('input[name$="[start_time]"]').val());}if(!endInput.val()){endInput.val(previous.find('input[name$="[end_time]"]').val());}item.find('input[name$="[all_day]"]').prop('checked',previous.find('input[name$="[all_day]"]').prop('checked'));}$(document).on('click','[data-wp-seed-progressive-add]',function(e){e.preventDefault();var type=$(this).data('wp-seed-progressive-add');var item=$('[data-wp-seed-progressive-item="'+type+'"][hidden]').first();if(!item.length){refreshButton(type);return;}item.prop('hidden',false).prop('open',true);if('occurrence'===type){copyPreviousOccurrenceValues(item);}refreshButton(type);});});
 JS
 	);
 }
