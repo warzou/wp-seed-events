@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 define( 'WP_SEED_EVENTS_VERSION', '0.1.0-dev' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
+add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_event_type_meta_box', 5 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
@@ -39,7 +40,7 @@ function wp_seed_events_register_event_post_type() {
 			'labels'       => array(
 				'name'          => 'Évènements',
 				'singular_name' => 'Évènement',
-				'menu_name'     => 'WP Seed Events',
+				'menu_name'     => 'Évènements',
 				'add_new_item'  => 'Ajouter un évènement',
 				'edit_item'     => 'Modifier l’évènement',
 				'all_items'     => 'Tous les évènements',
@@ -52,6 +53,7 @@ function wp_seed_events_register_event_post_type() {
 			'show_ui'      => true,
 			'show_in_menu' => true,
 			'menu_icon'    => 'dashicons-calendar-alt',
+			'menu_position' => 57,
 			'supports'     => array( 'title', 'thumbnail' ),
 			'show_in_rest' => false,
 		)
@@ -63,7 +65,7 @@ function wp_seed_events_register_event_post_type() {
 			'labels'       => array(
 				'name'          => 'Lieux',
 				'singular_name' => 'Lieu',
-				'menu_name'     => 'Lieux',
+				'menu_name'     => 'Tous les lieux',
 				'add_new_item'  => 'Ajouter un lieu',
 				'edit_item'     => 'Modifier le lieu',
 				'all_items'     => 'Tous les lieux',
@@ -75,6 +77,54 @@ function wp_seed_events_register_event_post_type() {
 			'show_in_rest' => false,
 		)
 	);
+}
+
+function wp_seed_events_register_plugin_admin_menu() {
+	add_menu_page(
+		'WP Seed Events',
+		'WP Seed Events',
+		'manage_options',
+		'wp-seed-events-admin',
+		'wp_seed_events_render_settings_page',
+		'dashicons-screenoptions',
+		56
+	);
+
+	add_submenu_page(
+		'wp-seed-events-admin',
+		'Paramètres',
+		'Paramètres',
+		'manage_options',
+		'wp-seed-events-admin',
+		'wp_seed_events_render_settings_page'
+	);
+
+	add_submenu_page(
+		'wp-seed-events-admin',
+		'Affichage',
+		'Affichage',
+		'manage_options',
+		'wp-seed-events-display',
+		'wp_seed_events_render_display_page'
+	);
+}
+
+function wp_seed_events_render_settings_page() {
+	?>
+	<div class="wrap">
+		<h1>WP Seed Events - Paramètres</h1>
+		<p>Les réglages du plugin seront ajoutés progressivement.</p>
+	</div>
+	<?php
+}
+
+function wp_seed_events_render_display_page() {
+	?>
+	<div class="wrap">
+		<h1>WP Seed Events - Affichage</h1>
+		<p>Les options d’affichage seront ajoutées progressivement.</p>
+	</div>
+	<?php
 }
 
 function wp_seed_events_render_media_before_description( $post ) {
