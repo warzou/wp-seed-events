@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
@@ -12,6 +12,10 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'WP_SEED_EVENTS_VERSION', '0.1.0-dev' );
+
+require_once __DIR__ . '/includes/public/rendering.php';
+
+register_activation_hook( __FILE__, 'wp_seed_events_activate' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );
@@ -29,6 +33,7 @@ add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_type' );
 add_action( 'admin_post_wp_seed_events_save_event_types', 'wp_seed_events_handle_event_types_admin_form' );
 add_action( 'admin_post_wp_seed_events_save_people', 'wp_seed_events_handle_people_admin_form' );
 add_action( 'admin_post_wp_seed_events_save_places', 'wp_seed_events_handle_places_admin_form' );
+add_action( 'admin_post_wp_seed_events_save_display_settings', 'wp_seed_events_handle_display_settings_form' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_description', 5 );
@@ -38,6 +43,19 @@ add_action( 'manage_wp_seed_event_posts_custom_column', 'wp_seed_events_render_e
 add_filter( 'manage_edit-wp_seed_event_sortable_columns', 'wp_seed_events_event_admin_sortable_columns' );
 add_action( 'pre_get_posts', 'wp_seed_events_sort_event_admin_by_next_date' );
 add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2 );
+add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
+add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
+add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
+add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
+add_shortcode( 'wp_seed_event_dates', 'wp_seed_events_event_dates_shortcode' );
+add_shortcode( 'wp_seed_event_people', 'wp_seed_events_event_people_shortcode' );
+add_shortcode( 'wp_seed_event_place', 'wp_seed_events_event_place_shortcode' );
+add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_info_shortcode' );
+
+function wp_seed_events_activate() {
+	wp_seed_events_register_event_post_type();
+	flush_rewrite_rules();
+}
 
 function wp_seed_events_register_event_post_type() {
 	wp_seed_events_enable_event_thumbnail_support();
@@ -57,13 +75,21 @@ function wp_seed_events_register_event_post_type() {
 				'remove_featured_image' => 'Retirer l’image principale',
 				'use_featured_image' => 'Utiliser comme image principale',
 			),
-			'public'       => false,
-			'show_ui'      => true,
-			'show_in_menu' => true,
-			'menu_icon'    => 'dashicons-calendar-alt',
-			'menu_position' => 57,
-			'supports'     => array( 'title', 'thumbnail' ),
-			'show_in_rest' => false,
+			'public'             => true,
+			'publicly_queryable' => true,
+			'exclude_from_search' => true,
+			'has_archive'        => false,
+			'rewrite'            => array(
+				'slug'       => 'wp_seed_event',
+				'with_front' => false,
+			),
+			'query_var'          => true,
+			'show_ui'            => true,
+			'show_in_menu'       => true,
+			'menu_icon'          => 'dashicons-calendar-alt',
+			'menu_position'      => 57,
+			'supports'           => array( 'title', 'thumbnail' ),
+			'show_in_rest'       => false,
 		)
 	);
 
@@ -386,6 +412,51 @@ function wp_seed_events_place_name_for_event( $post_id ) {
 
 	return get_the_title( $place );
 }
+
+function wp_seed_events_render_public_event_content( $content ) {
+	static $rendering = false;
+
+	if ( $rendering || ! is_singular( 'wp_seed_event' ) || ! in_the_loop() || ! is_main_query() ) {
+		return $content;
+	}
+
+	$rendering = true;
+	$output    = wp_seed_events_render_public_event_single( get_the_ID(), true );
+	$rendering = false;
+
+	return '' === $output ? $content : $output;
+}
+
+function wp_seed_events_event_card_shortcode( $atts ) {
+	$atts = shortcode_atts(
+		array(
+			'id' => 0,
+		),
+		$atts,
+		'wp_seed_event_card'
+	);
+
+	$post_id = wp_seed_events_public_shortcode_event_id( $atts['id'] );
+
+	return wp_seed_events_render_event_card( $post_id );
+}
+
+function wp_seed_events_render_event_card( $post_id ) {
+	return wp_seed_events_render_public_event_card( $post_id );
+}
+
+function wp_seed_events_event_card_excerpt( $post ) {
+	$content = $post instanceof WP_Post ? $post->post_content : '';
+	$content = wp_strip_all_tags( strip_shortcodes( $content ) );
+	$content = trim( preg_replace( '/\s+/', ' ', $content ) );
+
+	if ( '' === $content ) {
+		return '';
+	}
+
+	return wp_trim_words( $content, 28, '…' );
+}
+
 function wp_seed_events_render_settings_page() {
 	?>
 	<div class="wrap">
@@ -396,12 +467,70 @@ function wp_seed_events_render_settings_page() {
 }
 
 function wp_seed_events_render_display_page() {
+	$template_page_id = wp_seed_events_event_template_page_id();
 	?>
 	<div class="wrap">
 		<h1>WP Seed Events - Affichage</h1>
-		<p>Les options d’affichage seront ajoutées progressivement.</p>
+
+		<?php if ( isset( $_GET['message'] ) && 'saved' === sanitize_key( wp_unslash( $_GET['message'] ) ) ) : ?>
+			<div class="notice notice-success is-dismissible"><p>Réglages enregistrés.</p></div>
+		<?php endif; ?>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="wp_seed_events_save_display_settings" />
+			<?php wp_nonce_field( 'wp_seed_events_save_display_settings', 'wp_seed_events_display_settings_nonce' ); ?>
+
+			<table class="form-table" role="presentation">
+				<tbody>
+					<tr>
+						<th scope="row"><label for="wp-seed-event-template-page-id">Page modèle d’un événement</label></th>
+						<td>
+							<?php
+							wp_dropdown_pages(
+								array(
+									'name'              => 'wp_seed_event_template_page_id',
+									'id'                => 'wp-seed-event-template-page-id',
+									'selected'          => $template_page_id,
+									'show_option_none'  => 'Aucune page modèle',
+									'option_none_value' => 0,
+									'post_status'       => array( 'publish', 'private', 'draft' ),
+								)
+							);
+							?>
+							<p class="description">Cette page peut contenir des shortcodes WP Seed Events. Elle sera utilisée comme modèle pour les fiches publiques d’événements.</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<?php submit_button( 'Enregistrer' ); ?>
+		</form>
 	</div>
 	<?php
+}
+
+function wp_seed_events_handle_display_settings_form() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Vous n’avez pas les droits suffisants pour modifier ces réglages.', 'wp-seed-events' ) );
+	}
+
+	if (
+		! isset( $_POST['wp_seed_events_display_settings_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['wp_seed_events_display_settings_nonce'] ) ), 'wp_seed_events_save_display_settings' )
+	) {
+		wp_die( esc_html__( 'La vérification de sécurité a échoué.', 'wp-seed-events' ) );
+	}
+
+	$template_page_id = isset( $_POST['wp_seed_event_template_page_id'] ) ? absint( $_POST['wp_seed_event_template_page_id'] ) : 0;
+
+	if ( 0 === $template_page_id || 'page' !== get_post_type( $template_page_id ) ) {
+		delete_option( 'wp_seed_events_event_template_page_id' );
+	} else {
+		update_option( 'wp_seed_events_event_template_page_id', $template_page_id, false );
+	}
+
+	wp_safe_redirect( admin_url( 'admin.php?page=wp-seed-events-display&message=saved' ) );
+	exit;
 }
 
 function wp_seed_events_render_media_before_description( $post ) {
@@ -2786,7 +2915,7 @@ jQuery(function($){
 		summary.empty();
 
 		if(!data.name&&!data.address&&!data.link&&!data.details){
-			summary.append($('<p data-wp-seed-place-empty></p>').text('?? Aucun lieu'));
+			summary.append($('<p data-wp-seed-place-empty></p>').text('📍 Aucun lieu'));
 			summary.append(
 				$('<p></p>')
 					.append($('<button type="button" class="button" data-wp-seed-place-choose>Choisir ou créer un lieu</button>'))

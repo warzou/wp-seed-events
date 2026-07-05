@@ -1,4 +1,4 @@
-﻿# Event Public Model
+# Event Public Model
 
 ## Intention
 
