@@ -501,11 +501,139 @@ function wp_seed_events_render_settings_page() {
 }
 
 function wp_seed_events_render_display_page() {
+	$template_shortcodes = array(
+		array(
+			'name'        => 'Fiche complète',
+			'description' => 'Affiche la fiche complète de l’événement courant.',
+			'example'     => '[wp_seed_event]',
+			'options'     => 'Aucune option spécifique.',
+		),
+		array(
+			'name'        => 'Champ isolé',
+			'description' => 'Affiche une seule information de l’événement courant.',
+			'example'     => '[wp_seed_event_field field="next_date"]',
+			'options'     => 'field : title, url, types, next_date, next_time, place, place_address, place_link, phone, email, person_link, description, excerpt, image, flyer.',
+		),
+		array(
+			'name'        => 'Dates',
+			'description' => 'Affiche les dates de l’événement courant.',
+			'example'     => '[wp_seed_event_dates format="short" show_time="no"]',
+			'options'     => 'format : long ou short. show_time : yes ou no. show_cancelled : yes ou no.',
+		),
+		array(
+			'name'        => 'Personnes',
+			'description' => 'Affiche les personnes liées à l’événement courant.',
+			'example'     => '[wp_seed_event_people role="intervenant" details="no"]',
+			'options'     => 'role : all, organisateur, intervenant, contact_inscription ou contact_information. details : yes ou no.',
+		),
+		array(
+			'name'        => 'Lieu',
+			'description' => 'Affiche le lieu de l’événement courant.',
+			'example'     => '[wp_seed_event_place]',
+			'options'     => 'Aucune option spécifique.',
+		),
+		array(
+			'name'        => 'Informations pratiques',
+			'description' => 'Affiche les informations complémentaires propres à cet événement.',
+			'example'     => '[wp_seed_event_practical_info]',
+			'options'     => 'Aucune option spécifique.',
+		),
+	);
+
+	$advanced_shortcodes = array(
+		array(
+			'name'        => 'Carte d’un événement précis',
+			'description' => 'Affiche une carte pour un événement choisi sur une page classique.',
+			'example'     => '[wp_seed_event_card id="123"]',
+			'options'     => 'id : remplacez 123 par l’identifiant réel de l’événement.',
+		),
+		array(
+			'name'        => 'Champ d’un événement précis',
+			'description' => 'Affiche une information d’un événement choisi sur une page classique.',
+			'example'     => '[wp_seed_event_field id="123" field="next_date"]',
+			'options'     => 'id : remplacez 123 par l’identifiant réel. field : voir la liste des champs ci-dessus.',
+		),
+	);
 	?>
 	<div class="wrap">
 		<h1>WP Seed Events - Affichage</h1>
-		<p>Les exemples de shortcodes et composants publics seront ajoutés ici.</p>
+		<p>La page modèle d’un événement peut être construite avec Divi, Gutenberg, Spectra ou le thème actif.</p>
+		<p><strong>Sur une fiche événement, l’événement courant est détecté automatiquement. N’ajoutez pas d’id dans la page modèle.</strong></p>
+		<p>Sur une page classique, ajoutez <code>id="123"</code> en remplaçant <code>123</code> par l’identifiant réel de l’événement.</p>
+
+		<h2>Composer une fiche événement</h2>
+		<?php wp_seed_events_render_shortcode_help_table( $template_shortcodes ); ?>
+
+		<h2>Afficher un événement précis ailleurs</h2>
+		<?php wp_seed_events_render_shortcode_help_table( $advanced_shortcodes ); ?>
 	</div>
+
+	<script>
+	document.addEventListener('click', function(event) {
+		var button = event.target.closest('[data-wp-seed-copy-shortcode]');
+
+		if (!button) {
+			return;
+		}
+
+		var shortcode = button.getAttribute('data-wp-seed-copy-shortcode') || '';
+
+		if (!shortcode) {
+			return;
+		}
+
+		var markCopied = function() {
+			var label = button.textContent;
+			button.textContent = 'Copié';
+			window.setTimeout(function() {
+				button.textContent = label;
+			}, 1500);
+		};
+
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(shortcode).then(markCopied);
+			return;
+		}
+
+		var textarea = document.createElement('textarea');
+		textarea.value = shortcode;
+		textarea.setAttribute('readonly', 'readonly');
+		textarea.style.position = 'absolute';
+		textarea.style.left = '-9999px';
+		document.body.appendChild(textarea);
+		textarea.select();
+		document.execCommand('copy');
+		document.body.removeChild(textarea);
+		markCopied();
+	});
+	</script>
+	<?php
+}
+
+function wp_seed_events_render_shortcode_help_table( $shortcodes ) {
+	?>
+	<table class="widefat striped" style="max-width: 1100px; margin-bottom: 24px;">
+		<thead>
+			<tr>
+				<th scope="col">Shortcode</th>
+				<th scope="col">Description</th>
+				<th scope="col">Exemple</th>
+				<th scope="col">Options</th>
+				<th scope="col">Action</th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php foreach ( $shortcodes as $shortcode ) : ?>
+				<tr>
+					<td><strong><?php echo esc_html( $shortcode['name'] ); ?></strong></td>
+					<td><?php echo esc_html( $shortcode['description'] ); ?></td>
+					<td><code><?php echo esc_html( $shortcode['example'] ); ?></code></td>
+					<td><?php echo esc_html( $shortcode['options'] ); ?></td>
+					<td><button type="button" class="button" data-wp-seed-copy-shortcode="<?php echo esc_attr( $shortcode['example'] ); ?>">Copier</button></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
 	<?php
 }
 
