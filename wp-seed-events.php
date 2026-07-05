@@ -20,6 +20,8 @@ require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
 register_activation_hook( __FILE__, 'wp_seed_events_activate' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
+add_action( 'admin_init', 'wp_seed_events_register_permalink_settings' );
+add_action( 'admin_init', 'wp_seed_events_maybe_save_permalink_settings' );
 add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_event_type_meta_box', 5 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
@@ -48,6 +50,8 @@ add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2
 add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
 add_filter( 'template_include', 'wp_seed_events_public_template_include', 99 );
 add_filter( 'body_class', 'wp_seed_events_public_body_class' );
+add_filter( 'post_type_link', 'wp_seed_events_event_post_type_link', 10, 4 );
+add_filter( 'query_vars', 'wp_seed_events_permalink_query_vars' );
 add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
 add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
 add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
@@ -115,8 +119,254 @@ function wp_seed_events_register_event_post_type() {
 			'show_in_rest' => false,
 		)
 	);
+	wp_seed_events_add_event_rewrite_rules();
 }
 
+
+function wp_seed_events_default_permalink_prefix() {
+	return 'evenements';
+}
+
+function wp_seed_events_permalink_prefix() {
+	$prefix = get_option( 'wp_seed_events_permalink_prefix', wp_seed_events_default_permalink_prefix() );
+	$prefix = trim( (string) $prefix, "/ \t\n\r\0\x0B" );
+
+	return sanitize_title( $prefix );
+}
+
+function wp_seed_events_permalink_includes_primary_type() {
+	return '1' === get_option( 'wp_seed_events_permalink_include_primary_type', '1' );
+}
+
+function wp_seed_events_permalink_path_parts( $post ) {
+	$post = get_post( $post );
+
+	if ( ! $post || 'wp_seed_event' !== $post->post_type ) {
+		return array();
+	}
+
+	$parts  = array();
+	$prefix = wp_seed_events_permalink_prefix();
+
+	if ( '' !== $prefix ) {
+		$parts[] = $prefix;
+	}
+
+	$primary_type = wp_seed_events_primary_type_for_event( $post->ID );
+
+	if ( wp_seed_events_permalink_includes_primary_type() && '' !== $primary_type ) {
+		$primary_slug = wp_seed_events_event_type_public_slug( $primary_type );
+
+		if ( '' !== $primary_slug ) {
+			$parts[] = $primary_slug;
+		}
+	}
+
+	$parts[] = $post->post_name;
+
+	return array_values( array_filter( $parts ) );
+}
+
+function wp_seed_events_event_post_type_link( $post_link, $post, $leavename, $sample ) {
+	if ( ! $post instanceof WP_Post || 'wp_seed_event' !== $post->post_type ) {
+		return $post_link;
+	}
+
+	$parts = wp_seed_events_permalink_path_parts( $post );
+
+	if ( array() === $parts ) {
+		return $post_link;
+	}
+
+	return home_url( user_trailingslashit( implode( '/', array_map( 'rawurlencode', $parts ) ) ) );
+}
+
+function wp_seed_events_add_event_rewrite_rules() {
+	$prefix = wp_seed_events_permalink_prefix();
+
+	if ( '' !== $prefix ) {
+		$prefix_pattern = preg_quote( $prefix, '#' );
+		add_rewrite_rule( '^' . $prefix_pattern . '/([^/]+)/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[2]&wp_seed_event_primary_type=$matches[1]', 'top' );
+		add_rewrite_rule( '^' . $prefix_pattern . '/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]', 'top' );
+		return;
+	}
+
+	add_rewrite_rule( '^([^/]+)/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[2]&wp_seed_event_primary_type=$matches[1]', 'top' );
+	add_rewrite_rule( '^([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]', 'top' );
+}
+
+function wp_seed_events_permalink_query_vars( $query_vars ) {
+	$query_vars[] = 'wp_seed_event_primary_type';
+
+	return $query_vars;
+}
+
+function wp_seed_events_register_permalink_settings() {
+	add_settings_section(
+		'wp_seed_events_permalink_section',
+		'WP Seed Events',
+		'wp_seed_events_render_permalink_section_intro',
+		'permalink'
+	);
+
+	add_settings_field(
+		'wp_seed_events_permalink_prefix',
+		'Préfixe public des évènements',
+		'wp_seed_events_render_permalink_prefix_field',
+		'permalink',
+		'wp_seed_events_permalink_section'
+	);
+
+	add_settings_field(
+		'wp_seed_events_permalink_structure',
+		'Structure des fiches évènement',
+		'wp_seed_events_render_permalink_structure_field',
+		'permalink',
+		'wp_seed_events_permalink_section'
+	);
+}
+
+function wp_seed_events_render_permalink_section_intro() {
+	echo '<p>Ces réglages contrôlent les URL publiques des fiches évènement.</p>';
+}
+
+function wp_seed_events_render_permalink_prefix_field() {
+	$prefix = wp_seed_events_permalink_prefix();
+	?>
+	<input name="wp_seed_events_permalink_prefix" type="text" class="regular-text code" value="<?php echo esc_attr( $prefix ); ?>" placeholder="evenements" />
+	<p class="description">Par défaut : <code>evenements</code>. Laisser vide supprime le préfixe, mais augmente les risques de conflit avec des pages existantes.</p>
+	<?php
+}
+
+function wp_seed_events_render_permalink_structure_field() {
+	$prefix         = wp_seed_events_permalink_prefix();
+	$display_prefix = '' === $prefix ? '' : '/' . $prefix;
+	$with_type      = wp_seed_events_permalink_includes_primary_type();
+	?>
+	<fieldset>
+		<label>
+			<input type="radio" name="wp_seed_events_permalink_include_primary_type" value="0" <?php checked( ! $with_type ); ?> />
+			<code><?php echo esc_html( $display_prefix ); ?>/nom-de-l-evenement/</code>
+		</label>
+		<br />
+		<label>
+			<input type="radio" name="wp_seed_events_permalink_include_primary_type" value="1" <?php checked( $with_type ); ?> />
+			<code><?php echo esc_html( $display_prefix ); ?>/type-principal/nom-de-l-evenement/</code>
+		</label>
+		<p class="description">Si aucun type principal n’est défini, l’URL utilise automatiquement la structure sans type.</p>
+	</fieldset>
+	<?php
+}
+
+function wp_seed_events_maybe_save_permalink_settings() {
+	global $pagenow;
+
+	if ( 'options-permalink.php' !== $pagenow || 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'update-permalink' ) ) {
+		return;
+	}
+
+	$old_prefix    = wp_seed_events_permalink_prefix();
+	$old_with_type = wp_seed_events_permalink_includes_primary_type();
+	$raw_prefix    = isset( $_POST['wp_seed_events_permalink_prefix'] ) ? wp_unslash( $_POST['wp_seed_events_permalink_prefix'] ) : wp_seed_events_default_permalink_prefix();
+	$new_prefix    = sanitize_title( trim( (string) $raw_prefix, "/ \t\n\r\0\x0B" ) );
+	$new_with_type = ! empty( $_POST['wp_seed_events_permalink_include_primary_type'] );
+
+	if ( '' === $new_prefix ) {
+		update_option( 'wp_seed_events_permalink_prefix', '', false );
+	} elseif ( wp_seed_events_default_permalink_prefix() === $new_prefix ) {
+		delete_option( 'wp_seed_events_permalink_prefix' );
+	} else {
+		update_option( 'wp_seed_events_permalink_prefix', $new_prefix, false );
+	}
+
+	if ( $new_with_type ) {
+		delete_option( 'wp_seed_events_permalink_include_primary_type' );
+	} else {
+		update_option( 'wp_seed_events_permalink_include_primary_type', '0', false );
+	}
+
+	if ( $old_prefix !== $new_prefix || $old_with_type !== $new_with_type ) {
+		flush_rewrite_rules( false );
+	}
+}
+
+function wp_seed_events_event_type_public_slug( $type_key ) {
+	$type_key = sanitize_key( $type_key );
+	$options  = wp_seed_events_event_type_options();
+
+	if ( ! isset( $options[ $type_key ] ) ) {
+		return '';
+	}
+
+	return sanitize_title( $options[ $type_key ] );
+}
+
+function wp_seed_events_event_type_keys_for_event( $post_id ) {
+	$event_types = get_post_meta( $post_id, '_wp_seed_event_types', true );
+
+	if ( ! is_array( $event_types ) ) {
+		$legacy_event_type = get_post_meta( $post_id, '_wp_seed_event_type', true );
+		$event_types       = '' !== $legacy_event_type ? array( $legacy_event_type ) : array();
+	}
+
+	$options = wp_seed_events_event_type_options();
+
+	return array_values(
+		array_filter(
+			array_map( 'sanitize_key', $event_types ),
+			function ( $type_key ) use ( $options ) {
+				return isset( $options[ $type_key ] );
+			}
+		)
+	);
+}
+
+function wp_seed_events_primary_type_for_event( $post_id ) {
+	$selected_types = wp_seed_events_event_type_keys_for_event( $post_id );
+	$default_type   = wp_seed_events_default_event_type_key();
+	$primary_type   = sanitize_key( (string) get_post_meta( $post_id, '_wp_seed_event_primary_type', true ) );
+
+	if ( '' !== $primary_type && $default_type !== $primary_type && in_array( $primary_type, $selected_types, true ) ) {
+		return $primary_type;
+	}
+
+	$public_types = array_values(
+		array_filter(
+			$selected_types,
+			function ( $type_key ) use ( $default_type ) {
+				return $default_type !== $type_key;
+			}
+		)
+	);
+
+	return 1 === count( $public_types ) ? $public_types[0] : '';
+}
+
+function wp_seed_events_permalink_example_url() {
+	$prefix    = wp_seed_events_permalink_prefix();
+	$with_type = wp_seed_events_permalink_includes_primary_type();
+	$parts     = array();
+
+	if ( '' !== $prefix ) {
+		$parts[] = $prefix;
+	}
+
+	if ( $with_type ) {
+		$parts[] = 'atelier';
+	}
+
+	$parts[] = 'nom-de-l-evenement';
+
+	return home_url( user_trailingslashit( implode( '/', $parts ) ) );
+}
 function wp_seed_events_register_plugin_admin_menu() {
 	add_submenu_page(
 		'edit.php?post_type=wp_seed_event',
@@ -499,6 +749,14 @@ function wp_seed_events_render_settings_page() {
 		<?php if ( isset( $_GET['message'] ) && 'saved' === sanitize_key( wp_unslash( $_GET['message'] ) ) ) : ?>
 			<div class="notice notice-success is-dismissible"><p>Réglages enregistrés.</p></div>
 		<?php endif; ?>
+
+		<div class="card" style="max-width: 760px;">
+			<h2>URL publiques des évènements</h2>
+			<p>Les URL des fiches évènement se règlent dans <strong>Réglages &gt; Permaliens</strong>.</p>
+			<p>Exemple actuel : <code><?php echo esc_html( wp_seed_events_permalink_example_url() ); ?></code></p>
+			<p>Un changement d’URL peut nécessiter une régénération des permaliens. Si des fiches sont déjà indexées, prévoyez des redirections.</p>
+			<p><a class="button" href="<?php echo esc_url( admin_url( 'options-permalink.php' ) ); ?>">Modifier les permaliens</a></p>
+		</div>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="wp_seed_events_save_display_settings" />
@@ -965,6 +1223,11 @@ function wp_seed_events_reclassify_event_type_to_default( $type_key ) {
 		}
 
 		update_post_meta( $event_id, '_wp_seed_event_types', array_values( array_unique( $event_types ) ) );
+
+		if ( $type_key === get_post_meta( $event_id, '_wp_seed_event_primary_type', true ) ) {
+			delete_post_meta( $event_id, '_wp_seed_event_primary_type' );
+		}
+
 		delete_post_meta( $event_id, '_wp_seed_event_type' );
 	}
 }
@@ -1230,6 +1493,12 @@ function wp_seed_events_render_event_type_box( $post ) {
 		}
 	}
 
+	$primary_type = sanitize_key( (string) get_post_meta( $post->ID, '_wp_seed_event_primary_type', true ) );
+
+	if ( '' === $primary_type ) {
+		$primary_type = wp_seed_events_primary_type_for_event( $post->ID );
+	}
+
 	$is_pinned = '1' === get_post_meta( $post->ID, '_wp_seed_event_pinned', true );
 
 	wp_nonce_field( 'wp_seed_events_save_event_type', 'wp_seed_events_event_type_nonce' );
@@ -1257,6 +1526,20 @@ function wp_seed_events_render_event_type_box( $post ) {
 				</label>
 				<input type="hidden" name="wp_seed_new_event_type" data-wp-seed-event-type-new-value value="" />
 				<button type="button" class="button" data-wp-seed-event-type-save-new>Ajouter</button>
+			</p>
+
+			<p>
+				<label for="wp-seed-event-primary-type">Type principal pour l’URL</label><br />
+				<select id="wp-seed-event-primary-type" name="wp_seed_event_primary_type">
+					<option value="">Aucun type principal</option>
+					<?php foreach ( $event_type_options as $type_key => $type_label ) : ?>
+						<?php if ( wp_seed_events_default_event_type_key() === $type_key ) : ?>
+							<?php continue; ?>
+						<?php endif; ?>
+						<option value="<?php echo esc_attr( $type_key ); ?>" <?php selected( $primary_type, $type_key ); ?>><?php echo esc_html( $type_label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<span class="description">Utilisé uniquement dans l’adresse publique. Si un seul type public est sélectionné, il peut être utilisé automatiquement.</span>
 			</p>
 		</fieldset>
 
@@ -1331,6 +1614,27 @@ function wp_seed_events_save_event_type( $post_id ) {
 		update_post_meta( $post_id, '_wp_seed_event_types', $selected_types );
 	} else {
 		delete_post_meta( $post_id, '_wp_seed_event_types' );
+	}
+
+	$primary_type = isset( $_POST['wp_seed_event_primary_type'] ) ? sanitize_key( wp_unslash( $_POST['wp_seed_event_primary_type'] ) ) : '';
+	$default_type = wp_seed_events_default_event_type_key();
+	$public_types = array_values(
+		array_filter(
+			$selected_types,
+			function ( $type_key ) use ( $default_type ) {
+				return $default_type !== $type_key;
+			}
+		)
+	);
+
+	if ( '' === $primary_type && 1 === count( $public_types ) ) {
+		$primary_type = $public_types[0];
+	}
+
+	if ( '' !== $primary_type && $default_type !== $primary_type && in_array( $primary_type, $selected_types, true ) ) {
+		update_post_meta( $post_id, '_wp_seed_event_primary_type', $primary_type );
+	} else {
+		delete_post_meta( $post_id, '_wp_seed_event_primary_type' );
 	}
 
 	delete_post_meta( $post_id, '_wp_seed_event_type' );
@@ -3322,6 +3626,7 @@ jQuery(function($){
 					.append(' '+label)
 			)
 		);
+		root.find('select[name="wp_seed_event_primary_type"]').append($('<option></option>').val(key).text(label));
 		root.find('[data-wp-seed-event-type-new-value]').val(label);
 		root.find('[data-wp-seed-event-type-new-panel]').prop('hidden',true);
 		input.val('');
