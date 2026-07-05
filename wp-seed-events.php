@@ -458,19 +458,10 @@ function wp_seed_events_event_card_excerpt( $post ) {
 }
 
 function wp_seed_events_render_settings_page() {
-	?>
-	<div class="wrap">
-		<h1>WP Seed Events - Paramètres</h1>
-		<p>Les réglages du plugin seront ajoutés progressivement.</p>
-	</div>
-	<?php
-}
-
-function wp_seed_events_render_display_page() {
 	$template_page_id = wp_seed_events_event_template_page_id();
 	?>
 	<div class="wrap">
-		<h1>WP Seed Events - Affichage</h1>
+		<h1>WP Seed Events - Paramètres</h1>
 
 		<?php if ( isset( $_GET['message'] ) && 'saved' === sanitize_key( wp_unslash( $_GET['message'] ) ) ) : ?>
 			<div class="notice notice-success is-dismissible"><p>Réglages enregistrés.</p></div>
@@ -509,6 +500,15 @@ function wp_seed_events_render_display_page() {
 	<?php
 }
 
+function wp_seed_events_render_display_page() {
+	?>
+	<div class="wrap">
+		<h1>WP Seed Events - Affichage</h1>
+		<p>Les exemples de shortcodes et composants publics seront ajoutés ici.</p>
+	</div>
+	<?php
+}
+
 function wp_seed_events_handle_display_settings_form() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( esc_html__( 'Vous n’avez pas les droits suffisants pour modifier ces réglages.', 'wp-seed-events' ) );
@@ -529,7 +529,7 @@ function wp_seed_events_handle_display_settings_form() {
 		update_option( 'wp_seed_events_event_template_page_id', $template_page_id, false );
 	}
 
-	wp_safe_redirect( admin_url( 'admin.php?page=wp-seed-events-display&message=saved' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=wp-seed-events-admin&message=saved' ) );
 	exit;
 }
 
