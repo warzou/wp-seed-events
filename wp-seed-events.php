@@ -46,6 +46,8 @@ add_filter( 'manage_edit-wp_seed_event_sortable_columns', 'wp_seed_events_event_
 add_action( 'pre_get_posts', 'wp_seed_events_sort_event_admin_by_next_date' );
 add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2 );
 add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
+add_filter( 'template_include', 'wp_seed_events_public_template_include', 99 );
+add_filter( 'body_class', 'wp_seed_events_public_body_class' );
 add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
 add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
 add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
@@ -415,6 +417,34 @@ function wp_seed_events_place_name_for_event( $post_id ) {
 	return get_the_title( $place );
 }
 
+function wp_seed_events_event_render_mode() {
+	$mode = get_option( 'wp_seed_events_event_render_mode', 'theme' );
+
+	return 'full_model' === $mode ? 'full_model' : 'theme';
+}
+
+function wp_seed_events_use_full_model_template() {
+	return 'full_model' === wp_seed_events_event_render_mode();
+}
+
+function wp_seed_events_public_template_include( $template ) {
+	if ( ! is_singular( 'wp_seed_event' ) || ! wp_seed_events_use_full_model_template() ) {
+		return $template;
+	}
+
+	$event_template = __DIR__ . '/templates/single-wp-seed-event.php';
+
+	return file_exists( $event_template ) ? $event_template : $template;
+}
+
+function wp_seed_events_public_body_class( $classes ) {
+	if ( is_singular( 'wp_seed_event' ) && wp_seed_events_use_full_model_template() ) {
+		$classes[] = 'wp-seed-events-template-full-model';
+	}
+
+	return $classes;
+}
+
 function wp_seed_events_render_public_event_content( $content ) {
 	static $rendering = false;
 
@@ -461,6 +491,7 @@ function wp_seed_events_event_card_excerpt( $post ) {
 
 function wp_seed_events_render_settings_page() {
 	$template_page_id = wp_seed_events_event_template_page_id();
+	$render_mode      = wp_seed_events_event_render_mode();
 	?>
 	<div class="wrap">
 		<h1>WP Seed Events - Paramètres</h1>
@@ -491,6 +522,40 @@ function wp_seed_events_render_settings_page() {
 							);
 							?>
 							<p class="description">Cette page peut contenir des shortcodes WP Seed Events. Elle sera utilisée comme modèle pour les fiches publiques d’événements.</p>
+							<?php if ( 0 < $template_page_id ) : ?>
+								<?php
+								$template_page_title = get_the_title( $template_page_id );
+								$template_status     = get_post_status( $template_page_id );
+								$template_view_url   = 'draft' === $template_status ? get_preview_post_link( $template_page_id ) : get_permalink( $template_page_id );
+								$template_edit_url   = get_edit_post_link( $template_page_id, '' );
+								?>
+								<p class="description">
+									Page modèle actuelle : <strong><?php echo esc_html( $template_page_title ); ?></strong>
+									<?php if ( $template_view_url ) : ?>
+										<br /><a href="<?php echo esc_url( $template_view_url ); ?>" target="_blank" rel="noopener">Voir la page</a>
+									<?php endif; ?>
+									<?php if ( $template_edit_url ) : ?>
+										 · <a href="<?php echo esc_url( $template_edit_url ); ?>">Modifier la page</a>
+									<?php endif; ?>
+								</p>
+							<?php endif; ?>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">Rendu des fiches événement</th>
+						<td>
+							<fieldset>
+								<label>
+									<input type="radio" name="wp_seed_events_event_render_mode" value="theme" <?php checked( 'theme', $render_mode ); ?> />
+									Utiliser le template du thème
+								</label>
+								<br />
+								<label>
+									<input type="radio" name="wp_seed_events_event_render_mode" value="full_model" <?php checked( 'full_model', $render_mode ); ?> />
+									Utiliser la page modèle comme page complète
+								</label>
+								<p class="description">Le mode page complète garde l’en-tête et le pied de page du thème, mais évite l’enveloppe article, les métadonnées et la barre latérale du template single.</p>
+							</fieldset>
 						</td>
 					</tr>
 				</tbody>
@@ -652,11 +717,18 @@ function wp_seed_events_handle_display_settings_form() {
 	}
 
 	$template_page_id = isset( $_POST['wp_seed_event_template_page_id'] ) ? absint( $_POST['wp_seed_event_template_page_id'] ) : 0;
+	$render_mode      = isset( $_POST['wp_seed_events_event_render_mode'] ) ? sanitize_key( wp_unslash( $_POST['wp_seed_events_event_render_mode'] ) ) : 'theme';
 
 	if ( 0 === $template_page_id || 'page' !== get_post_type( $template_page_id ) ) {
 		delete_option( 'wp_seed_events_event_template_page_id' );
 	} else {
 		update_option( 'wp_seed_events_event_template_page_id', $template_page_id, false );
+	}
+
+	if ( 'full_model' === $render_mode ) {
+		update_option( 'wp_seed_events_event_render_mode', 'full_model', false );
+	} else {
+		delete_option( 'wp_seed_events_event_render_mode' );
 	}
 
 	wp_safe_redirect( admin_url( 'admin.php?page=wp-seed-events-admin&message=saved' ) );
