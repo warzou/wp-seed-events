@@ -15,6 +15,7 @@ define( 'WP_SEED_EVENTS_VERSION', '0.1.0-dev' );
 
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';
+require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
 
 register_activation_hook( __FILE__, 'wp_seed_events_activate' );
 
