@@ -9,6 +9,18 @@ $pluginRuntimeDirs = @(
     'templates'
 )
 
+$pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
+$versionMatch = [regex]::Match($pluginHeader, '^\s*\*\s*Version:\s*(?<version>[^\r\n]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+
+if (-not $versionMatch.Success -or [string]::IsNullOrWhiteSpace($versionMatch.Groups['version'].Value)) {
+    throw 'Unable to find a valid Version header in wp-seed-events.php.'
+}
+
+$pluginVersion = $versionMatch.Groups['version'].Value.Trim()
+
+Write-Output 'Building WP Seed Events dev ZIP'
+Write-Output "Version: $pluginVersion"
+
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 Add-Type -AssemblyName System.IO.Compression

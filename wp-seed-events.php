@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.0-dev
+ * Version: 0.1.1-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -11,7 +11,31 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WP_SEED_EVENTS_VERSION', '0.1.0-dev' );
+if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
+	$wp_seed_events_version = '';
+
+	if ( function_exists( 'get_file_data' ) ) {
+		$wp_seed_events_plugin_data = get_file_data(
+			__FILE__,
+			array(
+				'Version' => 'Version',
+			),
+			'plugin'
+		);
+
+		$wp_seed_events_version = isset( $wp_seed_events_plugin_data['Version'] ) ? trim( (string) $wp_seed_events_plugin_data['Version'] ) : '';
+	}
+
+	if ( '' === $wp_seed_events_version ) {
+		$wp_seed_events_source = file_get_contents( __FILE__ );
+
+		if ( false !== $wp_seed_events_source && preg_match( '/^[ \t\/*#@]*Version:\s*(.+)$/mi', $wp_seed_events_source, $wp_seed_events_matches ) ) {
+			$wp_seed_events_version = trim( $wp_seed_events_matches[1] );
+		}
+	}
+
+	define( 'WP_SEED_EVENTS_VERSION', '' !== $wp_seed_events_version ? $wp_seed_events_version : '0.0.0-dev' );
+}
 
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/rendering.php';
@@ -813,7 +837,10 @@ function wp_seed_events_render_settings_page() {
 									<input type="radio" name="wp_seed_events_event_render_mode" value="full_model" <?php checked( 'full_model', $render_mode ); ?> />
 									Utiliser la page modèle comme page complète
 								</label>
-								<p class="description">Le mode page complète garde l’en-tête et le pied de page du thème, mais évite l’enveloppe article, les métadonnées et la barre latérale du template single.</p>
+								<div class="description" style="margin-top:8px;">
+									<p><strong>Template du thème :</strong> conserve le template single du thème, avec son enveloppe article normale. Le thème peut afficher le titre, les métadonnées, la barre latérale ou les éléments prévus par le template. WP Seed Events insère alors le contenu de l’événement dans ce cadre.</p>
+									<p><strong>Page modèle comme page complète :</strong> garde l’en-tête et le pied de page du thème, puis utilise la page modèle comme contenu principal. Ce mode évite l’enveloppe article, les métadonnées et la barre latérale du template single. Il est utile pour composer une fiche événement avec Divi, Gutenberg, Spectra ou le thème.</p>
+								</div>
 							</fieldset>
 						</td>
 					</tr>
