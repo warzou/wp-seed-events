@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.1-dev
+ * Version: 0.1.4-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -78,6 +78,7 @@ add_filter( 'body_class', 'wp_seed_events_public_body_class' );
 add_filter( 'post_type_link', 'wp_seed_events_event_post_type_link', 10, 4 );
 add_filter( 'query_vars', 'wp_seed_events_permalink_query_vars' );
 add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
+add_shortcode( 'wp_seed_events', 'wp_seed_events_event_collection_shortcode' );
 add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
 add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
 add_shortcode( 'wp_seed_event_dates', 'wp_seed_events_event_dates_shortcode' );
@@ -217,7 +218,7 @@ function wp_seed_events_add_event_rewrite_rules() {
 	}
 
 	add_rewrite_rule( '^([^/]+)/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[2]&wp_seed_event_primary_type=$matches[1]', 'top' );
-	add_rewrite_rule( '^([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]', 'top' );
+	add_rewrite_rule( '^([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]', 'bottom' );
 }
 
 function wp_seed_events_permalink_query_vars( $query_vars ) {
