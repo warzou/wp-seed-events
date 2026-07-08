@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.12-dev
+ * Version: 0.1.13-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -77,6 +77,7 @@ add_filter( 'template_include', 'wp_seed_events_public_template_include', 99 );
 add_filter( 'body_class', 'wp_seed_events_public_body_class' );
 add_filter( 'post_type_link', 'wp_seed_events_event_post_type_link', 10, 4 );
 add_filter( 'query_vars', 'wp_seed_events_permalink_query_vars' );
+add_action( 'template_redirect', 'wp_seed_events_redirect_event_to_canonical_url', 1 );
 add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
 add_shortcode( 'wp_seed_events', 'wp_seed_events_event_collection_shortcode' );
 add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
@@ -227,6 +228,47 @@ function wp_seed_events_permalink_query_vars( $query_vars ) {
 	return $query_vars;
 }
 
+function wp_seed_events_normalize_url_path( $url ) {
+	$path = wp_parse_url( $url, PHP_URL_PATH );
+
+	if ( null === $path || false === $path ) {
+		return '';
+	}
+
+	$path = rawurldecode( (string) $path );
+	$path = '/' . ltrim( $path, '/' );
+
+	return untrailingslashit( $path );
+}
+
+function wp_seed_events_redirect_event_to_canonical_url() {
+	if ( is_admin() || wp_doing_ajax() || is_preview() || ! is_singular( 'wp_seed_event' ) ) {
+		return;
+	}
+
+	$event_id = get_queried_object_id();
+
+	if ( ! $event_id ) {
+		return;
+	}
+
+	$canonical_url = get_permalink( $event_id );
+
+	if ( ! $canonical_url ) {
+		return;
+	}
+
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+	$request_url = home_url( $request_uri );
+
+	if ( wp_seed_events_normalize_url_path( $request_url ) === wp_seed_events_normalize_url_path( $canonical_url ) ) {
+		return;
+	}
+
+	wp_safe_redirect( $canonical_url, 301 );
+	exit;
+}
+
 function wp_seed_events_register_permalink_settings() {
 	add_settings_section(
 		'wp_seed_events_permalink_section',
@@ -257,10 +299,15 @@ function wp_seed_events_render_permalink_section_intro() {
 }
 
 function wp_seed_events_render_permalink_prefix_field() {
-	$prefix = wp_seed_events_permalink_prefix();
+	$prefix        = wp_seed_events_permalink_prefix();
+	$stored_prefix = get_option( 'wp_seed_events_permalink_prefix', null );
 	?>
 	<input name="wp_seed_events_permalink_prefix" type="text" class="regular-text code" value="<?php echo esc_attr( $prefix ); ?>" placeholder="evenements" />
-	<p class="description">Par défaut : <code>evenements</code>. Laisser vide supprime le préfixe, mais augmente les risques de conflit avec des pages existantes.</p>
+	<p class="description">Valeur effective : <code><?php echo '' === $prefix ? 'aucun préfixe' : esc_html( $prefix ); ?></code>. Par défaut : <code>evenements</code>.</p>
+	<?php if ( null === $stored_prefix ) : ?>
+		<p class="description">Le champ affiche actuellement la valeur par défaut. Enregistrez une valeur vide pour supprimer réellement le préfixe.</p>
+	<?php endif; ?>
+	<p class="description">Laisser vide supprime le préfixe, mais augmente les risques de conflit avec des pages existantes.</p>
 	<?php
 }
 
