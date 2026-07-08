@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.13-dev
+ * Version: 0.1.14-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -37,6 +37,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 	define( 'WP_SEED_EVENTS_VERSION', '' !== $wp_seed_events_version ? $wp_seed_events_version : '0.0.0-dev' );
 }
 
+require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';

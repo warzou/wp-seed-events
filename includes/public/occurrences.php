@@ -1,0 +1,201 @@
+<?php
+/**
+ * Event occurrences API for WP Seed Events.
+ *
+ * @package WPSeedEvents
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+function wp_seed_events_get_event_occurrences( $event_id, $args = array() ) {
+	$event_id = absint( $event_id );
+	$args     = wp_parse_args(
+		$args,
+		array(
+			'include_cancelled' => true,
+			'only_active'       => false,
+			'status'            => 'all',
+		)
+	);
+
+	$raw_occurrences = get_post_meta( $event_id, '_wp_seed_event_occurrences', true );
+
+	if ( ! is_array( $raw_occurrences ) ) {
+		return array();
+	}
+
+	$occurrences = array();
+
+	foreach ( $raw_occurrences as $index => $raw_occurrence ) {
+		$occurrence = wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, (int) $index );
+
+		if ( array() === $occurrence ) {
+			continue;
+		}
+
+		if ( ! $args['include_cancelled'] && $occurrence['is_cancelled'] ) {
+			continue;
+		}
+
+		if ( $args['only_active'] && ! $occurrence['is_active'] ) {
+			continue;
+		}
+
+		if ( 'future' === $args['status'] && ! $occurrence['is_future'] ) {
+			continue;
+		}
+
+		if ( 'past' === $args['status'] && ! $occurrence['is_past'] ) {
+			continue;
+		}
+
+		$occurrences[] = $occurrence;
+	}
+
+	usort(
+		$occurrences,
+		function ( $first, $second ) {
+			return strcmp( (string) $first['start_sort'], (string) $second['start_sort'] );
+		}
+	);
+
+	return $occurrences;
+}
+
+function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index = 0 ) {
+	if ( ! is_array( $raw_occurrence ) ) {
+		return array();
+	}
+
+	$start_date = isset( $raw_occurrence['start_date'] ) ? trim( (string) $raw_occurrence['start_date'] ) : '';
+
+	if ( '' === $start_date || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $start_date ) ) {
+		return array();
+	}
+
+	$end_date = isset( $raw_occurrence['end_date'] ) ? trim( (string) $raw_occurrence['end_date'] ) : '';
+
+	if ( '' !== $end_date && ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $end_date ) ) {
+		$end_date = '';
+	}
+
+	$start_time = isset( $raw_occurrence['start_time'] ) ? trim( (string) $raw_occurrence['start_time'] ) : '';
+	$end_time   = isset( $raw_occurrence['end_time'] ) ? trim( (string) $raw_occurrence['end_time'] ) : '';
+
+	if ( '' !== $start_time && ! preg_match( '/^\d{2}:\d{2}$/', $start_time ) ) {
+		$start_time = '';
+	}
+
+	if ( '' !== $end_time && ! preg_match( '/^\d{2}:\d{2}$/', $end_time ) ) {
+		$end_time = '';
+	}
+
+	$all_day      = ! empty( $raw_occurrence['all_day'] );
+	$is_cancelled = ! empty( $raw_occurrence['cancelled'] );
+	$start_sort   = $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) );
+	$end_sort     = ( '' !== $end_date ? $end_date : $start_date ) . ' ' . ( $all_day ? '23:59' : ( '' !== $end_time ? $end_time : ( '' !== $start_time ? $start_time : '00:00' ) ) );
+	$today        = current_time( 'Y-m-d' );
+	$is_active    = ! $is_cancelled;
+	$is_future    = $is_active && $start_date >= $today;
+	$is_past      = $is_active && $start_date < $today;
+
+	$occurrence = array(
+		'id'             => wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index ),
+		'event_id'       => absint( $event_id ),
+		'start_date'     => $start_date,
+		'end_date'       => $end_date,
+		'start_time'     => $start_time,
+		'end_time'       => $end_time,
+		'all_day'        => $all_day ? '1' : '',
+		'cancelled'      => $is_cancelled ? '1' : '',
+		'start_sort'     => $start_sort,
+		'end_sort'       => $end_sort,
+		'is_dated'       => true,
+		'is_active'      => $is_active,
+		'is_future'      => $is_future,
+		'is_past'        => $is_past,
+		'is_cancelled'   => $is_cancelled,
+	);
+
+	$occurrence['date_label']     = wp_seed_events_format_occurrence_date_line( $occurrence );
+	$occurrence['time_label']     = wp_seed_events_format_occurrence_time_line( $occurrence );
+	$occurrence['datetime_label'] = trim( $occurrence['date_label'] . ( '' !== $occurrence['time_label'] ? ' ' . $occurrence['time_label'] : '' ) );
+
+	return $occurrence;
+}
+
+function wp_seed_events_get_next_active_occurrence( $event_id ) {
+	$occurrences = wp_seed_events_get_event_occurrences(
+		$event_id,
+		array(
+			'include_cancelled' => false,
+			'only_active'       => true,
+			'status'            => 'future',
+		)
+	);
+
+	return array() === $occurrences ? array() : reset( $occurrences );
+}
+
+
+function wp_seed_events_get_last_active_occurrence( $event_id ) {
+	$occurrences = wp_seed_events_get_event_occurrences(
+		$event_id,
+		array(
+			'include_cancelled' => false,
+			'only_active'       => true,
+			'status'            => 'all',
+		)
+	);
+
+	return array() === $occurrences ? array() : end( $occurrences );
+}
+
+function wp_seed_events_get_event_lifecycle( $event_id ) {
+	$occurrences = wp_seed_events_get_event_occurrences(
+		$event_id,
+		array(
+			'include_cancelled' => true,
+			'status'            => 'all',
+		)
+	);
+
+	if ( array() === $occurrences ) {
+		return 'undated';
+	}
+
+	$active_occurrences = array_values(
+		array_filter(
+			$occurrences,
+			function ( $occurrence ) {
+				return ! empty( $occurrence['is_active'] );
+			}
+		)
+	);
+
+	if ( array() === $active_occurrences ) {
+		return 'cancelled_only';
+	}
+
+	foreach ( $active_occurrences as $occurrence ) {
+		if ( ! empty( $occurrence['is_future'] ) ) {
+			return 'upcoming';
+		}
+	}
+
+	return 'past';
+}
+
+function wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index = 0 ) {
+	$parts = array(
+		absint( $event_id ),
+		(int) $index,
+		isset( $raw_occurrence['start_date'] ) ? (string) $raw_occurrence['start_date'] : '',
+		isset( $raw_occurrence['start_time'] ) ? (string) $raw_occurrence['start_time'] : '',
+		isset( $raw_occurrence['end_date'] ) ? (string) $raw_occurrence['end_date'] : '',
+		isset( $raw_occurrence['end_time'] ) ? (string) $raw_occurrence['end_time'] : '',
+		! empty( $raw_occurrence['all_day'] ) ? '1' : '',
+	);
+
+	return 'occ-' . substr( md5( implode( '|', $parts ) ), 0, 16 );
+}

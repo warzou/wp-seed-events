@@ -74,19 +74,35 @@ function wp_seed_events_public_event_excerpt( $content ) {
 }
 
 function wp_seed_events_public_event_next_date_line( $event ) {
-	if ( empty( $event['next_occurrence'] ) || ! is_array( $event['next_occurrence'] ) ) {
+	$occurrence = wp_seed_events_public_event_display_occurrence( $event );
+
+	if ( array() === $occurrence ) {
 		return '';
 	}
 
-	return wp_seed_events_format_occurrence_date_line( $event['next_occurrence'] );
+	return wp_seed_events_format_occurrence_date_line( $occurrence );
 }
 
 function wp_seed_events_public_event_next_time_line( $event ) {
-	if ( empty( $event['next_occurrence'] ) || ! is_array( $event['next_occurrence'] ) ) {
+	$occurrence = wp_seed_events_public_event_display_occurrence( $event );
+
+	if ( array() === $occurrence ) {
 		return '';
 	}
 
-	return wp_seed_events_format_occurrence_time_line( $event['next_occurrence'] );
+	return wp_seed_events_format_occurrence_time_line( $occurrence );
+}
+
+function wp_seed_events_public_event_display_occurrence( $event ) {
+	if ( ! empty( $event['display_occurrence'] ) && is_array( $event['display_occurrence'] ) ) {
+		return $event['display_occurrence'];
+	}
+
+	if ( ! empty( $event['next_occurrence'] ) && is_array( $event['next_occurrence'] ) ) {
+		return $event['next_occurrence'];
+	}
+
+	return array();
 }
 
 function wp_seed_events_public_yes_no_option( $value, $default = true ) {
@@ -343,7 +359,6 @@ function wp_seed_events_get_event_collection( $args = array() ) {
 	);
 
 	$items = array();
-	$now   = current_time( 'Y-m-d H:i' );
 
 	foreach ( $event_ids as $event_id ) {
 		$event_id = absint( $event_id );
@@ -364,7 +379,7 @@ function wp_seed_events_get_event_collection( $args = array() ) {
 			continue;
 		}
 
-		$timing = wp_seed_events_public_collection_event_timing( $event, $now );
+		$timing = wp_seed_events_public_collection_event_timing( $event );
 
 		if ( 'upcoming' === $status && ! $timing['is_upcoming'] ) {
 			continue;
@@ -435,25 +450,11 @@ function wp_seed_events_public_collection_event_matches_type( $event_id, $type )
 	return false;
 }
 
-function wp_seed_events_public_collection_event_timing( $event, $now ) {
-	$occurrences = isset( $event['occurrences'] ) && is_array( $event['occurrences'] ) ? $event['occurrences'] : array();
-	$dated       = array();
+function wp_seed_events_public_collection_event_timing( $event ) {
+	$lifecycle          = isset( $event['lifecycle'] ) ? (string) $event['lifecycle'] : '';
+	$active_occurrences = isset( $event['active_occurrences'] ) && is_array( $event['active_occurrences'] ) ? $event['active_occurrences'] : array();
 
-	foreach ( $occurrences as $occurrence ) {
-		if ( ! is_array( $occurrence ) || empty( $occurrence['start_date'] ) || ! empty( $occurrence['cancelled'] ) ) {
-			continue;
-		}
-
-		$sort = wp_seed_events_occurrence_sort_value( $occurrence );
-
-		if ( '' === $sort ) {
-			continue;
-		}
-
-		$dated[] = $sort;
-	}
-
-	if ( array() === $dated ) {
+	if ( array() === $active_occurrences ) {
 		return array(
 			'has_date'    => false,
 			'is_upcoming' => false,
@@ -462,24 +463,42 @@ function wp_seed_events_public_collection_event_timing( $event, $now ) {
 		);
 	}
 
-	sort( $dated, SORT_STRING );
-
-	foreach ( $dated as $sort ) {
-		if ( $sort >= $now ) {
-			return array(
-				'has_date'    => true,
-				'is_upcoming' => true,
-				'is_past'     => false,
-				'sort'        => $sort,
-			);
-		}
+	if ( 'upcoming' === $lifecycle && ! empty( $event['next_occurrence']['start_sort'] ) ) {
+		return array(
+			'has_date'    => true,
+			'is_upcoming' => true,
+			'is_past'     => false,
+			'sort'        => $event['next_occurrence']['start_sort'],
+		);
 	}
+
+	$sort_values = array_values(
+		array_filter(
+			array_map(
+				function ( $occurrence ) {
+					return is_array( $occurrence ) && ! empty( $occurrence['start_sort'] ) ? (string) $occurrence['start_sort'] : '';
+				},
+				$active_occurrences
+			)
+		)
+	);
+
+	if ( array() === $sort_values ) {
+		return array(
+			'has_date'    => false,
+			'is_upcoming' => false,
+			'is_past'     => false,
+			'sort'        => '',
+		);
+	}
+
+	sort( $sort_values, SORT_STRING );
 
 	return array(
 		'has_date'    => true,
-		'is_upcoming' => false,
-		'is_past'     => true,
-		'sort'        => end( $dated ),
+		'is_upcoming' => 'upcoming' === $lifecycle,
+		'is_past'     => 'past' === $lifecycle,
+		'sort'        => end( $sort_values ),
 	);
 }
 
