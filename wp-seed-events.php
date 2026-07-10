@@ -2075,6 +2075,7 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 				$is_cancelled            = ! empty( $occurrence['cancelled'] );
 				?>
 				<div data-wp-seed-date-item data-wp-seed-date-sort="<?php echo esc_attr( wp_seed_events_occurrence_sort_value( $occurrence ) ); ?>" style="margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px solid #dcdcde;">
+					<input type="hidden" data-wp-seed-date-field="uid" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][uid]" value="<?php echo esc_attr( $occurrence['uid'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-date-field="start_date" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][start_date]" value="<?php echo esc_attr( $occurrence['start_date'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-date-field="end_date" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][end_date]" value="<?php echo esc_attr( $occurrence['end_date'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-date-field="start_time" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][start_time]" value="<?php echo esc_attr( $occurrence['start_time'] ?? '' ); ?>" />
@@ -2173,6 +2174,7 @@ function wp_seed_events_save_occurrences( $post_id ) {
 		$start_time = isset( $raw_occurrence['start_time'] ) ? sanitize_text_field( $raw_occurrence['start_time'] ) : '';
 		$end_time   = isset( $raw_occurrence['end_time'] ) ? sanitize_text_field( $raw_occurrence['end_time'] ) : '';
 		$cancelled  = ! empty( $raw_occurrence['cancelled'] ) ? '1' : '';
+		$uid        = isset( $raw_occurrence['uid'] ) ? wp_seed_events_sanitize_occurrence_uid( $raw_occurrence['uid'] ) : '';
 
 		if ( '' === $start_date ) {
 			continue;
@@ -2194,7 +2196,12 @@ function wp_seed_events_save_occurrences( $post_id ) {
 			$end_time = '';
 		}
 
+		if ( '' === $uid ) {
+			$uid = wp_seed_events_generate_occurrence_uid();
+		}
+
 		$occurrences[] = array(
+			'uid'        => $uid,
 			'start_date' => $start_date,
 			'end_date'   => $end_date,
 			'start_time' => $start_time,
@@ -4333,6 +4340,7 @@ jQuery(function($){
 
 	function wpSeedDateReadItem(item){
 		return{
+			uid:item.find('[data-wp-seed-date-field="uid"]').val(),
 			start_date:item.find('[data-wp-seed-date-field="start_date"]').val(),
 			end_date:item.find('[data-wp-seed-date-field="end_date"]').val(),
 			start_time:item.find('[data-wp-seed-date-field="start_time"]').val(),
@@ -4343,6 +4351,7 @@ jQuery(function($){
 	}
 
 	function wpSeedDateWriteItem(item,data){
+		item.find('[data-wp-seed-date-field="uid"]').val(data.uid||'');
 		item.find('[data-wp-seed-date-field="start_date"]').val(data.start_date);
 		item.find('[data-wp-seed-date-field="end_date"]').val(data.end_date);
 		item.find('[data-wp-seed-date-field="start_time"]').val(data.start_time);
@@ -4358,7 +4367,7 @@ jQuery(function($){
 
 	function wpSeedDateCreateItem(index,data){
 		var item=$('<div data-wp-seed-date-item></div>').css({margin:'0 0 12px',padding:'0 0 12px',borderBottom:'1px solid #dcdcde'});
-		var fields=['start_date','end_date','start_time','end_time','all_day','cancelled'];
+		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled'];
 		$.each(fields,function(_,field){
 			item.append($('<input type="hidden" />').attr('name','wp_seed_events_occurrences['+index+']['+field+']').attr('data-wp-seed-date-field',field));
 		});
@@ -4411,13 +4420,14 @@ jQuery(function($){
 		e.preventDefault();
 		var root=wpSeedDateRoot(this);
 		var panel=wpSeedDatePanel(root);
-		var data={start_date:wpSeedDateField(panel,'start_date').val(),end_date:wpSeedDateField(panel,'end_date').val(),start_time:wpSeedDateField(panel,'start_time').val(),end_time:wpSeedDateField(panel,'end_time').val(),all_day:wpSeedDateField(panel,'all_day').prop('checked')?'1':'',cancelled:''};
+		var data={uid:'',start_date:wpSeedDateField(panel,'start_date').val(),end_date:wpSeedDateField(panel,'end_date').val(),start_time:wpSeedDateField(panel,'start_time').val(),end_time:wpSeedDateField(panel,'end_time').val(),all_day:wpSeedDateField(panel,'all_day').prop('checked')?'1':'',cancelled:''};
 		var item=panel.data('wpSeedDateItem');
 		if(!data.start_date){
 			wpSeedDateField(panel,'start_date').trigger('focus');
 			return;
 		}
 		if(item){
+			data.uid=item.find('[data-wp-seed-date-field="uid"]').val();
 			data.cancelled=item.find('[data-wp-seed-date-field="cancelled"]').val();
 			wpSeedDateWriteItem(item,data);
 		}else{

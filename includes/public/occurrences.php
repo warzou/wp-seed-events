@@ -90,6 +90,8 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 		$end_time = '';
 	}
 
+	$uid          = isset( $raw_occurrence['uid'] ) ? wp_seed_events_sanitize_occurrence_uid( $raw_occurrence['uid'] ) : '';
+	$derived_id   = wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index );
 	$all_day      = ! empty( $raw_occurrence['all_day'] );
 	$is_cancelled = ! empty( $raw_occurrence['cancelled'] );
 	$start_sort   = $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) );
@@ -100,7 +102,9 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 	$is_past      = $is_active && $start_date < $today;
 
 	$occurrence = array(
-		'id'             => wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index ),
+		'id'             => '' !== $uid ? $uid : $derived_id,
+		'uid'            => $uid,
+		'derived_id'     => $derived_id,
 		'event_id'       => absint( $event_id ),
 		'start_date'     => $start_date,
 		'end_date'       => $end_date,
@@ -184,6 +188,35 @@ function wp_seed_events_get_event_lifecycle( $event_id ) {
 	}
 
 	return 'past';
+}
+
+function wp_seed_events_sanitize_occurrence_uid( $uid ) {
+	$uid = strtolower( trim( sanitize_text_field( (string) $uid ) ) );
+
+	if ( '' === $uid ) {
+		return '';
+	}
+
+	if ( preg_match( '/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/', $uid ) ) {
+		return $uid;
+	}
+
+	return '';
+}
+
+function wp_seed_events_generate_occurrence_uid() {
+	if ( function_exists( 'wp_generate_uuid4' ) ) {
+		return wp_generate_uuid4();
+	}
+
+	return sprintf(
+		'%08s-%04s-%04s-%04s-%012s',
+		substr( md5( uniqid( '', true ) ), 0, 8 ),
+		substr( md5( uniqid( '', true ) ), 0, 4 ),
+		'4' . substr( md5( uniqid( '', true ) ), 0, 3 ),
+		'a' . substr( md5( uniqid( '', true ) ), 0, 3 ),
+		substr( md5( uniqid( '', true ) ), 0, 12 )
+	);
 }
 
 function wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index = 0 ) {
