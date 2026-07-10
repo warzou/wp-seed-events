@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.14-dev
+ * Version: 0.1.17-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -49,6 +49,9 @@ add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'admin_init', 'wp_seed_events_register_permalink_settings' );
 add_action( 'admin_init', 'wp_seed_events_maybe_save_permalink_settings' );
 add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );
+add_action( 'admin_notices', 'wp_seed_events_render_title_required_notice' );
+add_filter( 'wp_insert_post_data', 'wp_seed_events_prepare_event_title_and_slug', 10, 2 );
+add_filter( 'redirect_post_location', 'wp_seed_events_title_required_redirect', 10, 2 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_event_type_meta_box', 5 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
@@ -91,6 +94,74 @@ add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_i
 function wp_seed_events_activate() {
 	wp_seed_events_register_event_post_type();
 	flush_rewrite_rules();
+}
+
+
+function wp_seed_events_prepare_event_title_and_slug( $data, $postarr ) {
+	if ( empty( $data['post_type'] ) || 'wp_seed_event' !== $data['post_type'] ) {
+		return $data;
+	}
+
+	$title   = isset( $data['post_title'] ) ? trim( wp_strip_all_tags( (string) $data['post_title'] ) ) : '';
+	$status  = isset( $data['post_status'] ) ? (string) $data['post_status'] : '';
+	$post_id = ! empty( $postarr['ID'] ) ? absint( $postarr['ID'] ) : 0;
+
+	if ( '' === $title && in_array( $status, array( 'publish', 'future' ), true ) ) {
+		$data['post_status'] = 'draft';
+		$GLOBALS['wp_seed_events_title_required_notice'] = true;
+		return $data;
+	}
+
+	if ( '' !== $title && wp_seed_events_event_slug_is_provisional( $data, $post_id ) ) {
+		$data['post_name'] = wp_unique_post_slug( sanitize_title( $title ), $post_id, $status, 'wp_seed_event', 0 );
+	}
+
+	return $data;
+}
+
+function wp_seed_events_event_slug_is_provisional( $data, $post_id ) {
+	$slug = isset( $data['post_name'] ) ? trim( (string) $data['post_name'] ) : '';
+
+	if ( '' === $slug ) {
+		return true;
+	}
+
+	if ( 0 < $post_id && (string) $post_id === $slug ) {
+		return true;
+	}
+
+	if ( in_array( $slug, array( 'auto-draft', 'sans-titre', 'untitled' ), true ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+function wp_seed_events_title_required_redirect( $location, $post_id ) {
+	if ( empty( $GLOBALS['wp_seed_events_title_required_notice'] ) ) {
+		return $location;
+	}
+
+	$location = remove_query_arg( 'message', $location );
+
+	return add_query_arg( 'wp_seed_events_title_required', '1', $location );
+}
+
+function wp_seed_events_render_title_required_notice() {
+	if ( empty( $_GET['wp_seed_events_title_required'] ) ) {
+		return;
+	}
+
+	$screen = get_current_screen();
+
+	if ( ! $screen || 'wp_seed_event' !== $screen->post_type ) {
+		return;
+	}
+
+	printf(
+		'<div class="notice notice-error"><p>%s</p></div>',
+		esc_html__( 'Ajoutez un titre à l’événement avant de le publier.', 'wp-seed-events' )
+	);
 }
 
 function wp_seed_events_register_event_post_type() {
