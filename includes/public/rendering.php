@@ -812,10 +812,15 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		return '';
 	}
 
+	$all_dates_link = wp_seed_events_render_event_calendar_link( $event );
+
 	ob_start();
 	?>
 	<section class="wp-seed-event-section wp-seed-event-section--dates">
 		<h2>Dates</h2>
+		<?php if ( '' !== $all_dates_link ) : ?>
+			<p class="wp-seed-event-calendar-all"><?php echo wp_kses_post( $all_dates_link ); ?></p>
+		<?php endif; ?>
 		<ul class="wp-seed-event-dates">
 			<?php foreach ( $occurrences as $occurrence ) : ?>
 				<?php

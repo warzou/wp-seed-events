@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.18-dev
+ * Version: 0.1.19-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -70,6 +70,8 @@ add_action( 'admin_post_wp_seed_events_save_places', 'wp_seed_events_handle_plac
 add_action( 'admin_post_wp_seed_events_save_display_settings', 'wp_seed_events_handle_display_settings_form' );
 add_action( 'admin_post_wp_seed_events_download_occurrence_ics', 'wp_seed_events_handle_occurrence_ics_download' );
 add_action( 'admin_post_nopriv_wp_seed_events_download_occurrence_ics', 'wp_seed_events_handle_occurrence_ics_download' );
+add_action( 'admin_post_wp_seed_events_download_event_ics', 'wp_seed_events_handle_event_ics_download' );
+add_action( 'admin_post_nopriv_wp_seed_events_download_event_ics', 'wp_seed_events_handle_event_ics_download' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_description', 5 );

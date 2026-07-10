@@ -7,6 +7,45 @@
 
 defined( 'ABSPATH' ) || exit;
 
+function wp_seed_events_calendar_future_occurrences( $event_id ) {
+	return wp_seed_events_get_event_occurrences(
+		absint( $event_id ),
+		array(
+			'include_cancelled' => false,
+			'only_active'       => true,
+			'status'            => 'future',
+		)
+	);
+}
+
+function wp_seed_events_event_calendar_url( $event ) {
+	if ( empty( $event['id'] ) || count( wp_seed_events_calendar_future_occurrences( $event['id'] ) ) < 2 ) {
+		return '';
+	}
+
+	return add_query_arg(
+		array(
+			'action'   => 'wp_seed_events_download_event_ics',
+			'event_id' => absint( $event['id'] ),
+		),
+		admin_url( 'admin-post.php' )
+	);
+}
+
+function wp_seed_events_render_event_calendar_link( $event ) {
+	$url = wp_seed_events_event_calendar_url( $event );
+
+	if ( '' === $url ) {
+		return '';
+	}
+
+	return sprintf(
+		'<a class="wp-seed-event-calendar-link wp-seed-event-calendar-link--all" href="%1$s"><span aria-hidden="true">&#x1F5D3;&#xFE0F;</span> %2$s</a>',
+		esc_url( $url ),
+		esc_html__( 'Ajouter toutes les dates', 'wp-seed-events' )
+	);
+}
+
 function wp_seed_events_occurrence_calendar_url( $event, $occurrence ) {
 	if (
 		empty( $event['id'] ) ||
@@ -50,15 +89,8 @@ function wp_seed_events_handle_occurrence_ics_download() {
 		wp_seed_events_calendar_download_not_found();
 	}
 
-	$occurrences = wp_seed_events_get_event_occurrences(
-		$event_id,
-		array(
-			'include_cancelled' => false,
-			'only_active'       => true,
-			'status'            => 'future',
-		)
-	);
-	$occurrence = array();
+	$occurrences = wp_seed_events_calendar_future_occurrences( $event_id );
+	$occurrence  = array();
 
 	foreach ( $occurrences as $candidate ) {
 		if ( ! empty( $candidate['id'] ) && hash_equals( (string) $candidate['id'], $occurrence_id ) ) {
@@ -77,13 +109,49 @@ function wp_seed_events_handle_occurrence_ics_download() {
 		wp_seed_events_calendar_download_not_found();
 	}
 
-	$filename = sanitize_file_name(
-		sprintf(
-			'event-%d-%s.ics',
-			$event_id,
-			(string) $occurrence['start_date']
-		)
+	$filename = sprintf(
+		'event-%d-%s.ics',
+		$event_id,
+		(string) $occurrence['start_date']
 	);
+
+	wp_seed_events_send_ics_download( $ics, $filename );
+}
+
+function wp_seed_events_handle_event_ics_download() {
+	$event_id = isset( $_GET['event_id'] ) ? absint( $_GET['event_id'] ) : 0;
+	$event    = wp_seed_events_get_event_data( $event_id );
+
+	if ( array() === $event ) {
+		wp_seed_events_calendar_download_not_found();
+	}
+
+	$occurrences = wp_seed_events_calendar_future_occurrences( $event_id );
+
+	if ( count( $occurrences ) < 2 ) {
+		wp_seed_events_calendar_download_not_found();
+	}
+
+	$ics = wp_seed_events_generate_occurrences_ics( $event, $occurrences );
+
+	if ( '' === $ics ) {
+		wp_seed_events_calendar_download_not_found();
+	}
+
+	wp_seed_events_send_ics_download(
+		$ics,
+		sprintf( 'event-%d-toutes-les-dates.ics', $event_id )
+	);
+}
+
+function wp_seed_events_calendar_download_not_found() {
+	status_header( 404 );
+	nocache_headers();
+	exit;
+}
+
+function wp_seed_events_send_ics_download( $ics, $filename ) {
+	$filename = sanitize_file_name( $filename );
 
 	nocache_headers();
 	header( 'Content-Type: text/calendar; charset=utf-8' );
@@ -94,13 +162,51 @@ function wp_seed_events_handle_occurrence_ics_download() {
 	exit;
 }
 
-function wp_seed_events_calendar_download_not_found() {
-	status_header( 404 );
-	nocache_headers();
-	exit;
+function wp_seed_events_generate_occurrence_ics( $event, $occurrence ) {
+	return wp_seed_events_generate_occurrences_ics( $event, array( $occurrence ) );
 }
 
-function wp_seed_events_generate_occurrence_ics( $event, $occurrence ) {
+function wp_seed_events_generate_occurrences_ics( $event, $occurrences ) {
+	if (
+		empty( $event['title'] ) ||
+		empty( $event['url'] ) ||
+		empty( $occurrences ) ||
+		! is_array( $occurrences )
+	) {
+		return '';
+	}
+
+	$lines = array(
+		'BEGIN:VCALENDAR',
+		'VERSION:2.0',
+		'PRODID:-//WP Seed//WP Seed Events//FR',
+		'CALSCALE:GREGORIAN',
+		'METHOD:PUBLISH',
+	);
+	$event_count = 0;
+
+	foreach ( $occurrences as $occurrence ) {
+		$event_lines = wp_seed_events_occurrence_ics_event_lines( $event, $occurrence );
+
+		if ( array() === $event_lines ) {
+			continue;
+		}
+
+		$lines = array_merge( $lines, $event_lines );
+		$event_count++;
+	}
+
+	if ( 0 === $event_count ) {
+		return '';
+	}
+
+	$lines[] = 'END:VCALENDAR';
+	$lines   = array_map( 'wp_seed_events_ics_fold_line', $lines );
+
+	return implode( "\r\n", $lines ) . "\r\n";
+}
+
+function wp_seed_events_occurrence_ics_event_lines( $event, $occurrence ) {
 	if (
 		empty( $event['title'] ) ||
 		empty( $event['url'] ) ||
@@ -109,13 +215,13 @@ function wp_seed_events_generate_occurrence_ics( $event, $occurrence ) {
 		empty( $occurrence['is_active'] ) ||
 		empty( $occurrence['is_future'] )
 	) {
-		return '';
+		return array();
 	}
 
 	$date_lines = wp_seed_events_occurrence_ics_date_lines( $occurrence );
 
 	if ( array() === $date_lines ) {
-		return '';
+		return array();
 	}
 
 	$place    = isset( $event['place'] ) && is_array( $event['place'] ) ? $event['place'] : array();
@@ -130,11 +236,6 @@ function wp_seed_events_generate_occurrence_ics( $event, $occurrence ) {
 	);
 	$description = wp_seed_events_calendar_plain_text( $event['description'] ?? '' );
 	$lines       = array(
-		'BEGIN:VCALENDAR',
-		'VERSION:2.0',
-		'PRODID:-//WP Seed//WP Seed Events//FR',
-		'CALSCALE:GREGORIAN',
-		'METHOD:PUBLISH',
 		'BEGIN:VEVENT',
 		'UID:' . wp_seed_events_ics_escape_text( (string) $occurrence['id'] ),
 		'DTSTAMP:' . gmdate( 'Ymd\THis\Z' ),
@@ -153,11 +254,8 @@ function wp_seed_events_generate_occurrence_ics( $event, $occurrence ) {
 
 	$lines[] = 'URL:' . esc_url_raw( (string) $event['url'] );
 	$lines[] = 'END:VEVENT';
-	$lines[] = 'END:VCALENDAR';
 
-	$lines = array_map( 'wp_seed_events_ics_fold_line', $lines );
-
-	return implode( "\r\n", $lines ) . "\r\n";
+	return $lines;
 }
 
 function wp_seed_events_occurrence_ics_date_lines( $occurrence ) {

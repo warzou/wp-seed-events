@@ -38,6 +38,10 @@ defined( 'ABSPATH' ) || exit;
 	<?php if ( ! empty( $event['occurrences'] ) ) : ?>
 		<section class="wp-seed-event-single__section wp-seed-event-single__dates">
 			<h2>Dates</h2>
+			<?php $all_dates_link = wp_seed_events_render_event_calendar_link( $event ); ?>
+			<?php if ( '' !== $all_dates_link ) : ?>
+				<p class="wp-seed-event-calendar-all"><?php echo wp_kses_post( $all_dates_link ); ?></p>
+			<?php endif; ?>
 			<ul>
 				<?php foreach ( $event['occurrences'] as $occurrence ) : ?>
 					<li>
