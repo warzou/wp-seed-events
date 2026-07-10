@@ -48,6 +48,9 @@ defined( 'ABSPATH' ) || exit;
 						<?php if ( '' !== wp_seed_events_format_occurrence_time_line( $occurrence ) ) : ?>
 							<br /><?php echo esc_html( wp_seed_events_format_occurrence_time_line( $occurrence ) ); ?>
 						<?php endif; ?>
+						<?php if ( ! empty( $occurrence['is_active'] ) && ! empty( $occurrence['is_future'] ) ) : ?>
+							<br /><?php echo wp_kses_post( wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) ); ?>
+						<?php endif; ?>
 					</li>
 				<?php endforeach; ?>
 			</ul>

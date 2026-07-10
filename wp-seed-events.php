@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.1.17-dev
+ * Version: 0.1.18-dev
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -39,6 +39,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 
 require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/public/event-data.php';
+require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
@@ -67,6 +68,8 @@ add_action( 'admin_post_wp_seed_events_save_event_types', 'wp_seed_events_handle
 add_action( 'admin_post_wp_seed_events_save_people', 'wp_seed_events_handle_people_admin_form' );
 add_action( 'admin_post_wp_seed_events_save_places', 'wp_seed_events_handle_places_admin_form' );
 add_action( 'admin_post_wp_seed_events_save_display_settings', 'wp_seed_events_handle_display_settings_form' );
+add_action( 'admin_post_wp_seed_events_download_occurrence_ics', 'wp_seed_events_handle_occurrence_ics_download' );
+add_action( 'admin_post_nopriv_wp_seed_events_download_occurrence_ics', 'wp_seed_events_handle_occurrence_ics_download' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_description', 5 );

@@ -830,6 +830,9 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 					<?php if ( '' !== $time_line ) : ?>
 						<br /><span><?php echo esc_html( $time_line ); ?></span>
 					<?php endif; ?>
+					<?php if ( ! empty( $occurrence['is_active'] ) && ! empty( $occurrence['is_future'] ) ) : ?>
+						<br /><?php echo wp_kses_post( wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) ); ?>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
