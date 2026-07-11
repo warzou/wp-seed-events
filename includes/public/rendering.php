@@ -532,11 +532,15 @@ function wp_seed_events_render_public_event_single( $post_id, $use_template_page
 		$template_output = wp_seed_events_render_public_event_template_page( $event );
 
 		if ( '' !== trim( $template_output ) ) {
-			return $template_output;
+			return trim( $template_output . "\n" . wp_seed_events_render_event_share_menu( $event ) );
 		}
 	}
 
-	return wp_seed_events_render_public_template( 'event-single.php', $event, 'wp_seed_events_render_public_event_single_fallback' );
+	return trim(
+		wp_seed_events_render_public_template( 'event-single.php', $event, 'wp_seed_events_render_public_event_single_fallback' )
+		. "\n"
+		. wp_seed_events_render_event_share_menu( $event )
+	);
 }
 
 function wp_seed_events_render_public_event_card_fallback( $event ) {
