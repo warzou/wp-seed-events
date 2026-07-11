@@ -1189,10 +1189,10 @@ function wp_seed_events_render_media_before_description( $post ) {
 	?>
 	<div class="postbox" id="wp_seed_events_media">
 		<div class="postbox-header">
-			<h2 class="hndle">Illustrations / Flyer</h2>
+			<h2 class="hndle">Visuels de communication</h2>
 			<div class="handle-actions hide-if-no-js">
 				<button type="button" class="handlediv" aria-expanded="true">
-					<span class="screen-reader-text">Afficher ou masquer les illustrations et le flyer</span>
+					<span class="screen-reader-text">Afficher ou masquer les visuels de communication</span>
 					<span class="toggle-indicator" aria-hidden="true"></span>
 				</button>
 			</div>
@@ -3572,7 +3572,7 @@ function wp_seed_events_save_contacts( $post_id ) {
 function wp_seed_events_media_fields() {
 	return array(
 		'_wp_seed_event_flyer_pdf_id' => array(
-			'label' => 'Flyer PDF',
+			'label' => 'Document complémentaire (PDF)',
 			'type'  => 'application/pdf',
 		),
 	);
@@ -3581,7 +3581,7 @@ function wp_seed_events_media_fields() {
 function wp_seed_events_add_media_meta_box() {
 	add_meta_box(
 		'wp_seed_events_media',
-		'Illustrations / Flyer',
+		'Visuels de communication',
 		'wp_seed_events_render_media_meta_box',
 		'wp_seed_event',
 		'normal',
@@ -3589,62 +3589,95 @@ function wp_seed_events_add_media_meta_box() {
 	);
 }
 
-function wp_seed_events_render_media_meta_box( $post ) {
-	$illustration_ids  = get_post_meta( $post->ID, '_wp_seed_event_illustration_ids', true );
-	$featured_image_id = (int) get_post_thumbnail_id( $post->ID );
-
-	if ( ! is_array( $illustration_ids ) ) {
-		$illustration_ids = array();
+function wp_seed_events_render_media_visual_item( $visual, $featured_image_id ) {
+	if ( ! is_array( $visual ) ) {
+		return;
 	}
+
+	$visual_id = absint( $visual['id'] ?? 0 );
+
+	if ( ! $visual_id ) {
+		return;
+	}
+
+	$thumbnail         = wp_get_attachment_image( $visual_id, 'thumbnail', false, array( 'style' => 'width:72px;height:72px;object-fit:cover;display:block;' ) );
+	$title             = isset( $visual['title'] ) && '' !== $visual['title'] ? (string) $visual['title'] : get_the_title( $visual_id );
+	$is_featured_image = $featured_image_id === $visual_id;
+	?>
+	<p data-wp-seed-illustration-item data-wp-seed-illustration-id="<?php echo esc_attr( (string) $visual_id ); ?>" style="display:flex;gap:12px;align-items:center;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid #dcdcde;">
+		<?php if ( $thumbnail ) : ?>
+			<span style="width:72px;min-width:72px;"><?php echo wp_kses_post( $thumbnail ); ?></span>
+		<?php endif; ?>
+		<span>
+			<strong><?php echo esc_html( $title ); ?></strong><br />
+			<span data-wp-seed-featured-image-label <?php echo $is_featured_image ? '' : 'hidden'; ?>><strong>Flyer recto</strong></span>
+			<button type="button" class="button-link" data-wp-seed-featured-image-set <?php echo $is_featured_image ? 'hidden' : ''; ?>>Définir comme flyer recto</button>
+			<span aria-hidden="true"> · </span>
+			<button type="button" class="button-link" data-wp-seed-illustration-remove>Retirer</button>
+		</span>
+		<input type="hidden" name="wp_seed_event_illustrations[]" value="<?php echo esc_attr( (string) $visual_id ); ?>" />
+	</p>
+	<?php
+}
+
+function wp_seed_events_render_media_meta_box( $post ) {
+	$event_media          = wp_seed_events_get_event_media( $post->ID );
+	$communication_visual = is_array( $event_media['communication_visual'] ?? null ) ? $event_media['communication_visual'] : null;
+	$other_visuals        = is_array( $event_media['other_visuals'] ?? null ) ? $event_media['other_visuals'] : array();
+	$featured_image_id    = absint( $communication_visual['id'] ?? 0 );
 
 	wp_nonce_field( 'wp_seed_events_save_media', 'wp_seed_events_media_nonce' );
+	?>
+	<input type="hidden" name="wp_seed_event_media_changed" value="0" data-wp-seed-media-changed />
+	<h3>Flyer recto</h3>
+	<p class="description">Le visuel principal qui représente l’événement.</p>
+	<input type="hidden" name="wp_seed_event_featured_image_id" value="<?php echo esc_attr( (string) $featured_image_id ); ?>" data-wp-seed-featured-image-input />
+	<div data-wp-seed-flyer-recto>
+		<?php if ( $communication_visual ) : ?>
+			<?php wp_seed_events_render_media_visual_item( $communication_visual, $featured_image_id ); ?>
+		<?php else : ?>
+			<p class="description">Aucun flyer recto choisi.</p>
+		<?php endif; ?>
+	</div>
 
+	<h3>Autres visuels</h3>
+	<p class="description">Ajoutez les autres images de communication de l’événement.</p>
+	<div data-wp-seed-illustrations-list>
+		<?php if ( $other_visuals ) : ?>
+			<?php foreach ( $other_visuals as $visual ) : ?>
+				<?php wp_seed_events_render_media_visual_item( $visual, $featured_image_id ); ?>
+			<?php endforeach; ?>
+		<?php else : ?>
+			<p class="description">Aucun autre visuel.</p>
+		<?php endif; ?>
+	</div>
+	<p><button type="button" class="button" data-wp-seed-illustrations-select>Ajouter des visuels</button></p>
+	<?php
 	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
-		$attachment_id = (int) get_post_meta( $post->ID, $meta_key, true );
-		$label         = $attachment_id ? get_the_title( $attachment_id ) : 'Aucun fichier choisi';
+		$media_object  = '_wp_seed_event_flyer_pdf_id' === $meta_key && is_array( $event_media['event_document'] ?? null ) ? $event_media['event_document'] : null;
+		$attachment_id = absint( $media_object['id'] ?? 0 );
+		$document_url  = $attachment_id ? (string) ( $media_object['url'] ?? '' ) : '';
+		$document_path = $document_url ? (string) wp_parse_url( $document_url, PHP_URL_PATH ) : '';
+		$label         = $document_path ? wp_basename( $document_path ) : (string) ( $media_object['title'] ?? '' );
+
+		if ( $attachment_id && '' === $label ) {
+			$label = $document_url;
+		}
 		?>
-		<p>
-			<strong><?php echo esc_html( $field['label'] ); ?></strong><br />
-			<span data-wp-seed-media-label="<?php echo esc_attr( $meta_key ); ?>"><?php echo esc_html( $label ); ?></span><br />
+		<h3><?php echo esc_html( $field['label'] ); ?></h3>
+		<p class="description">Programme, brochure détaillée ou autre document à télécharger.</p>
+		<div data-wp-seed-document-state="<?php echo esc_attr( $meta_key ); ?>">
 			<input type="hidden" name="wp_seed_event_media[<?php echo esc_attr( $meta_key ); ?>]" value="<?php echo esc_attr( (string) $attachment_id ); ?>" data-wp-seed-media-input="<?php echo esc_attr( $meta_key ); ?>" />
-			<button type="button" class="button" data-wp-seed-media-select="<?php echo esc_attr( $meta_key ); ?>" data-media-type="<?php echo esc_attr( $field['type'] ); ?>" data-title="<?php echo esc_attr( $field['label'] ); ?>">Choisir un PDF</button>
-			<button type="button" class="button-link" data-wp-seed-media-remove="<?php echo esc_attr( $meta_key ); ?>">Retirer</button><br />
-			<span class="description">PDF uniquement.</span>
-		</p>
+			<p class="description" data-wp-seed-media-empty="<?php echo esc_attr( $meta_key ); ?>" <?php echo $attachment_id ? 'hidden' : ''; ?>>Aucun document sélectionné.</p>
+			<p data-wp-seed-media-current="<?php echo esc_attr( $meta_key ); ?>" <?php echo $attachment_id ? '' : 'hidden'; ?>><strong data-wp-seed-media-label="<?php echo esc_attr( $meta_key ); ?>"><?php echo esc_html( $label ); ?></strong></p>
+			<p>
+				<button type="button" class="button" data-wp-seed-media-select="<?php echo esc_attr( $meta_key ); ?>" data-media-type="<?php echo esc_attr( $field['type'] ); ?>" data-title="<?php echo esc_attr( $field['label'] ); ?>"><?php echo $attachment_id ? 'Remplacer le document' : 'Choisir un document PDF'; ?></button>
+				<button type="button" class="button-link" data-wp-seed-media-remove="<?php echo esc_attr( $meta_key ); ?>" <?php echo $attachment_id ? '' : 'hidden'; ?>>Retirer</button>
+			</p>
+			<p class="description">PDF uniquement.</p>
+		</div>
 		<?php
 	}
-	?>
-	<p><strong>Illustrations</strong></p>
-	<input type="hidden" name="wp_seed_event_featured_image_id" value="<?php echo esc_attr( (string) $featured_image_id ); ?>" data-wp-seed-featured-image-input />
-	<div data-wp-seed-illustrations-list>
-		<?php foreach ( $illustration_ids as $illustration_id ) : ?>
-			<?php
-			$illustration_id = absint( $illustration_id );
-
-			if ( ! $illustration_id || 'attachment' !== get_post_type( $illustration_id ) ) {
-				continue;
-			}
-
-			$thumbnail         = wp_get_attachment_image( $illustration_id, 'thumbnail', false, array( 'style' => 'width:72px;height:72px;object-fit:cover;display:block;' ) );
-			$is_featured_image = $featured_image_id === $illustration_id;
-			?>
-			<p data-wp-seed-illustration-item data-wp-seed-illustration-id="<?php echo esc_attr( (string) $illustration_id ); ?>" style="display:flex;gap:12px;align-items:center;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid #dcdcde;">
-				<?php if ( $thumbnail ) : ?>
-					<span style="width:72px;min-width:72px;"><?php echo wp_kses_post( $thumbnail ); ?></span>
-				<?php endif; ?>
-				<span>
-					<strong><?php echo esc_html( get_the_title( $illustration_id ) ); ?></strong><br />
-					<span data-wp-seed-featured-image-label <?php echo $is_featured_image ? '' : 'hidden'; ?>><strong>Image principale</strong></span>
-					<button type="button" class="button-link" data-wp-seed-featured-image-set <?php echo $is_featured_image ? 'hidden' : ''; ?>>Définir comme image principale</button>
-					<span aria-hidden="true"> · </span>
-					<button type="button" class="button-link" data-wp-seed-illustration-remove>Retirer</button>
-				</span>
-				<input type="hidden" name="wp_seed_event_illustrations[]" value="<?php echo esc_attr( (string) $illustration_id ); ?>" />
-			</p>
-		<?php endforeach; ?>
-	</div>
-	<p><button type="button" class="button" data-wp-seed-illustrations-select>Ajouter une illustration</button></p>
-	<?php
 }
 
 function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
@@ -3664,6 +3697,20 @@ function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
 		'jquery',
 		<<<'JS'
 jQuery(function($){
+	function wpSeedMarkMediaChanged(){
+		$('[data-wp-seed-media-changed]').val('1');
+	}
+
+	function wpSeedRefreshDocumentState(key){
+		var input=$('[data-wp-seed-media-input="'+key+'"]');
+		var hasDocument=!!String(input.val()||'');
+
+		$('[data-wp-seed-media-empty="'+key+'"]').prop('hidden',hasDocument).toggle(!hasDocument);
+		$('[data-wp-seed-media-current="'+key+'"]').prop('hidden',!hasDocument).toggle(hasDocument);
+		$('[data-wp-seed-media-remove="'+key+'"]').prop('hidden',!hasDocument).toggle(hasDocument);
+		$('[data-wp-seed-media-select="'+key+'"]').text(hasDocument?'Remplacer le document':'Choisir un document PDF');
+	}
+
 	function wpSeedIllustrationThumbnail(attachment,label){
 		var url='';
 
@@ -3704,13 +3751,14 @@ jQuery(function($){
 		item.append(wpSeedIllustrationThumbnail(attachment,label));
 		content.append($('<strong></strong>').text(label));
 		content.append('<br />');
-		content.append($('<span data-wp-seed-featured-image-label hidden><strong>Image principale</strong></span>'));
-		content.append($('<button type="button" class="button-link" data-wp-seed-featured-image-set>Définir comme image principale</button>'));
+		content.append($('<span data-wp-seed-featured-image-label hidden><strong>Flyer recto</strong></span>'));
+		content.append($('<button type="button" class="button-link" data-wp-seed-featured-image-set>Définir comme flyer recto</button>'));
 		content.append(' <span aria-hidden="true">·</span> ');
 		content.append($('<button type="button" class="button-link" data-wp-seed-illustration-remove>Retirer</button>'));
 		item.append(content);
 		item.append($('<input type="hidden" name="wp_seed_event_illustrations[]" />').val(attachment.id));
 		$('[data-wp-seed-illustrations-list]').append(item);
+		wpSeedMarkMediaChanged();
 		wpSeedRefreshFeaturedImageState();
 	}
 
@@ -3730,12 +3778,21 @@ jQuery(function($){
 			var attachment=frame.state().get('selection').first().toJSON();
 
 			if('application/pdf'===type&&attachment.mime&&'application/pdf'!==attachment.mime){
-				window.alert('Le flyer doit être un fichier PDF. Utilisez le bouton Ajouter une illustration pour les images.');
+				window.alert('Le document complémentaire doit être un fichier PDF. Utilisez le bouton Ajouter des visuels pour les images.');
 				return;
 			}
 
-			$('[data-wp-seed-media-input="'+key+'"]').val(attachment.id);
-			$('[data-wp-seed-media-label="'+key+'"]').text(attachment.title||attachment.filename||attachment.url);
+			var input=$('[data-wp-seed-media-input="'+key+'"]');
+			var previousId=String(input.val()||'');
+			var attachmentId=String(attachment.id||'');
+
+			input.val(attachment.id);
+			$('[data-wp-seed-media-label="'+key+'"]').text(attachment.filename||attachment.title||attachment.url);
+			wpSeedRefreshDocumentState(key);
+
+			if(previousId!==attachmentId){
+				wpSeedMarkMediaChanged();
+			}
 		});
 
 		frame.open();
@@ -3744,14 +3801,22 @@ jQuery(function($){
 	$(document).on('click','[data-wp-seed-media-remove]',function(e){
 		e.preventDefault();
 		var key=$(this).data('wp-seed-media-remove');
-		$('[data-wp-seed-media-input="'+key+'"]').val('');
-		$('[data-wp-seed-media-label="'+key+'"]').text('Aucun fichier choisi');
+		var input=$('[data-wp-seed-media-input="'+key+'"]');
+
+		if(!String(input.val()||'')){
+			return;
+		}
+
+		input.val('');
+		$('[data-wp-seed-media-label="'+key+'"]').text('');
+		wpSeedRefreshDocumentState(key);
+		wpSeedMarkMediaChanged();
 	});
 
 	$(document).on('click','[data-wp-seed-illustrations-select]',function(e){
 		e.preventDefault();
 		var frame=wp.media({
-			title:'Ajouter une illustration',
+			title:'Ajouter des visuels',
 			button:{text:'Ajouter'},
 			library:{type:'image'},
 			multiple:true
@@ -3769,7 +3834,15 @@ jQuery(function($){
 	$(document).on('click','[data-wp-seed-featured-image-set]',function(e){
 		e.preventDefault();
 		var item=$(this).closest('[data-wp-seed-illustration-item]');
-		$('[data-wp-seed-featured-image-input]').val(item.attr('data-wp-seed-illustration-id')||'');
+		var featuredInput=$('[data-wp-seed-featured-image-input]');
+		var nextFeaturedId=String(item.attr('data-wp-seed-illustration-id')||'');
+
+		if(String(featuredInput.val()||'')===nextFeaturedId){
+			return;
+		}
+
+		featuredInput.val(nextFeaturedId);
+		wpSeedMarkMediaChanged();
 		wpSeedRefreshFeaturedImageState();
 	});
 
@@ -3783,10 +3856,14 @@ jQuery(function($){
 		}
 
 		item.remove();
+		wpSeedMarkMediaChanged();
 		wpSeedRefreshFeaturedImageState();
 	});
 
 	wpSeedRefreshFeaturedImageState();
+	$('[data-wp-seed-media-input]').each(function(){
+		wpSeedRefreshDocumentState($(this).data('wp-seed-media-input'));
+	});
 });
 JS
 	);
@@ -4560,6 +4637,12 @@ function wp_seed_events_save_media( $post_id ) {
 	}
 
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$media_changed = isset( $_POST['wp_seed_event_media_changed'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_event_media_changed'] ) ) : '';
+
+	if ( '1' !== $media_changed ) {
 		return;
 	}
 
