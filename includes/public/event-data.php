@@ -27,16 +27,17 @@ function wp_seed_events_get_event_data( $event_id ) {
 	$last_occurrence    = wp_seed_events_get_last_active_occurrence( $event_id );
 	$display_occurrence = array() !== $next_occurrence ? $next_occurrence : $last_occurrence;
 	$lifecycle          = wp_seed_events_get_event_lifecycle( $event_id );
-	$featured_image_id = (int) get_post_thumbnail_id( $event_id );
-	$illustration_ids  = get_post_meta( $event_id, '_wp_seed_event_illustration_ids', true );
-	$illustration_ids  = is_array( $illustration_ids ) ? array_values( array_map( 'absint', $illustration_ids ) ) : array();
-	$primary_image_id  = $featured_image_id;
-	$flyer_pdf_id      = (int) get_post_meta( $event_id, '_wp_seed_event_flyer_pdf_id', true );
-	$description       = trim( (string) $post->post_content );
-
-	if ( 0 === $primary_image_id && array() !== $illustration_ids ) {
-		$primary_image_id = (int) reset( $illustration_ids );
-	}
+	$media              = wp_seed_events_get_event_media( $event_id );
+	$featured_image_id  = absint( $media['featured_image']['id'] ?? 0 );
+	$primary_image_id   = absint( $media['communication_visual']['id'] ?? 0 );
+	$illustration_ids   = array_values(
+		array_map(
+			'absint',
+			array_column( $media['communication_visuals'], 'id' )
+		)
+	);
+	$flyer_pdf_id       = absint( $media['event_document']['id'] ?? 0 );
+	$description        = trim( (string) $post->post_content );
 
 	return array(
 		'id'                => $event_id,
@@ -53,9 +54,16 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'people'            => wp_seed_events_public_event_people_data( $event_id ),
 		'description'       => $description,
 		'excerpt'           => wp_seed_events_public_event_excerpt( $description ),
-		'primary_image_id'  => $primary_image_id,
-		'featured_image_id' => $featured_image_id,
-		'illustration_ids'  => $illustration_ids,
-		'flyer_pdf_id'      => $flyer_pdf_id,
+		'featured_image'        => $media['featured_image'],
+		'communication_visual'  => $media['communication_visual'],
+		'communication_visuals' => $media['communication_visuals'],
+		'other_visuals'         => $media['other_visuals'],
+		'event_document'        => $media['event_document'],
+
+		// Legacy media ID aliases are derived from the normalized media objects.
+		'primary_image_id'      => $primary_image_id,
+		'featured_image_id'     => $featured_image_id,
+		'illustration_ids'      => $illustration_ids,
+		'flyer_pdf_id'          => $flyer_pdf_id,
 	);
 }
