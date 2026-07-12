@@ -81,9 +81,7 @@ add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_descrip
 add_filter( 'wp_editor_settings', 'wp_seed_events_disable_description_media_buttons', 10, 2 );
 add_filter( 'manage_wp_seed_event_posts_columns', 'wp_seed_events_event_admin_columns' );
 add_action( 'manage_wp_seed_event_posts_custom_column', 'wp_seed_events_render_event_admin_column', 10, 2 );
-add_filter( 'manage_edit-wp_seed_event_sortable_columns', 'wp_seed_events_event_admin_sortable_columns' );
 add_action( 'admin_head-edit.php', 'wp_seed_events_event_admin_column_styles' );
-add_action( 'pre_get_posts', 'wp_seed_events_sort_event_admin_by_next_date' );
 add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2 );
 add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
 add_filter( 'template_include', 'wp_seed_events_public_template_include', 99 );
@@ -591,7 +589,7 @@ function wp_seed_events_event_admin_columns( $columns ) {
 	$new_columns['wp_seed_event_flyer'] = 'Flyer recto';
 	$new_columns['title'] = $columns['title'] ?? 'Titre';
 	$new_columns['wp_seed_event_types'] = 'Type(s)';
-	$new_columns['wp_seed_event_next_date'] = 'Prochaine date';
+	$new_columns['wp_seed_event_next_date'] = 'Dates';
 	$new_columns['wp_seed_event_place'] = 'Lieu';
 	$new_columns['wp_seed_event_status'] = 'Statut';
 
@@ -736,8 +734,7 @@ function wp_seed_events_render_event_admin_column( $column_name, $post_id ) {
 	}
 
 	if ( 'wp_seed_event_next_date' === $column_name ) {
-		$next_occurrence = wp_seed_events_next_occurrence_for_event( $post_id );
-		echo array() === $next_occurrence ? '—' : wp_kses_post( wp_seed_events_format_admin_next_date( $next_occurrence ) );
+		echo wp_kses_post( wp_seed_events_format_event_admin_dates( $post_id ) );
 		return;
 	}
 
@@ -751,6 +748,56 @@ function wp_seed_events_render_event_admin_column( $column_name, $post_id ) {
 		$status = get_post_status_object( get_post_status( $post_id ) );
 		echo $status ? esc_html( $status->label ) : '—';
 	}
+}
+
+function wp_seed_events_format_event_admin_dates( $post_id ) {
+	$lifecycle = wp_seed_events_get_event_lifecycle( $post_id );
+
+	if ( 'undated' === $lifecycle ) {
+		return esc_html__( 'Sans date', 'wp-seed-events' );
+	}
+
+	if ( 'cancelled_only' === $lifecycle ) {
+		return esc_html__( 'Annulé', 'wp-seed-events' );
+	}
+
+	$reference_occurrence = 'upcoming' === $lifecycle
+		? wp_seed_events_get_next_active_occurrence( $post_id )
+		: wp_seed_events_get_last_active_occurrence( $post_id );
+
+	if ( array() === $reference_occurrence ) {
+		return '—';
+	}
+
+	$active_occurrences = wp_seed_events_get_event_occurrences(
+		$post_id,
+		array(
+			'include_cancelled' => false,
+			'only_active'       => true,
+			'status'            => 'all',
+		)
+	);
+	$active_count       = count( $active_occurrences );
+	$start_date         = $reference_occurrence['start_date'] ?? '';
+	$timestamp          = '' !== $start_date ? strtotime( $start_date . ' 12:00:00' ) : false;
+	$date_line          = false === $timestamp ? $start_date : date_i18n( 'd/m/Y', $timestamp );
+	$details            = array( 'upcoming' === $lifecycle ? __( 'À venir', 'wp-seed-events' ) : __( 'Passé', 'wp-seed-events' ) );
+	$time_label         = ! empty( $reference_occurrence['all_day'] )
+		? __( 'Journée entière', 'wp-seed-events' )
+		: trim( (string) ( $reference_occurrence['time_label'] ?? '' ) );
+
+	if ( '' !== $time_label ) {
+		$details[] = $time_label;
+	}
+
+	if ( $active_count > 1 ) {
+		$details[] = sprintf(
+			_n( '%s occurrence', '%s occurrences', $active_count, 'wp-seed-events' ),
+			number_format_i18n( $active_count )
+		);
+	}
+
+	return esc_html( $date_line ) . '<br /><span class="description">' . esc_html( implode( ' · ', $details ) ) . '</span>';
 }
 
 function wp_seed_events_event_type_labels_for_event( $post_id ) {
