@@ -1186,6 +1186,8 @@ function wp_seed_events_render_media_before_description( $post ) {
 	if ( ! $post || 'wp_seed_event' !== $post->post_type ) {
 		return;
 	}
+
+	$event_media = wp_seed_events_get_event_media( $post->ID );
 	?>
 	<div class="postbox" id="wp_seed_events_media">
 		<div class="postbox-header">
@@ -1198,7 +1200,21 @@ function wp_seed_events_render_media_before_description( $post ) {
 			</div>
 		</div>
 		<div class="inside">
-			<?php wp_seed_events_render_media_meta_box( $post ); ?>
+			<?php wp_seed_events_render_media_meta_box( $post, $event_media ); ?>
+		</div>
+	</div>
+	<div class="postbox" id="wp_seed_events_document">
+		<div class="postbox-header">
+			<h2 class="hndle">Document à télécharger</h2>
+			<div class="handle-actions hide-if-no-js">
+				<button type="button" class="handlediv" aria-expanded="true">
+					<span class="screen-reader-text">Afficher ou masquer le document à télécharger</span>
+					<span class="toggle-indicator" aria-hidden="true"></span>
+				</button>
+			</div>
+		</div>
+		<div class="inside">
+			<?php wp_seed_events_render_media_document_panel( $event_media ); ?>
 		</div>
 	</div>
 	<?php
@@ -3612,7 +3628,8 @@ function wp_seed_events_render_media_visual_item( $visual, $featured_image_id ) 
 			<strong><?php echo esc_html( $title ); ?></strong><br />
 			<span data-wp-seed-featured-image-label <?php echo $is_featured_image ? '' : 'hidden'; ?>><strong>Flyer recto</strong></span>
 			<button type="button" class="button-link" data-wp-seed-featured-image-set <?php echo $is_featured_image ? 'hidden' : ''; ?>>Définir comme flyer recto</button>
-			<span aria-hidden="true"> · </span>
+			<button type="button" class="button-link" data-wp-seed-visual-up hidden>Monter</button>
+			<button type="button" class="button-link" data-wp-seed-visual-down hidden>Descendre</button>
 			<button type="button" class="button-link" data-wp-seed-illustration-remove>Retirer</button>
 		</span>
 		<input type="hidden" name="wp_seed_event_illustrations[]" value="<?php echo esc_attr( (string) $visual_id ); ?>" />
@@ -3620,8 +3637,11 @@ function wp_seed_events_render_media_visual_item( $visual, $featured_image_id ) 
 	<?php
 }
 
-function wp_seed_events_render_media_meta_box( $post ) {
-	$event_media          = wp_seed_events_get_event_media( $post->ID );
+function wp_seed_events_render_media_meta_box( $post, $event_media = null ) {
+	if ( ! is_array( $event_media ) ) {
+		$event_media = wp_seed_events_get_event_media( $post->ID );
+	}
+
 	$communication_visual = is_array( $event_media['communication_visual'] ?? null ) ? $event_media['communication_visual'] : null;
 	$other_visuals        = is_array( $event_media['other_visuals'] ?? null ) ? $event_media['other_visuals'] : array();
 	$featured_image_id    = absint( $communication_visual['id'] ?? 0 );
@@ -3653,6 +3673,12 @@ function wp_seed_events_render_media_meta_box( $post ) {
 	</div>
 	<p><button type="button" class="button" data-wp-seed-illustrations-select>Ajouter des visuels</button></p>
 	<?php
+}
+
+function wp_seed_events_render_media_document_panel( $event_media ) {
+	?>
+	<p class="description">Programme, brochure ou autre document PDF associé à l’événement.</p>
+	<?php
 	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
 		$media_object  = '_wp_seed_event_flyer_pdf_id' === $meta_key && is_array( $event_media['event_document'] ?? null ) ? $event_media['event_document'] : null;
 		$attachment_id = absint( $media_object['id'] ?? 0 );
@@ -3664,8 +3690,6 @@ function wp_seed_events_render_media_meta_box( $post ) {
 			$label = $document_url;
 		}
 		?>
-		<h3><?php echo esc_html( $field['label'] ); ?></h3>
-		<p class="description">Programme, brochure détaillée ou autre document à télécharger.</p>
 		<div data-wp-seed-document-state="<?php echo esc_attr( $meta_key ); ?>">
 			<input type="hidden" name="wp_seed_event_media[<?php echo esc_attr( $meta_key ); ?>]" value="<?php echo esc_attr( (string) $attachment_id ); ?>" data-wp-seed-media-input="<?php echo esc_attr( $meta_key ); ?>" />
 			<p class="description" data-wp-seed-media-empty="<?php echo esc_attr( $meta_key ); ?>" <?php echo $attachment_id ? 'hidden' : ''; ?>>Aucun document sélectionné.</p>
@@ -3697,8 +3721,84 @@ function wp_seed_events_enqueue_media_admin( $hook_suffix ) {
 		'jquery',
 		<<<'JS'
 jQuery(function($){
+	var wpSeedCommunicationVisuals=[];
+
 	function wpSeedMarkMediaChanged(){
 		$('[data-wp-seed-media-changed]').val('1');
+	}
+
+	function wpSeedVisualId(visual){
+		return String(visual&&visual.id||'');
+	}
+
+	function wpSeedDeduplicateVisuals(visuals){
+		var seen={};
+		var result=[];
+
+		$.each(visuals||[],function(index,visual){
+			var id=wpSeedVisualId(visual);
+
+			if(!id||seen[id]){
+				return;
+			}
+
+			seen[id]=true;
+			result.push(visual);
+		});
+
+		return result;
+	}
+
+	function wpSeedVisualListsEqual(first,second){
+		if(first.length!==second.length){
+			return false;
+		}
+
+		for(var index=0;index<first.length;index++){
+			if(wpSeedVisualId(first[index])!==wpSeedVisualId(second[index])){
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	function wpSeedFindVisualIndex(id){
+		id=String(id||'');
+
+		for(var index=0;index<wpSeedCommunicationVisuals.length;index++){
+			if(wpSeedVisualId(wpSeedCommunicationVisuals[index])===id){
+				return index;
+			}
+		}
+
+		return -1;
+	}
+
+	function wpSeedFocusVisualAction(id,preferredSelector){
+		var index=wpSeedFindVisualIndex(id);
+
+		if(index<0){
+			return;
+		}
+
+		var item=wpSeedCommunicationVisuals[index].item;
+		var control=item.find(preferredSelector).filter(function(){
+			return !this.disabled&&!$(this).prop('hidden');
+		}).first();
+
+		if(!control.length){
+			control=item.find('button').filter(function(){
+				return !this.disabled&&!$(this).prop('hidden');
+			}).first();
+		}
+
+		if(control.length){
+			control.trigger('focus');
+			return;
+		}
+
+		item.attr('tabindex','-1').trigger('focus');
 	}
 
 	function wpSeedRefreshDocumentState(key){
@@ -3729,37 +3829,106 @@ jQuery(function($){
 		);
 	}
 
-	function wpSeedRefreshFeaturedImageState(){
-		var featuredId=String($('[data-wp-seed-featured-image-input]').val()||'');
+	function wpSeedCreateVisual(attachment){
+		var id=String(attachment&&attachment.id||'');
+		var mime=String(attachment&&attachment.mime||'');
 
-		$('[data-wp-seed-illustration-item]').each(function(){
-			var item=$(this);
-			var itemId=String(item.attr('data-wp-seed-illustration-id')||'');
-			var isFeatured=featuredId&&itemId===featuredId;
+		if(!id||(mime&&0!==mime.indexOf('image/'))){
+			return null;
+		}
 
-			item.find('[data-wp-seed-featured-image-label]').prop('hidden',!isFeatured).toggle(!!isFeatured);
-			item.find('[data-wp-seed-featured-image-set]').prop('hidden',!!isFeatured).toggle(!isFeatured);
-		});
-	}
-
-	function wpSeedAddIllustration(attachment){
 		var label=attachment.title||attachment.filename||attachment.url;
 		var item=$('<p data-wp-seed-illustration-item style="display:flex;gap:12px;align-items:center;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid #dcdcde;"></p>');
 		var content=$('<span></span>');
 
-		item.attr('data-wp-seed-illustration-id',String(attachment.id));
+		item.attr('data-wp-seed-illustration-id',id);
 		item.append(wpSeedIllustrationThumbnail(attachment,label));
 		content.append($('<strong></strong>').text(label));
 		content.append('<br />');
 		content.append($('<span data-wp-seed-featured-image-label hidden><strong>Flyer recto</strong></span>'));
 		content.append($('<button type="button" class="button-link" data-wp-seed-featured-image-set>Définir comme flyer recto</button>'));
-		content.append(' <span aria-hidden="true">·</span> ');
+		content.append(' ');
+		content.append($('<button type="button" class="button-link" data-wp-seed-visual-up hidden>Monter</button>'));
+		content.append(' ');
+		content.append($('<button type="button" class="button-link" data-wp-seed-visual-down hidden>Descendre</button>'));
+		content.append(' ');
 		content.append($('<button type="button" class="button-link" data-wp-seed-illustration-remove>Retirer</button>'));
 		item.append(content);
-		item.append($('<input type="hidden" name="wp_seed_event_illustrations[]" />').val(attachment.id));
-		$('[data-wp-seed-illustrations-list]').append(item);
+		item.append($('<input type="hidden" name="wp_seed_event_illustrations[]" />').val(id));
+
+		return {id:id,item:item};
+	}
+
+	function wpSeedRefreshCommunicationVisuals(){
+		var rectoRoot=$('[data-wp-seed-flyer-recto]');
+		var othersRoot=$('[data-wp-seed-illustrations-list]');
+		var count=wpSeedCommunicationVisuals.length;
+		var featuredInput=$('[data-wp-seed-featured-image-input]');
+
+		rectoRoot.empty();
+		othersRoot.empty();
+		featuredInput.val(count?wpSeedVisualId(wpSeedCommunicationVisuals[0]):'');
+
+		if(!count){
+			rectoRoot.append($('<p class="description"></p>').text('Aucun flyer recto choisi.'));
+			othersRoot.append($('<p class="description"></p>').text('Aucun autre visuel.'));
+			return;
+		}
+
+		$.each(wpSeedCommunicationVisuals,function(index,visual){
+			var item=visual.item;
+			var isRecto=0===index;
+			var isFirstOther=1===index;
+			var isLast=count-1===index;
+			var cannotRemove=1===count;
+
+			item.find('[data-wp-seed-featured-image-label]').prop('hidden',!isRecto).toggle(isRecto);
+			item.find('[data-wp-seed-featured-image-set]').prop('hidden',isRecto).toggle(!isRecto);
+			item.find('[data-wp-seed-visual-up]').prop('hidden',isRecto).toggle(!isRecto).prop('disabled',isFirstOther);
+			item.find('[data-wp-seed-visual-down]').prop('hidden',isRecto).toggle(!isRecto).prop('disabled',isLast);
+			item.find('[data-wp-seed-illustration-remove]').prop('disabled',cannotRemove).attr('aria-disabled',cannotRemove?'true':'false');
+			item.find('input[name="wp_seed_event_illustrations[]"]').val(visual.id);
+
+			if(isRecto){
+				rectoRoot.append(item);
+			}else{
+				othersRoot.append(item);
+			}
+		});
+
+		if(1===count){
+			othersRoot.append($('<p class="description"></p>').text('Aucun autre visuel.'));
+		}
+	}
+
+	function wpSeedApplyCommunicationVisuals(nextVisuals){
+		var normalized=wpSeedDeduplicateVisuals(nextVisuals);
+
+		if(wpSeedVisualListsEqual(wpSeedCommunicationVisuals,normalized)){
+			return false;
+		}
+
+		wpSeedCommunicationVisuals=normalized;
+		wpSeedRefreshCommunicationVisuals();
 		wpSeedMarkMediaChanged();
-		wpSeedRefreshFeaturedImageState();
+
+		return true;
+	}
+
+	function wpSeedInitializeCommunicationVisuals(){
+		var initial=[];
+
+		$('[data-wp-seed-illustration-item]').each(function(){
+			var item=$(this);
+			var id=String(item.attr('data-wp-seed-illustration-id')||'');
+
+			if(id){
+				initial.push({id:id,item:item});
+			}
+		});
+
+		wpSeedCommunicationVisuals=wpSeedDeduplicateVisuals(initial);
+		wpSeedRefreshCommunicationVisuals();
 	}
 
 	$(document).on('click','[data-wp-seed-media-select]',function(e){
@@ -3823,9 +3992,24 @@ jQuery(function($){
 		});
 
 		frame.on('select',function(){
+			var next=wpSeedCommunicationVisuals.slice();
+
 			frame.state().get('selection').each(function(attachment){
-				wpSeedAddIllustration(attachment.toJSON());
+				var data=attachment.toJSON();
+				var id=String(data.id||'');
+
+				if(!id||-1!==wpSeedFindVisualIndex(id)){
+					return;
+				}
+
+				var visual=wpSeedCreateVisual(data);
+
+				if(visual){
+					next.push(visual);
+				}
 			});
+
+			wpSeedApplyCommunicationVisuals(next);
 		});
 
 		frame.open();
@@ -3834,33 +4018,87 @@ jQuery(function($){
 	$(document).on('click','[data-wp-seed-featured-image-set]',function(e){
 		e.preventDefault();
 		var item=$(this).closest('[data-wp-seed-illustration-item]');
-		var featuredInput=$('[data-wp-seed-featured-image-input]');
-		var nextFeaturedId=String(item.attr('data-wp-seed-illustration-id')||'');
+		var index=wpSeedFindVisualIndex(item.attr('data-wp-seed-illustration-id'));
 
-		if(String(featuredInput.val()||'')===nextFeaturedId){
+		if(index<=0){
 			return;
 		}
 
-		featuredInput.val(nextFeaturedId);
-		wpSeedMarkMediaChanged();
-		wpSeedRefreshFeaturedImageState();
+		var next=wpSeedCommunicationVisuals.slice();
+		var selected=next.splice(index,1)[0];
+
+		next.unshift(selected);
+
+		if(wpSeedApplyCommunicationVisuals(next)){
+			wpSeedFocusVisualAction(selected.id,'[data-wp-seed-illustration-remove]');
+		}
+	});
+
+	$(document).on('click','[data-wp-seed-visual-up]',function(e){
+		e.preventDefault();
+		var item=$(this).closest('[data-wp-seed-illustration-item]');
+		var index=wpSeedFindVisualIndex(item.attr('data-wp-seed-illustration-id'));
+
+		if(index<=1){
+			return;
+		}
+
+		var next=wpSeedCommunicationVisuals.slice();
+		var previous=next[index-1];
+
+		next[index-1]=next[index];
+		next[index]=previous;
+
+		if(wpSeedApplyCommunicationVisuals(next)){
+			wpSeedFocusVisualAction(next[index-1].id,2===index?'[data-wp-seed-visual-down]':'[data-wp-seed-visual-up]');
+		}
+	});
+
+	$(document).on('click','[data-wp-seed-visual-down]',function(e){
+		e.preventDefault();
+		var item=$(this).closest('[data-wp-seed-illustration-item]');
+		var index=wpSeedFindVisualIndex(item.attr('data-wp-seed-illustration-id'));
+
+		if(index<1||index>=wpSeedCommunicationVisuals.length-1){
+			return;
+		}
+
+		var next=wpSeedCommunicationVisuals.slice();
+		var following=next[index+1];
+
+		next[index+1]=next[index];
+		next[index]=following;
+
+		if(wpSeedApplyCommunicationVisuals(next)){
+			wpSeedFocusVisualAction(next[index+1].id,index+1===next.length-1?'[data-wp-seed-visual-up]':'[data-wp-seed-visual-down]');
+		}
 	});
 
 	$(document).on('click','[data-wp-seed-illustration-remove]',function(e){
 		e.preventDefault();
-		var item=$(this).closest('[data-wp-seed-illustration-item]');
-		var featuredInput=$('[data-wp-seed-featured-image-input]');
 
-		if(String(featuredInput.val()||'')===String(item.attr('data-wp-seed-illustration-id')||'')){
-			featuredInput.val('');
+		if(wpSeedCommunicationVisuals.length<=1){
+			return;
 		}
 
-		item.remove();
-		wpSeedMarkMediaChanged();
-		wpSeedRefreshFeaturedImageState();
+		var item=$(this).closest('[data-wp-seed-illustration-item]');
+		var index=wpSeedFindVisualIndex(item.attr('data-wp-seed-illustration-id'));
+
+		if(index<0){
+			return;
+		}
+
+		var next=wpSeedCommunicationVisuals.slice();
+
+		next.splice(index,1);
+		var focusVisual=next[Math.min(index,next.length-1)];
+
+		if(wpSeedApplyCommunicationVisuals(next)&&focusVisual){
+			wpSeedFocusVisualAction(focusVisual.id,'[data-wp-seed-illustration-remove]');
+		}
 	});
 
-	wpSeedRefreshFeaturedImageState();
+	wpSeedInitializeCommunicationVisuals();
 	$('[data-wp-seed-media-input]').each(function(){
 		wpSeedRefreshDocumentState($(this).data('wp-seed-media-input'));
 	});
