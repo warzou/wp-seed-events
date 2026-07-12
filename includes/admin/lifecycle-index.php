@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_maybe_update_lifecycle_index', 20 );
+add_action( 'wp_after_insert_post', 'wp_seed_events_maybe_initialize_lifecycle_index', 20, 4 );
 
 function wp_seed_events_calculate_lifecycle_index( $event_id ) {
 	$event_id = absint( $event_id );
@@ -71,6 +72,42 @@ function wp_seed_events_update_lifecycle_index( $event_id ) {
 	}
 
 	return $index;
+}
+
+function wp_seed_events_maybe_initialize_lifecycle_index( $post_id, $post, $update, $post_before ) {
+	$post_id = absint( $post_id );
+
+	if ( 0 === $post_id || ! $post instanceof WP_Post || $post_id !== (int) $post->ID || 'wp_seed_event' !== $post->post_type ) {
+		return;
+	}
+
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	if ( wp_is_post_revision( $post_id ) || ! in_array( $post->post_status, array( 'draft', 'pending', 'publish', 'future', 'private' ), true ) ) {
+		return;
+	}
+
+	$is_direct_insert   = ! $update;
+	$is_first_user_save = $update && $post_before instanceof WP_Post && 'auto-draft' === $post_before->post_status;
+
+	if ( ! $is_direct_insert && ! $is_first_user_save ) {
+		return;
+	}
+
+	if ( ! function_exists( 'wp_seed_events_is_lifecycle_index_ready' ) || ! wp_seed_events_is_lifecycle_index_ready() ) {
+		return;
+	}
+
+	$dated_count_exists      = metadata_exists( 'post', $post_id, '_wp_seed_event_lifecycle_index_dated_count' );
+	$last_active_date_exists = metadata_exists( 'post', $post_id, '_wp_seed_event_lifecycle_index_last_active_date' );
+
+	if ( $dated_count_exists && $last_active_date_exists ) {
+		return;
+	}
+
+	wp_seed_events_update_lifecycle_index( $post_id );
 }
 
 function wp_seed_events_maybe_update_lifecycle_index( $post_id ) {
