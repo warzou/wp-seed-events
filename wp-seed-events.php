@@ -39,6 +39,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 
 require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index.php';
+require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/calendar.php';
@@ -1116,6 +1117,8 @@ function wp_seed_events_render_settings_page() {
 
 			<?php submit_button( 'Enregistrer' ); ?>
 		</form>
+
+		<?php wp_seed_events_render_lifecycle_index_backfill_panel(); ?>
 	</div>
 	<?php
 }
