@@ -591,7 +591,7 @@ function wp_seed_events_event_admin_columns( $columns ) {
 	$new_columns['wp_seed_event_types'] = 'Type(s)';
 	$new_columns['wp_seed_event_next_date'] = 'Dates';
 	$new_columns['wp_seed_event_place'] = 'Lieu';
-	$new_columns['wp_seed_event_status'] = 'Statut';
+	$new_columns['wp_seed_event_status'] = 'Publication';
 
 	if ( isset( $columns['date'] ) ) {
 		$new_columns['date'] = $columns['date'];
