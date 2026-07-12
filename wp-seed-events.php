@@ -82,6 +82,7 @@ add_filter( 'wp_editor_settings', 'wp_seed_events_disable_description_media_butt
 add_filter( 'manage_wp_seed_event_posts_columns', 'wp_seed_events_event_admin_columns' );
 add_action( 'manage_wp_seed_event_posts_custom_column', 'wp_seed_events_render_event_admin_column', 10, 2 );
 add_filter( 'manage_edit-wp_seed_event_sortable_columns', 'wp_seed_events_event_admin_sortable_columns' );
+add_action( 'admin_head-edit.php', 'wp_seed_events_event_admin_column_styles' );
 add_action( 'pre_get_posts', 'wp_seed_events_sort_event_admin_by_next_date' );
 add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2 );
 add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
@@ -587,6 +588,7 @@ function wp_seed_events_event_admin_columns( $columns ) {
 		$new_columns['cb'] = $columns['cb'];
 	}
 
+	$new_columns['wp_seed_event_flyer'] = 'Flyer recto';
 	$new_columns['title'] = $columns['title'] ?? 'Titre';
 	$new_columns['wp_seed_event_types'] = 'Type(s)';
 	$new_columns['wp_seed_event_next_date'] = 'Prochaine date';
@@ -598,6 +600,28 @@ function wp_seed_events_event_admin_columns( $columns ) {
 	}
 
 	return $new_columns;
+}
+
+function wp_seed_events_event_admin_column_styles() {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+	if ( ! $screen || 'edit-wp_seed_event' !== $screen->id ) {
+		return;
+	}
+	?>
+	<style>
+		.fixed .column-wp_seed_event_flyer {
+			width: 76px;
+		}
+
+		.column-wp_seed_event_flyer img {
+			display: block;
+			width: 60px;
+			height: 60px;
+			object-fit: cover;
+		}
+	</style>
+	<?php
 }
 
 function wp_seed_events_event_admin_sortable_columns( $columns ) {
@@ -654,6 +678,57 @@ function wp_seed_events_prefix_pinned_event_admin_title( $title, $post_id ) {
 	return '📌 ' . $title;
 }
 function wp_seed_events_render_event_admin_column( $column_name, $post_id ) {
+	if ( 'wp_seed_event_flyer' === $column_name ) {
+		$event_media          = wp_seed_events_get_event_media( $post_id );
+		$communication_visual = isset( $event_media['communication_visual'] ) && is_array( $event_media['communication_visual'] )
+			? $event_media['communication_visual']
+			: null;
+		$attachment_id        = $communication_visual ? absint( $communication_visual['id'] ?? 0 ) : 0;
+		$attached_file        = $attachment_id ? get_attached_file( $attachment_id ) : false;
+		$image                 = '';
+
+		if ( $attachment_id && $attached_file && is_readable( $attached_file ) ) {
+			$alt = trim( (string) ( $communication_visual['alt'] ?? '' ) );
+
+			if ( '' === $alt ) {
+				$alt = trim( (string) get_post_field( 'post_title', $post_id ) );
+			}
+
+			if ( '' === $alt ) {
+				$alt = __( 'Visuel de l’événement', 'wp-seed-events' );
+			}
+
+			$image = wp_get_attachment_image(
+				$attachment_id,
+				'thumbnail',
+				false,
+				array(
+					'alt'     => $alt,
+					'loading' => 'lazy',
+				)
+			);
+		}
+
+		if ( '' === $image ) {
+			echo '<span aria-hidden="true">&mdash;</span><span class="screen-reader-text">' . esc_html__( 'Aucun visuel', 'wp-seed-events' ) . '</span>';
+			return;
+		}
+
+		$edit_link = get_edit_post_link( $post_id, 'raw' );
+
+		if ( $edit_link ) {
+			$post_title = trim( (string) get_post_field( 'post_title', $post_id ) );
+			$link_label = '' !== $post_title
+				? sprintf( __( 'Modifier l’événement « %s »', 'wp-seed-events' ), $post_title )
+				: __( 'Modifier cet événement', 'wp-seed-events' );
+
+			echo '<a href="' . esc_url( $edit_link ) . '" aria-label="' . esc_attr( $link_label ) . '">' . wp_kses_post( $image ) . '</a>';
+			return;
+		}
+
+		echo wp_kses_post( $image );
+		return;
+	}
 	if ( 'wp_seed_event_types' === $column_name ) {
 		$type_labels = wp_seed_events_event_type_labels_for_event( $post_id );
 		echo array() === $type_labels ? '—' : esc_html( implode( ' • ', $type_labels ) );
