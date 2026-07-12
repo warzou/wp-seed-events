@@ -38,6 +38,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 }
 
 require_once __DIR__ . '/includes/public/occurrences.php';
+require_once __DIR__ . '/includes/admin/lifecycle-index.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/calendar.php';
@@ -2280,6 +2281,7 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 
 	wp_nonce_field( 'wp_seed_events_save_occurrences', 'wp_seed_events_occurrences_nonce' );
 	?>
+	<input type="hidden" name="wp_seed_event_occurrences_changed" value="0" data-wp-seed-occurrences-changed />
 	<div data-wp-seed-dates data-next-index="<?php echo esc_attr( (string) count( $occurrences ) ); ?>">
 		<div data-wp-seed-dates-list>
 			<?php foreach ( $display_occurrences as $index => $occurrence ) : ?>
@@ -4800,6 +4802,10 @@ jQuery(function($){
 		return root.find('[data-wp-seed-date-panel]');
 	}
 
+	function wpSeedDateMarkChanged(root){
+		root.closest('form').find('[data-wp-seed-occurrences-changed]').val('1');
+	}
+
 	function wpSeedDateField(panel,key){
 		return panel.find('[data-wp-seed-date-panel-field="'+key+'"]');
 	}
@@ -4876,6 +4882,14 @@ jQuery(function($){
 			all_day:item.find('[data-wp-seed-date-field="all_day"]').val(),
 			cancelled:item.find('[data-wp-seed-date-field="cancelled"]').val()
 		};
+	}
+
+	function wpSeedDateItemsEqual(first,second){
+		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled'];
+
+		return fields.every(function(field){
+			return String(first[field]||'')===String(second[field]||'');
+		});
 	}
 
 	function wpSeedDateWriteItem(item,data){
@@ -4955,14 +4969,21 @@ jQuery(function($){
 			return;
 		}
 		if(item){
-			data.uid=item.find('[data-wp-seed-date-field="uid"]').val();
-			data.cancelled=item.find('[data-wp-seed-date-field="cancelled"]').val();
+			var previous=wpSeedDateReadItem(item);
+			data.uid=previous.uid;
+			data.cancelled=previous.cancelled;
+			if(wpSeedDateItemsEqual(previous,data)){
+				panel.prop('hidden',true);
+				return;
+			}
 			wpSeedDateWriteItem(item,data);
+			wpSeedDateMarkChanged(root);
 		}else{
 			var index=parseInt(root.attr('data-next-index'),10)||0;
 			item=wpSeedDateCreateItem(index,data);
 			root.attr('data-next-index',index+1);
 			root.find('[data-wp-seed-dates-list]').append(item);
+			wpSeedDateMarkChanged(root);
 		}
 		wpSeedDateSortItems(root);
 		panel.prop('hidden',true);
@@ -4978,6 +4999,7 @@ jQuery(function($){
 		e.preventDefault();
 		var root=wpSeedDateRoot(this);
 		$(this).closest('[data-wp-seed-date-item]').remove();
+		wpSeedDateMarkChanged(root);
 		wpSeedDateRefreshEmpty(root);
 	});
 
@@ -4987,6 +5009,7 @@ jQuery(function($){
 		var data=wpSeedDateReadItem(item);
 		data.cancelled='1'===data.cancelled?'':'1';
 		wpSeedDateWriteItem(item,data);
+		wpSeedDateMarkChanged(wpSeedDateRoot(this));
 	});
 });
 JS
