@@ -3779,6 +3779,8 @@ function wp_seed_events_render_media_meta_box( $post, $event_media = null ) {
 	<input type="hidden" name="wp_seed_event_media_changed" value="0" data-wp-seed-media-changed />
 	<input type="hidden" name="wp_seed_event_visuals_changed" value="0" data-wp-seed-visuals-changed />
 	<input type="hidden" name="wp_seed_event_document_changed" value="0" data-wp-seed-document-changed />
+	<input type="hidden" name="wp_seed_event_illustrations[]" value="" data-wp-seed-illustrations-payload />
+	<input type="hidden" name="wp_seed_event_visuals_empty" value="<?php echo $communication_visual ? '0' : '1'; ?>" data-wp-seed-visuals-empty />
 	<h3>Flyer recto</h3>
 	<p class="description">Le visuel principal qui représente l’événement.</p>
 	<input type="hidden" name="wp_seed_event_featured_image_id" value="<?php echo esc_attr( (string) $featured_image_id ); ?>" data-wp-seed-featured-image-input />
@@ -4008,6 +4010,7 @@ jQuery(function($){
 		rectoRoot.empty();
 		othersRoot.empty();
 		featuredInput.val(count?wpSeedVisualId(wpSeedCommunicationVisuals[0]):'');
+		$('[data-wp-seed-visuals-empty]').val(count?'0':'1');
 
 		if(!count){
 			rectoRoot.append($('<p class="description"></p>').text('Aucun flyer recto choisi.'));
@@ -4020,13 +4023,12 @@ jQuery(function($){
 			var isRecto=0===index;
 			var isFirstOther=1===index;
 			var isLast=count-1===index;
-			var cannotRemove=1===count;
 
 			item.find('[data-wp-seed-featured-image-label]').prop('hidden',!isRecto).toggle(isRecto);
 			item.find('[data-wp-seed-featured-image-set]').prop('hidden',isRecto).toggle(!isRecto);
 			item.find('[data-wp-seed-visual-up]').prop('hidden',isRecto).toggle(!isRecto).prop('disabled',isFirstOther);
 			item.find('[data-wp-seed-visual-down]').prop('hidden',isRecto).toggle(!isRecto).prop('disabled',isLast);
-			item.find('[data-wp-seed-illustration-remove]').prop('disabled',cannotRemove).attr('aria-disabled',cannotRemove?'true':'false');
+			item.find('[data-wp-seed-illustration-remove]').prop('disabled',false).removeAttr('aria-disabled');
 			item.find('input[name="wp_seed_event_illustrations[]"]').val(visual.id);
 
 			if(isRecto){
@@ -4216,10 +4218,6 @@ jQuery(function($){
 
 	$(document).on('click','[data-wp-seed-illustration-remove]',function(e){
 		e.preventDefault();
-
-		if(wpSeedCommunicationVisuals.length<=1){
-			return;
-		}
 
 		var item=$(this).closest('[data-wp-seed-illustration-item]');
 		var index=wpSeedFindVisualIndex(item.attr('data-wp-seed-illustration-id'));
@@ -5089,10 +5087,28 @@ function wp_seed_events_save_media( $post_id ) {
 		return;
 	}
 
+	$visuals_empty = '';
+
+	if ( isset( $_POST['wp_seed_event_visuals_empty'] ) && is_scalar( $_POST['wp_seed_event_visuals_empty'] ) ) {
+		$visuals_empty = sanitize_text_field( wp_unslash( $_POST['wp_seed_event_visuals_empty'] ) );
+	}
+
 	$raw_illustrations = wp_unslash( $_POST['wp_seed_event_illustrations'] );
 	$illustration_ids  = array();
+	$has_submitted_id  = false;
 
 	foreach ( $raw_illustrations as $raw_illustration_id ) {
+		if ( ! is_scalar( $raw_illustration_id ) ) {
+			return;
+		}
+
+		$raw_illustration_id = trim( (string) $raw_illustration_id );
+
+		if ( '' === $raw_illustration_id ) {
+			continue;
+		}
+
+		$has_submitted_id = true;
 		$attachment_id = absint( $raw_illustration_id );
 
 		if ( 0 === $attachment_id || 'attachment' !== get_post_type( $attachment_id ) ) {
@@ -5108,6 +5124,20 @@ function wp_seed_events_save_media( $post_id ) {
 		if ( ! in_array( $attachment_id, $illustration_ids, true ) ) {
 			$illustration_ids[] = $attachment_id;
 		}
+	}
+
+	if ( '1' === $visuals_empty ) {
+		if ( $has_submitted_id ) {
+			return;
+		}
+
+		delete_post_meta( $post_id, '_wp_seed_event_illustration_ids' );
+		delete_post_thumbnail( $post_id );
+		return;
+	}
+
+	if ( '0' !== $visuals_empty || ! $has_submitted_id ) {
+		return;
 	}
 
 	if ( array() === $illustration_ids ) {
