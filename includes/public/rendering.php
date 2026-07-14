@@ -74,7 +74,7 @@ function wp_seed_events_public_event_excerpt( $content ) {
 }
 
 function wp_seed_events_public_event_next_date_line( $event ) {
-	$occurrence = wp_seed_events_public_event_display_occurrence( $event );
+	$occurrence = wp_seed_events_public_event_next_occurrence( $event );
 
 	if ( array() === $occurrence ) {
 		return '';
@@ -84,6 +84,26 @@ function wp_seed_events_public_event_next_date_line( $event ) {
 }
 
 function wp_seed_events_public_event_next_time_line( $event ) {
+	$occurrence = wp_seed_events_public_event_next_occurrence( $event );
+
+	if ( array() === $occurrence ) {
+		return '';
+	}
+
+	return wp_seed_events_format_occurrence_time_line( $occurrence );
+}
+
+function wp_seed_events_public_event_display_date_line( $event ) {
+	$occurrence = wp_seed_events_public_event_display_occurrence( $event );
+
+	if ( array() === $occurrence ) {
+		return '';
+	}
+
+	return wp_seed_events_format_occurrence_date_line( $occurrence );
+}
+
+function wp_seed_events_public_event_display_time_line( $event ) {
 	$occurrence = wp_seed_events_public_event_display_occurrence( $event );
 
 	if ( array() === $occurrence ) {
@@ -91,6 +111,14 @@ function wp_seed_events_public_event_next_time_line( $event ) {
 	}
 
 	return wp_seed_events_format_occurrence_time_line( $occurrence );
+}
+
+function wp_seed_events_public_event_next_occurrence( $event ) {
+	if ( ! empty( $event['next_occurrence'] ) && is_array( $event['next_occurrence'] ) ) {
+		return $event['next_occurrence'];
+	}
+
+	return array();
 }
 
 function wp_seed_events_public_event_display_occurrence( $event ) {
@@ -544,8 +572,9 @@ function wp_seed_events_render_public_event_single( $post_id, $use_template_page
 }
 
 function wp_seed_events_render_public_event_card_fallback( $event ) {
-	$title = $event['title'] ?? '';
-	$url   = $event['url'] ?? '';
+	$title        = $event['title'] ?? '';
+	$url          = $event['url'] ?? '';
+	$display_date = wp_seed_events_public_event_display_date_line( $event );
 
 	if ( '' === $title ) {
 		return '';
@@ -555,8 +584,8 @@ function wp_seed_events_render_public_event_card_fallback( $event ) {
 	?>
 	<article class="wp-seed-event-card">
 		<h3><?php echo esc_html( $title ); ?></h3>
-		<?php if ( '' !== wp_seed_events_public_event_next_date_line( $event ) ) : ?>
-			<p><?php echo esc_html( wp_seed_events_public_event_next_date_line( $event ) ); ?></p>
+		<?php if ( '' !== $display_date ) : ?>
+			<p><?php echo esc_html( $display_date ); ?></p>
 		<?php endif; ?>
 		<?php if ( $url ) : ?>
 			<p><a href="<?php echo esc_url( $url ); ?>">En savoir plus</a></p>
@@ -633,6 +662,10 @@ function wp_seed_events_public_event_field_value( $event, $field ) {
 			return esc_html( wp_seed_events_public_event_next_date_line( $event ) );
 		case 'next_time':
 			return esc_html( wp_seed_events_public_event_next_time_line( $event ) );
+		case 'display_date':
+			return esc_html( wp_seed_events_public_event_display_date_line( $event ) );
+		case 'display_time':
+			return esc_html( wp_seed_events_public_event_display_time_line( $event ) );
 		case 'place':
 			return empty( $event['place']['name'] ) ? '' : esc_html( $event['place']['name'] );
 		case 'place_address':

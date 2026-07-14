@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$time_line = wp_seed_events_public_event_next_time_line( $event );
+$date_line = wp_seed_events_public_event_display_date_line( $event );
+$time_line = wp_seed_events_public_event_display_time_line( $event );
 ?>
 <article class="wp-seed-event-card" style="border:1px solid #dcdcde;border-radius:8px;overflow:hidden;max-width:420px;background:#fff;">
 	<?php if ( ! empty( $event['primary_image_id'] ) ) : ?>
@@ -36,9 +37,9 @@ $time_line = wp_seed_events_public_event_next_time_line( $event );
 
 		<h3 class="wp-seed-event-card__title" style="margin:0 0 10px;font-size:1.25rem;line-height:1.25;"><?php echo esc_html( $event['title'] ); ?></h3>
 
-		<?php if ( '' !== wp_seed_events_public_event_next_date_line( $event ) ) : ?>
+		<?php if ( '' !== $date_line ) : ?>
 			<p class="wp-seed-event-card__date" style="margin:0 0 8px;">
-				<strong><?php echo esc_html( wp_seed_events_public_event_next_date_line( $event ) ); ?></strong>
+				<strong><?php echo esc_html( $date_line ); ?></strong>
 				<?php if ( '' !== $time_line ) : ?>
 					<br /><span><?php echo esc_html( $time_line ); ?></span>
 				<?php endif; ?>

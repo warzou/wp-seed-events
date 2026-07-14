@@ -46,6 +46,7 @@ function wp_seed_events_gutenberg_block_binding_fields() {
 	return array(
 		'title',
 		'next_date',
+		'display_date',
 		'place',
 		'description',
 	);

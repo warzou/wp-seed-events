@@ -1134,9 +1134,9 @@ function wp_seed_events_render_display_page() {
 		),
 		array(
 			'name'        => 'Champ isolé',
-			'description' => 'Affiche une seule information de l’événement courant.',
+			'description' => 'Affiche une seule information de l’événement courant. next_date et next_time concernent uniquement la prochaine occurrence active ; display_date et display_time utilisent la date de référence.',
 			'example'     => '[wp_seed_event_field field="next_date"]',
-			'options'     => 'field : title, url, types, next_date, next_time, place, place_address, place_link, phone, email, person_link, description, excerpt, image, flyer.',
+			'options'     => 'field : title, url, types, next_date, next_time, display_date, display_time, place, place_address, place_link, phone, email, person_link, description, excerpt, image, flyer.',
 		),
 		array(
 			'name'        => 'Dates',

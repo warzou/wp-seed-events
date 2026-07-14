@@ -61,13 +61,12 @@ apres.
 Une Event Card V1 doit toujours afficher :
 
 - le titre ;
-- la prochaine date utile ;
 - un lien ou bouton vers la fiche de l'evenement.
 
-Ces trois elements suffisent a rendre la carte exploitable.
-
-Si l'un de ces elements manque, l'evenement n'est pas assez pret pour etre
-affiche sous forme de carte publique.
+Lorsqu'une occurrence active existe, elle affiche aussi une date de reference.
+Cette date est la prochaine occurrence active si elle existe, sinon la derniere
+occurrence active. L'absence de date active ne doit pas bloquer l'affichage
+d'une carte lorsque la collection autorise cet evenement.
 
 ## Informations fortement recommandees
 
@@ -216,7 +215,9 @@ place, seuls les plus utiles doivent etre visibles dans la V1.
 
 La date est une information prioritaire.
 
-La carte V1 doit afficher la prochaine date utile.
+La carte V1 doit afficher une date de reference : la prochaine occurrence active
+si elle existe, sinon la derniere occurrence active. Si aucune occurrence active
+n'existe, elle n'affiche pas de date.
 
 Format recommande :
 
@@ -231,7 +232,7 @@ Si l'heure existe, elle peut etre affichee juste sous la date :
 Si l'evenement possede plusieurs dates, la carte ne doit pas toutes les afficher
 par defaut. Elle peut indiquer :
 
-- prochaine date visible ;
+- date de reference visible ;
 - mention courte : + 2 autres dates.
 
 La liste complete des dates appartient a la fiche evenement.
@@ -488,8 +489,8 @@ doit privilegier la prochaine date valide.
 
 La mention des dates annulees peut rester dans la fiche complete.
 
-Si la prochaine date affichee est annulee parce qu'aucune autre date n'est
-disponible, la carte doit l'indiquer clairement.
+Une occurrence annulee ne doit jamais devenir la date de reference. Si aucune
+occurrence active n'existe, la carte n'affiche pas de date active.
 
 ### Evenement termine
 
@@ -582,7 +583,7 @@ Elle affiche en priorite :
 1. illustration si disponible ;
 2. type(s) ;
 3. titre ;
-4. prochaine date ;
+4. date de reference si disponible ;
 5. horaire si disponible ;
 6. lieu si disponible ;
 7. resume court si disponible ;

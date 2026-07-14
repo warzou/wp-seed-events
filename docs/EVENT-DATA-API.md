@@ -33,6 +33,19 @@ L'Event Data API doit :
 - retourner une structure de donnees stable ;
 - rester independante du rendu, des builders et des shortcodes.
 
+## Contrat temporel
+
+L'Event Data API conserve trois projections distinctes :
+
+- `next_occurrence` : premiere occurrence active aujourd'hui ou dans le futur ;
+- `last_occurrence` : derniere occurrence active dans l'ordre chronologique ;
+- `display_occurrence` : `next_occurrence` si elle existe, sinon `last_occurrence`.
+
+Les adaptateurs derivent `next_date` et `next_time` de `next_occurrence`.
+Ils derivent `display_date` et `display_time` de `display_occurrence` pour les
+surfaces qui ont besoin d'une date de reference, notamment les cartes. Une
+occurrence annulee n'est jamais une occurrence active.
+
 ## Consommateurs
 
 Les consommateurs de cette API sont :

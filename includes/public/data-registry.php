@@ -25,7 +25,25 @@ function wp_seed_events_dynamic_data_fields() {
 			'key'         => 'next_date',
 			'label'       => 'Prochaine date',
 			'type'        => 'text',
-			'description' => 'Prochaine date lisible de l\'evenement.',
+			'description' => 'Prochaine date active aujourd\'hui ou dans le futur.',
+		),
+		'next_time'   => array(
+			'key'         => 'next_time',
+			'label'       => 'Horaire de la prochaine date',
+			'type'        => 'text',
+			'description' => 'Horaire de la prochaine date active.',
+		),
+		'display_date' => array(
+			'key'         => 'display_date',
+			'label'       => 'Date de reference',
+			'type'        => 'text',
+			'description' => 'Prochaine date active, sinon derniere date active.',
+		),
+		'display_time' => array(
+			'key'         => 'display_time',
+			'label'       => 'Horaire de la date de reference',
+			'type'        => 'text',
+			'description' => 'Horaire associe a la date de reference.',
 		),
 		'place'       => array(
 			'key'         => 'place',
@@ -69,6 +87,12 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
+		case 'next_time':
+			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_time_line( $event ) ) );
+		case 'display_date':
+			return trim( wp_strip_all_tags( wp_seed_events_public_event_display_date_line( $event ) ) );
+		case 'display_time':
+			return trim( wp_strip_all_tags( wp_seed_events_public_event_display_time_line( $event ) ) );
 		case 'place':
 			return empty( $event['place']['name'] ) ? '' : trim( wp_strip_all_tags( (string) $event['place']['name'] ) );
 		case 'description':
