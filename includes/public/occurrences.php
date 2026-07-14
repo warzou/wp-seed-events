@@ -96,10 +96,12 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 	$is_cancelled = ! empty( $raw_occurrence['cancelled'] );
 	$start_sort   = $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) );
 	$end_sort     = ( '' !== $end_date ? $end_date : $start_date ) . ' ' . ( $all_day ? '23:59' : ( '' !== $end_time ? $end_time : ( '' !== $start_time ? $start_time : '00:00' ) ) );
-	$today        = current_time( 'Y-m-d' );
-	$is_active    = ! $is_cancelled;
-	$is_future    = $is_active && $start_date >= $today;
-	$is_past      = $is_active && $start_date < $today;
+	$today          = current_time( 'Y-m-d' );
+	$is_active      = ! $is_cancelled;
+	$is_date_future = $start_date >= $today;
+	$is_date_past   = $start_date < $today;
+	$is_future      = $is_active && $is_date_future;
+	$is_past        = $is_active && $is_date_past;
 
 	$occurrence = array(
 		'id'             => '' !== $uid ? $uid : $derived_id,
@@ -116,6 +118,8 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 		'end_sort'       => $end_sort,
 		'is_dated'       => true,
 		'is_active'      => $is_active,
+		'is_date_future' => $is_date_future,
+		'is_date_past'   => $is_date_past,
 		'is_future'      => $is_future,
 		'is_past'        => $is_past,
 		'is_cancelled'   => $is_cancelled,

@@ -46,6 +46,25 @@ Ils derivent `display_date` et `display_time` de `display_occurrence` pour les
 surfaces qui ont besoin d'une date de reference, notamment les cartes. Une
 occurrence annulee n'est jamais une occurrence active.
 
+Chaque occurrence normalisee expose egalement deux projections temporelles
+neutres :
+
+- `is_date_future` vaut `true` lorsque sa date de debut est aujourd'hui ou dans
+  le futur ;
+- `is_date_past` vaut `true` lorsque sa date de debut est strictement anterieure
+  a aujourd'hui.
+
+Ces deux projections sont independantes de `is_active` et `is_cancelled`. Elles
+permettent donc de situer chronologiquement une occurrence annulee sans la
+considerer comme active. Les contrats existants restent inchanges :
+
+- `is_future` designe une occurrence active aujourd'hui ou dans le futur ;
+- `is_past` designe une occurrence active passee.
+
+La comparaison utilise la date courante du fuseau WordPress, sans comparaison
+d'heure. Une occurrence datee aujourd'hui est donc `is_date_future=true` et
+`is_date_past=false` pendant toute la journee.
+
 ## Consommateurs
 
 Les consommateurs de cette API sont :
