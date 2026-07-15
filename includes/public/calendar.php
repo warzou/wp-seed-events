@@ -18,8 +18,33 @@ function wp_seed_events_calendar_future_occurrences( $event_id ) {
 	);
 }
 
-function wp_seed_events_event_calendar_url( $event ) {
-	if ( empty( $event['id'] ) || count( wp_seed_events_calendar_future_occurrences( $event['id'] ) ) < 2 ) {
+function wp_seed_events_calendar_active_future_occurrences( $occurrences ) {
+	if ( ! is_array( $occurrences ) ) {
+		return array();
+	}
+
+	return array_values(
+		array_filter(
+			$occurrences,
+			function ( $occurrence ) {
+				return is_array( $occurrence ) && ! empty( $occurrence['id'] ) && ! empty( $occurrence['is_active'] ) && ! empty( $occurrence['is_future'] );
+			}
+		)
+	);
+}
+
+function wp_seed_events_event_calendar_url( $event, $occurrences = null ) {
+	if ( empty( $event['id'] ) ) {
+		return '';
+	}
+
+	if ( null === $occurrences ) {
+		$occurrences = wp_seed_events_calendar_future_occurrences( $event['id'] );
+	} else {
+		$occurrences = wp_seed_events_calendar_active_future_occurrences( $occurrences );
+	}
+
+	if ( count( $occurrences ) < 2 ) {
 		return '';
 	}
 
@@ -32,8 +57,8 @@ function wp_seed_events_event_calendar_url( $event ) {
 	);
 }
 
-function wp_seed_events_render_event_calendar_link( $event ) {
-	$url = wp_seed_events_event_calendar_url( $event );
+function wp_seed_events_render_event_calendar_link( $event, $occurrences = null ) {
+	$url = wp_seed_events_event_calendar_url( $event, $occurrences );
 
 	if ( '' === $url ) {
 		return '';
@@ -89,7 +114,7 @@ function wp_seed_events_handle_occurrence_ics_download() {
 		wp_seed_events_calendar_download_not_found();
 	}
 
-	$occurrences = wp_seed_events_calendar_future_occurrences( $event_id );
+	$occurrences = wp_seed_events_calendar_active_future_occurrences( $event['occurrences'] ?? array() );
 	$occurrence  = array();
 
 	foreach ( $occurrences as $candidate ) {
@@ -126,7 +151,7 @@ function wp_seed_events_handle_event_ics_download() {
 		wp_seed_events_calendar_download_not_found();
 	}
 
-	$occurrences = wp_seed_events_calendar_future_occurrences( $event_id );
+	$occurrences = wp_seed_events_calendar_active_future_occurrences( $event['occurrences'] ?? array() );
 
 	if ( count( $occurrences ) < 2 ) {
 		wp_seed_events_calendar_download_not_found();

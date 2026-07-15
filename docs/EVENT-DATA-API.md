@@ -71,6 +71,7 @@ Les consommateurs de cette API sont :
 
 - les templates publics ;
 - les shortcodes ;
+- le renderer public partage des dates ;
 - le registre Dynamic Data ;
 - le provider Gutenberg ;
 - un futur provider Divi ;
@@ -79,6 +80,12 @@ Les consommateurs de cette API sont :
 - une eventuelle REST API plus tard.
 
 Chaque consommateur adapte les donnees a son propre contexte.
+
+Le renderer public des dates utilise directement `occurrences`,
+`is_date_future`, `is_date_past`, `is_active` et `is_cancelled`. Il conserve
+l'ordre fourni par l'Event Occurrences API et ne relit ni le stockage ni le
+normaliseur. Son contrat de rendu est documente dans
+`docs/PUBLIC-DATE-RENDERER.md`.
 
 ## Ce que l'API ne doit pas faire
 

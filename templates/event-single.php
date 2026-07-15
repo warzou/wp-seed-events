@@ -35,31 +35,7 @@ defined( 'ABSPATH' ) || exit;
 		<?php endif; ?>
 	</header>
 
-	<?php if ( ! empty( $event['occurrences'] ) ) : ?>
-		<section class="wp-seed-event-single__section wp-seed-event-single__dates">
-			<h2>Dates</h2>
-			<?php $all_dates_link = wp_seed_events_render_event_calendar_link( $event ); ?>
-			<?php if ( '' !== $all_dates_link ) : ?>
-				<p class="wp-seed-event-calendar-all"><?php echo wp_kses_post( $all_dates_link ); ?></p>
-			<?php endif; ?>
-			<ul>
-				<?php foreach ( $event['occurrences'] as $occurrence ) : ?>
-					<li>
-						<?php echo esc_html( wp_seed_events_format_occurrence_date_line( $occurrence ) ); ?>
-						<?php if ( ! empty( $occurrence['cancelled'] ) ) : ?>
-							<span class="wp-seed-event-single__cancelled">Annulée</span>
-						<?php endif; ?>
-						<?php if ( '' !== wp_seed_events_format_occurrence_time_line( $occurrence ) ) : ?>
-							<br /><?php echo esc_html( wp_seed_events_format_occurrence_time_line( $occurrence ) ); ?>
-						<?php endif; ?>
-						<?php if ( ! empty( $occurrence['is_active'] ) && ! empty( $occurrence['is_future'] ) ) : ?>
-							<br /><?php echo wp_kses_post( wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) ); ?>
-						<?php endif; ?>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-		</section>
-	<?php endif; ?>
+	<?php echo wp_kses_post( wp_seed_events_render_public_event_dates_section( $event ) ); ?>
 
 	<?php if ( ! empty( $event['place'] ) ) : ?>
 		<section class="wp-seed-event-single__section wp-seed-event-single__place">

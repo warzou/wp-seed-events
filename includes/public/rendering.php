@@ -764,7 +764,7 @@ function wp_seed_events_event_dates_shortcode( $atts ) {
 		$event,
 		array(
 			'format'         => wp_seed_events_public_date_format_option( $atts['format'] ),
-			'show_time'      => wp_seed_events_public_yes_no_option( $atts['show_time'], true ),
+			'show_times'     => wp_seed_events_public_yes_no_option( $atts['show_time'], true ),
 			'show_cancelled' => wp_seed_events_public_yes_no_option( $atts['show_cancelled'], true ),
 		)
 	);
@@ -821,59 +821,126 @@ function wp_seed_events_event_practical_info_shortcode( $atts ) {
 }
 
 function wp_seed_events_render_public_event_dates_section( $event, $options = array() ) {
+	if ( ! is_array( $event ) ) {
+		$event = wp_seed_events_public_event_data( absint( $event ) );
+	}
+
 	if ( empty( $event['occurrences'] ) || ! is_array( $event['occurrences'] ) ) {
 		return '';
+	}
+
+	if ( is_array( $options ) && array_key_exists( 'show_time', $options ) && ! array_key_exists( 'show_times', $options ) ) {
+		$options['show_times'] = $options['show_time'];
 	}
 
 	$options = wp_parse_args(
 		$options,
 		array(
-			'format'         => 'long',
-			'show_time'      => true,
-			'show_cancelled' => true,
+			'title'               => 'Dates',
+			'heading_level'       => 'h2',
+			'scope'               => 'all',
+			'show_cancelled'      => true,
+			'show_times'          => true,
+			'show_calendar_links' => true,
+			'format'              => 'long',
 		)
 	);
 
-	$occurrences = array_filter(
-		$event['occurrences'],
-		function ( $occurrence ) use ( $options ) {
-			if ( ! empty( $occurrence['cancelled'] ) && ! $options['show_cancelled'] ) {
-				return false;
-			}
+	$title         = is_scalar( $options['title'] ) ? trim( (string) $options['title'] ) : '';
+	$heading_level = strtolower( trim( (string) $options['heading_level'] ) );
+	$scope         = strtolower( trim( (string) $options['scope'] ) );
 
-			return '' !== wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] );
-		}
+	if ( ! in_array( $heading_level, array( 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ) {
+		$heading_level = 'h2';
+	}
+
+	if ( ! in_array( $scope, array( 'all', 'upcoming', 'past' ), true ) ) {
+		$scope = 'all';
+	}
+
+	$options['scope'] = $scope;
+
+	$occurrences = array_values(
+		array_filter(
+			$event['occurrences'],
+			function ( $occurrence ) use ( $options ) {
+				if ( ! is_array( $occurrence ) || ! wp_seed_events_public_event_occurrence_has_valid_date( $occurrence ) ) {
+					return false;
+				}
+
+				if ( ! empty( $occurrence['is_cancelled'] ) && ! $options['show_cancelled'] ) {
+					return false;
+				}
+
+				if ( 'upcoming' === $options['scope'] ) {
+					return ! empty( $occurrence['is_date_future'] );
+				}
+
+				if ( 'past' === $options['scope'] ) {
+					return ! empty( $occurrence['is_date_past'] );
+				}
+
+				return true;
+			}
+		)
 	);
 
 	if ( array() === $occurrences ) {
 		return '';
 	}
 
-	$all_dates_link = wp_seed_events_render_event_calendar_link( $event );
+	$all_dates_link = $options['show_calendar_links'] ? wp_seed_events_render_event_calendar_link( $event, $occurrences ) : '';
+	$section_classes = array(
+		'wp-seed-event-section',
+		'wp-seed-event-section--dates',
+		'wp-seed-event-single__section',
+		'wp-seed-event-single__dates',
+	);
 
 	ob_start();
 	?>
-	<section class="wp-seed-event-section wp-seed-event-section--dates">
-		<h2>Dates</h2>
+	<section class="<?php echo esc_attr( implode( ' ', $section_classes ) ); ?>"<?php echo '' === $title ? ' aria-label="' . esc_attr( "Dates de l'\u{00E9}v\u{00E9}nement" ) . '"' : ''; ?>>
+		<?php if ( '' !== $title ) : ?>
+			<<?php echo esc_attr( $heading_level ); ?> class="wp-seed-event-dates__title"><?php echo esc_html( $title ); ?></<?php echo esc_attr( $heading_level ); ?>>
+		<?php endif; ?>
 		<?php if ( '' !== $all_dates_link ) : ?>
 			<p class="wp-seed-event-calendar-all"><?php echo wp_kses_post( $all_dates_link ); ?></p>
 		<?php endif; ?>
 		<ul class="wp-seed-event-dates">
 			<?php foreach ( $occurrences as $occurrence ) : ?>
 				<?php
-				$date_line = wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] );
-				$time_line = $options['show_time'] ? wp_seed_events_public_event_occurrence_time_line( $occurrence ) : '';
+				$date_line          = wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] );
+				$time_line          = $options['show_times'] ? wp_seed_events_public_event_occurrence_time_line( $occurrence ) : '';
+				$calendar_link      = $options['show_calendar_links'] ? wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) : '';
+				$is_cancelled       = ! empty( $occurrence['is_cancelled'] );
+				$occurrence_classes = array( 'wp-seed-event-date' );
+
+				if ( ! empty( $occurrence['is_date_future'] ) ) {
+					$occurrence_classes[] = 'is-future';
+				}
+
+				if ( ! empty( $occurrence['is_date_past'] ) ) {
+					$occurrence_classes[] = 'is-past';
+				}
+
+				if ( $is_cancelled ) {
+					$occurrence_classes[] = 'is-cancelled';
+				}
+
+				if ( ! empty( $occurrence['all_day'] ) ) {
+					$occurrence_classes[] = 'is-all-day';
+				}
 				?>
-				<li class="wp-seed-event-date<?php echo ! empty( $occurrence['cancelled'] ) ? ' is-cancelled' : ''; ?>">
-					<strong><?php echo esc_html( $date_line ); ?></strong>
-					<?php if ( ! empty( $occurrence['cancelled'] ) ) : ?>
-						<span class="wp-seed-event-date-status">Annulée</span>
+				<li class="<?php echo esc_attr( implode( ' ', $occurrence_classes ) ); ?>">
+					<time class="wp-seed-event-date__date" datetime="<?php echo esc_attr( $occurrence['start_date'] ); ?>"><?php echo esc_html( $date_line ); ?></time>
+					<?php if ( $is_cancelled ) : ?>
+						<span class="wp-seed-event-date-status wp-seed-event-date__status wp-seed-event-single__cancelled">Annulée</span>
 					<?php endif; ?>
 					<?php if ( '' !== $time_line ) : ?>
-						<br /><span><?php echo esc_html( $time_line ); ?></span>
+						<br /><span class="wp-seed-event-date__time"><?php echo esc_html( $time_line ); ?></span>
 					<?php endif; ?>
-					<?php if ( ! empty( $occurrence['is_active'] ) && ! empty( $occurrence['is_future'] ) ) : ?>
-						<br /><?php echo wp_kses_post( wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) ); ?>
+					<?php if ( '' !== $calendar_link ) : ?>
+						<br /><?php echo wp_kses_post( $calendar_link ); ?>
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
@@ -882,6 +949,33 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	<?php
 
 	return trim( ob_get_clean() );
+}
+
+function wp_seed_events_public_event_occurrence_has_valid_date( $occurrence ) {
+	$start_date = isset( $occurrence['start_date'] ) ? (string) $occurrence['start_date'] : '';
+	$end_date   = isset( $occurrence['end_date'] ) ? (string) $occurrence['end_date'] : '';
+
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $start_date ) ) {
+		return false;
+	}
+
+	$start = DateTimeImmutable::createFromFormat( '!Y-m-d', $start_date );
+
+	if ( false === $start || $start->format( 'Y-m-d' ) !== $start_date ) {
+		return false;
+	}
+
+	if ( '' === $end_date ) {
+		return true;
+	}
+
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $end_date ) ) {
+		return false;
+	}
+
+	$end = DateTimeImmutable::createFromFormat( '!Y-m-d', $end_date );
+
+	return false !== $end && $end->format( 'Y-m-d' ) === $end_date;
 }
 
 function wp_seed_events_render_public_event_place_section( $event ) {
