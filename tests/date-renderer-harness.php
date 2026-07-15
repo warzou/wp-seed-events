@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone assertions for the shared public event dates renderer.
+ * Standalone assertions for the shared public event dates renderer and shortcode adapter.
  *
  * Run with: php tests/date-renderer-harness.php
  */
@@ -13,6 +13,8 @@ $GLOBALS['wp_seed_events_harness_event_data']       = array();
 $GLOBALS['wp_seed_events_harness_event_data_calls'] = 0;
 $GLOBALS['wp_seed_events_harness_occurrence_calls'] = 0;
 $GLOBALS['wp_seed_events_harness_case_count']       = 0;
+$GLOBALS['wp_seed_events_harness_current_post_id']  = 0;
+$GLOBALS['wp_seed_events_harness_post_types']       = array();
 
 function absint( $value ) {
 	return abs( (int) $value );
@@ -20,6 +22,18 @@ function absint( $value ) {
 
 function wp_parse_args( $args, $defaults = array() ) {
 	return array_merge( $defaults, is_array( $args ) ? $args : array() );
+}
+
+function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
+	$out = $pairs;
+
+	foreach ( is_array( $atts ) ? $atts : array() as $name => $value ) {
+		if ( array_key_exists( $name, $pairs ) ) {
+			$out[ $name ] = $value;
+		}
+	}
+
+	return $out;
 }
 
 function esc_html( $value ) {
@@ -60,6 +74,18 @@ function add_query_arg( $args, $url ) {
 
 function wp_timezone() {
 	return new DateTimeZone( 'UTC' );
+}
+
+function get_the_ID() {
+	return (int) $GLOBALS['wp_seed_events_harness_current_post_id'];
+}
+
+function get_post_type( $post_id = 0 ) {
+	return $GLOBALS['wp_seed_events_harness_post_types'][ absint( $post_id ) ] ?? false;
+}
+
+function date_i18n( $format, $timestamp ) {
+	return gmdate( (string) $format, (int) $timestamp );
 }
 
 function strip_shortcodes( $value ) {
@@ -401,6 +427,158 @@ wp_seed_events_harness_case(
 		wp_seed_events_harness_contains( 'UID:future-2', $ics, 'Second stable UID is missing.' );
 		wp_seed_events_harness_not_contains( 'UID:past-1', $ics, 'Past occurrence leaked into ICS.' );
 		wp_seed_events_harness_not_contains( 'UID:cancelled-future', $ics, 'Cancelled occurrence leaked into ICS.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode resolves an explicit event once',
+	function () use ( $future, $future_two ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][99] = wp_seed_events_harness_event( array( $future, $future_two ) );
+		$GLOBALS['wp_seed_events_harness_event_data'][99]['id'] = 99;
+		$GLOBALS['wp_seed_events_harness_event_data_calls'] = 0;
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => '99' ) );
+		wp_seed_events_harness_assert( 1 === $GLOBALS['wp_seed_events_harness_event_data_calls'], 'Shortcode must resolve Event Data exactly once.' );
+		wp_seed_events_harness_contains( '<h2 class="wp-seed-event-dates__title">Dates</h2>', $html, 'Default shortcode title or heading is incorrect.' );
+		wp_seed_events_harness_assert( 1 === substr_count( $html, 'wp-seed-event-section--dates' ), 'Shortcode duplicated the renderer section.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode uses the public event context',
+	function () use ( $future ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future ) );
+		$GLOBALS['wp_seed_events_public_event_id'] = 42;
+		$html = wp_seed_events_event_dates_shortcode( array() );
+		$GLOBALS['wp_seed_events_public_event_id'] = 0;
+		wp_seed_events_harness_contains( '2026-07-31', $html, 'Public event context was not resolved.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode uses the current event post context',
+	function () use ( $past ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][77] = wp_seed_events_harness_event( array( $past ) );
+		$GLOBALS['wp_seed_events_harness_event_data'][77]['id'] = 77;
+		$GLOBALS['wp_seed_events_harness_current_post_id'] = 77;
+		$GLOBALS['wp_seed_events_harness_post_types'][77] = 'wp_seed_event';
+		$html = wp_seed_events_event_dates_shortcode( array() );
+		$GLOBALS['wp_seed_events_harness_current_post_id'] = 0;
+		wp_seed_events_harness_contains( '2026-01-05', $html, 'Current event post context was not resolved.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode returns empty without an event context',
+	function () {
+		$GLOBALS['wp_seed_events_public_event_id'] = 0;
+		$GLOBALS['wp_seed_events_harness_current_post_id'] = 12;
+		$GLOBALS['wp_seed_events_harness_post_types'][12] = 'page';
+		$html = wp_seed_events_event_dates_shortcode( array() );
+		$GLOBALS['wp_seed_events_harness_current_post_id'] = 0;
+		wp_seed_events_harness_assert( '' === $html, 'Ordinary page without event context must render nothing.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Invalid explicit ID does not fall back to context',
+	function () use ( $future ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future ) );
+		$GLOBALS['wp_seed_events_public_event_id'] = 42;
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => 'invalid' ) );
+		$GLOBALS['wp_seed_events_public_event_id'] = 0;
+		wp_seed_events_harness_assert( '' === $html, 'Invalid explicit ID must not fall back to another event.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode maps scope and cancellation options',
+	function () use ( $past, $future, $cancelled_up ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $past, $future, $cancelled_up ) );
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'scope' => 'upcoming', 'show_cancelled' => 'no' ) );
+		wp_seed_events_harness_not_contains( '2026-01-05', $html, 'Past occurrence leaked through shortcode scope.' );
+		wp_seed_events_harness_not_contains( '2026-09-10', $html, 'Cancelled occurrence leaked through shortcode option.' );
+		wp_seed_events_harness_contains( '2026-07-31', $html, 'Future occurrence is missing from shortcode output.' );
+		$past_html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'scope' => 'past' ) );
+		wp_seed_events_harness_contains( '2026-01-05', $past_html, 'Past occurrence is missing from shortcode past scope.' );
+		wp_seed_events_harness_not_contains( '2026-07-31', $past_html, 'Future occurrence leaked into shortcode past scope.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode maps title heading times and calendar options',
+	function () use ( $future, $future_two ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future, $future_two ) );
+		$html = wp_seed_events_event_dates_shortcode(
+			array(
+				'id'                  => '42',
+				'title'               => 'Agenda',
+				'heading_level'       => 'h4',
+				'show_times'          => 'no',
+				'show_calendar_links' => 'no',
+			)
+		);
+		wp_seed_events_harness_contains( '<h4 class="wp-seed-event-dates__title">Agenda</h4>', $html, 'Custom title or heading was not mapped.' );
+		wp_seed_events_harness_not_contains( 'wp-seed-event-date__time', $html, 'show_times=no was ignored.' );
+		wp_seed_events_harness_not_contains( 'wp-seed-event-calendar-link', $html, 'show_calendar_links=no was ignored.' );
+
+		foreach ( array( 'h3', 'h4', 'h5', 'h6' ) as $heading_level ) {
+			$heading_html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'heading_level' => $heading_level ) );
+			wp_seed_events_harness_contains( '<' . $heading_level . ' class="wp-seed-event-dates__title">', $heading_html, 'Allowed shortcode heading was not preserved.' );
+		}
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode fallbacks are safe',
+	function () use ( $past, $future ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $past, $future ) );
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'scope' => 'invalid', 'heading_level' => 'h1', 'show_times' => 'invalid' ) );
+		wp_seed_events_harness_contains( '2026-01-05', $html, 'Invalid scope did not fall back to all.' );
+		wp_seed_events_harness_contains( '2026-07-31', $html, 'Invalid scope did not keep future occurrence.' );
+		wp_seed_events_harness_contains( '<h2 class="wp-seed-event-dates__title">', $html, 'Invalid heading did not fall back to h2.' );
+		wp_seed_events_harness_contains( 'wp-seed-event-date__time', $html, 'Invalid yes/no value did not use the safe default.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Non-scalar shortcode attributes use safe fallbacks without warnings',
+	function () use ( $future ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future ) );
+		set_error_handler(
+			function ( $severity, $message ) {
+				throw new ErrorException( $message, 0, $severity );
+			}
+		);
+		try {
+			$html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'scope' => array(), 'heading_level' => array(), 'show_times' => array(), 'format' => array() ) );
+		} finally {
+			restore_error_handler();
+		}
+		wp_seed_events_harness_contains( '<h2 class="wp-seed-event-dates__title">', $html, 'Non-scalar attributes did not use safe defaults.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode keeps historical aliases with new attribute precedence',
+	function () use ( $future ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future ) );
+		$legacy = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'format' => 'short', 'show_time' => 'no' ) );
+		wp_seed_events_harness_contains( '31/07/2026', $legacy, 'Historical format attribute is no longer supported.' );
+		wp_seed_events_harness_not_contains( 'wp-seed-event-date__time', $legacy, 'Historical show_time alias is no longer supported.' );
+		$precedence = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'show_time' => 'no', 'show_times' => 'yes' ) );
+		wp_seed_events_harness_contains( 'wp-seed-event-date__time', $precedence, 'New show_times attribute must override show_time.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'Shortcode supports an empty title and empty filtered results',
+	function () use ( $cancelled_up ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $cancelled_up ) );
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'title' => '' ) );
+		wp_seed_events_harness_not_contains( 'wp-seed-event-dates__title', $html, 'Empty shortcode title must hide the heading.' );
+		wp_seed_events_harness_contains( 'aria-label=', $html, 'Empty shortcode title needs an accessible label.' );
+		$empty = wp_seed_events_event_dates_shortcode( array( 'id' => '42', 'show_cancelled' => 'no' ) );
+		wp_seed_events_harness_assert( '' === $empty, 'Filtered shortcode without occurrences must render nothing.' );
 	}
 );
 

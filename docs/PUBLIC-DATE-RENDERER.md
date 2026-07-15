@@ -98,8 +98,52 @@ Le format ICS et les URLs de telechargement restent inchanges.
 ## Consommateurs
 
 Le template natif `templates/event-single.php` utilise le renderer partage.
-Le shortcode historique `[wp_seed_event_dates]` reste compatible avec ses
-attributs existants et delegue au meme renderer.
+Le shortcode historique `[wp_seed_event_dates]` delegue integralement au meme
+renderer, sans wrapper ou HTML supplementaire.
+
+## Shortcode de compatibilite
+
+La syntaxe sans attribut utilise l'evenement du contexte courant :
+
+```text
+[wp_seed_event_dates]
+```
+
+Sur une page ordinaire sans contexte evenement, le shortcode retourne une
+chaine vide. L'attribut facultatif `id` permet de choisir explicitement un
+evenement :
+
+```text
+[wp_seed_event_dates id="914" heading_level="h3"]
+```
+
+Les attributs V1 sont :
+
+- `id` : identifiant d'evenement facultatif ;
+- `title` : `Dates` par defaut, chaine vide autorisee ;
+- `heading_level` : `h2` a `h6`, `h2` par defaut ;
+- `scope` : `all`, `upcoming` ou `past`, `all` par defaut ;
+- `show_cancelled` : `yes` ou `no`, `yes` par defaut ;
+- `show_times` : `yes` ou `no`, `yes` par defaut ;
+- `show_calendar_links` : `yes` ou `no`, `yes` par defaut.
+
+Les valeurs invalides reviennent aux valeurs par defaut. Les occurrences
+annulees restent situees dans `upcoming` ou `past` selon leur date et sont
+ensuite incluses uniquement lorsque `show_cancelled="yes"`.
+
+Exemples :
+
+```text
+[wp_seed_event_dates scope="upcoming"]
+[wp_seed_event_dates scope="past" show_cancelled="no"]
+[wp_seed_event_dates title="" show_calendar_links="no"]
+[wp_seed_event_dates id="914" heading_level="h3"]
+```
+
+Pour compatibilite ascendante, `format="long|short"` reste accepte et
+`show_time="yes|no"` reste un alias de `show_times`. Lorsque les deux attributs
+sont presents, `show_times` est prioritaire. Aucun alias historique
+`show_calendar` n'existe.
 
 Les futurs composants Dates de Gutenberg ou Divi devront reutiliser ce
 renderer ou le meme contrat d'occurrences, sans acces au stockage.

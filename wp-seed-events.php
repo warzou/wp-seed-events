@@ -1141,9 +1141,9 @@ function wp_seed_events_render_display_page() {
 		),
 		array(
 			'name'        => 'Dates',
-			'description' => 'Affiche les dates de l’événement courant.',
-			'example'     => '[wp_seed_event_dates format="short" show_time="no"]',
-			'options'     => 'format : long ou short. show_time : yes ou no. show_cancelled : yes ou no.',
+			'description' => 'Affiche les dates de l’événement courant avec le renderer public partagé.',
+			'example'     => '[wp_seed_event_dates scope="upcoming"]',
+			'options'     => 'title : Dates par défaut, chaîne vide autorisée. heading_level : h2 à h6. scope : all, upcoming ou past. show_cancelled, show_times et show_calendar_links : yes ou no. Compatibilité : format long/short et show_time yes/no.',
 		),
 		array(
 			'name'        => 'Personnes',
@@ -1177,6 +1177,12 @@ function wp_seed_events_render_display_page() {
 			'description' => 'Affiche une information d’un événement choisi sur une page classique.',
 			'example'     => '[wp_seed_event_field id="123" field="next_date"]',
 			'options'     => 'id : remplacez 123 par l’identifiant réel. field : voir la liste des champs ci-dessus.',
+		),
+		array(
+			'name'        => 'Dates d’un événement précis',
+			'description' => 'Affiche les dates d’un événement choisi sur une page classique.',
+			'example'     => '[wp_seed_event_dates id="123" heading_level="h3"]',
+			'options'     => 'id : remplacez 123 par l’identifiant réel. Les autres options sont identiques au shortcode Dates.',
 		),
 	);
 	?>
