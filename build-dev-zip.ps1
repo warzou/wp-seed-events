@@ -11,13 +11,20 @@ $pluginRuntimeDirs = @(
 $moduleRuntimeRoot = 'includes/integrations/divi/event-dates-module/visual-builder'
 $moduleJson = Join-Path $root "$moduleRuntimeRoot/src/module.json"
 $moduleBundle = Join-Path $root "$moduleRuntimeRoot/build/wp-seed-events-event-dates.js"
+$gutenbergRuntimeRoot = 'includes/integrations/gutenberg/event-dates-block'
+$gutenbergBlockJson = Join-Path $root "$gutenbergRuntimeRoot/build/block.json"
+$gutenbergBlockScript = Join-Path $root "$gutenbergRuntimeRoot/build/index.js"
+$gutenbergBlockAsset = Join-Path $root "$gutenbergRuntimeRoot/build/index.asset.php"
 $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/node_modules/*",
     "$moduleRuntimeRoot/package.json",
     "$moduleRuntimeRoot/package-lock.json",
     "$moduleRuntimeRoot/webpack.config.js",
     "$moduleRuntimeRoot/tests/*",
-    "$moduleRuntimeRoot/src/index.jsx"
+    "$moduleRuntimeRoot/src/index.jsx",
+    "$gutenbergRuntimeRoot/node_modules/*",
+    "$gutenbergRuntimeRoot/tests/*",
+    "$gutenbergRuntimeRoot/src/*"
 )
 
 $pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
@@ -33,6 +40,12 @@ if (-not (Test-Path -LiteralPath $moduleJson -PathType Leaf)) {
 
 if (-not (Test-Path -LiteralPath $moduleBundle -PathType Leaf)) {
     throw "Missing Divi module bundle. Run npm run build first: $moduleBundle"
+}
+
+foreach ($gutenbergAsset in @($gutenbergBlockJson, $gutenbergBlockScript, $gutenbergBlockAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergAsset -PathType Leaf)) {
+        throw "Missing Gutenberg block asset. Run npm run build:gutenberg first: $gutenbergAsset"
+    }
 }
 
 $pluginVersion = $versionMatch.Groups['version'].Value.Trim()
