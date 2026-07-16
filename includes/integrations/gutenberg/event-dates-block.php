@@ -79,12 +79,10 @@ function wp_seed_events_gutenberg_event_dates_options( $attributes = array() ) {
 }
 
 /**
- * Render the dynamic block through the Event Data API and shared dates renderer.
+ * Render the shared dates section for a Gutenberg context.
  */
-function wp_seed_events_render_gutenberg_event_dates_block( $attributes, $content, $block ) {
-	$event_id = wp_seed_events_gutenberg_event_dates_resolve_event_id(
-		wp_seed_events_gutenberg_event_dates_block_context( $block )
-	);
+function wp_seed_events_gutenberg_event_dates_render( $context = array(), $attributes = array() ) {
+	$event_id = wp_seed_events_gutenberg_event_dates_resolve_event_id( $context );
 
 	if ( 0 === $event_id ) {
 		return '';
@@ -96,9 +94,19 @@ function wp_seed_events_render_gutenberg_event_dates_block( $attributes, $conten
 		return '';
 	}
 
-	$html = (string) wp_seed_events_render_public_event_dates_section(
+	return (string) wp_seed_events_render_public_event_dates_section(
 		$event,
 		wp_seed_events_gutenberg_event_dates_options( $attributes )
+	);
+}
+
+/**
+ * Render the dynamic block through the Event Data API and shared dates renderer.
+ */
+function wp_seed_events_render_gutenberg_event_dates_block( $attributes, $content, $block ) {
+	$html = wp_seed_events_gutenberg_event_dates_render(
+		wp_seed_events_gutenberg_event_dates_block_context( $block ),
+		$attributes
 	);
 
 	if ( '' === trim( $html ) || ! function_exists( 'get_block_wrapper_attributes' ) ) {
@@ -138,3 +146,5 @@ function wp_seed_events_register_event_dates_block() {
 	);
 }
 add_action( 'init', 'wp_seed_events_register_event_dates_block', 20 );
+
+require_once __DIR__ . '/event-dates-preview.php';
