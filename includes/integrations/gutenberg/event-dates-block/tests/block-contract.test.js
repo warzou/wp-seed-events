@@ -39,6 +39,8 @@ assert.strictEqual(metadata.name, 'wp-seed-events/event-dates-block');
 assert.notStrictEqual(metadata.name, diviMetadata.name);
 assert.strictEqual(metadata.apiVersion, 3);
 assert.deepStrictEqual(metadata.usesContext, ['postId', 'postType', 'queryId']);
+assert.deepStrictEqual(metadata.attributes.heading_level.enum, ['h2', 'h3', 'h4', 'h5', 'h6']);
+assert.deepStrictEqual(metadata.attributes.scope.enum, ['all', 'upcoming', 'past']);
 assert.deepStrictEqual(builtMetadata, metadata);
 assert.strictEqual(packageManifest.devDependencies['@wordpress/scripts'], '33.0.0');
 assert.ok(packageManifest.scripts['build:divi']);
@@ -70,6 +72,35 @@ assert.ok(!source.includes('wp_seed_events_render_public_event_dates_section'));
 assert.ok(!source.includes('[wp_seed_event_dates'));
 assert.ok(!source.includes('eventId'));
 assert.ok(!source.includes('914'));
+assert.ok(!source.includes('wp-seed-event-date__date'));
+assert.ok(!source.includes('ServerSideRender'));
+
+assert.strictEqual(
+  (bootstrap.match(/wp_seed_events_get_event_data\s*\(/g) || []).length,
+  1,
+  'The Event Data API must be called exactly once.',
+);
+assert.strictEqual(
+  (bootstrap.match(/wp_seed_events_render_public_event_dates_section\s*\(/g) || []).length,
+  1,
+  'The shared dates renderer must be called exactly once.',
+);
+assert.ok(bootstrap.includes('wp_seed_events_public_heading_level_option'));
+assert.ok(bootstrap.includes('wp_seed_events_public_date_scope_option'));
+assert.ok(bootstrap.includes("array_key_exists( 'queryId', $context )"));
+assert.ok(
+  bootstrap.indexOf("if ( $is_loop_item )")
+    < bootstrap.indexOf('global $wp_seed_events_public_event_id'),
+);
+assert.ok(bootstrap.indexOf("if ( '' === trim( $html )") < bootstrap.indexOf('get_block_wrapper_attributes('));
+assert.ok(bootstrap.includes("'class' => 'wp-seed-events-event-dates-block'"));
+assert.ok(bootstrap.includes("'render_callback' => 'wp_seed_events_render_gutenberg_event_dates_block'"));
+assert.ok(!bootstrap.includes('get_post_meta'));
+assert.ok(!bootstrap.includes('$wpdb'));
+assert.ok(!bootstrap.includes('do_shortcode'));
+assert.ok(!bootstrap.includes('[wp_seed_event_dates'));
+assert.ok(!bootstrap.includes('914'));
+assert.ok(!bootstrap.includes('register_rest_route'));
 
 assert.ok(bootstrap.includes("add_action( 'init', 'wp_seed_events_register_event_dates_block'"));
 assert.strictEqual(

@@ -14,7 +14,7 @@ function Edit() {
         icon="calendar-alt"
         label={ __( 'WP Seed — Dates de l’événement', 'wp-seed-events' ) }
         instructions={ __(
-          'Le rendu serveur et les réglages seront ajoutés dans les lots suivants.',
+          'Les dates utilisent automatiquement le contexte de l’événement. L’aperçu complet sera ajouté dans le prochain lot.',
           'wp-seed-events',
         ) }
       />
