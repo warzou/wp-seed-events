@@ -22,5 +22,7 @@ node_modules/
 # Build and archive outputs
 dist/
 build/
+!includes/integrations/divi/event-dates-module/visual-builder/build/
+!includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js
 *.zip
 

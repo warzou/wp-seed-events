@@ -8,12 +8,31 @@ $pluginRuntimeDirs = @(
     'includes',
     'templates'
 )
+$moduleRuntimeRoot = 'includes/integrations/divi/event-dates-module/visual-builder'
+$moduleJson = Join-Path $root "$moduleRuntimeRoot/src/module.json"
+$moduleBundle = Join-Path $root "$moduleRuntimeRoot/build/wp-seed-events-event-dates.js"
+$excludedRuntimePatterns = @(
+    "$moduleRuntimeRoot/node_modules/*",
+    "$moduleRuntimeRoot/package.json",
+    "$moduleRuntimeRoot/package-lock.json",
+    "$moduleRuntimeRoot/webpack.config.js",
+    "$moduleRuntimeRoot/tests/*",
+    "$moduleRuntimeRoot/src/index.jsx"
+)
 
 $pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
 $versionMatch = [regex]::Match($pluginHeader, '^\s*\*\s*Version:\s*(?<version>[^\r\n]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
 
 if (-not $versionMatch.Success -or [string]::IsNullOrWhiteSpace($versionMatch.Groups['version'].Value)) {
     throw 'Unable to find a valid Version header in wp-seed-events.php.'
+}
+
+if (-not (Test-Path -LiteralPath $moduleJson -PathType Leaf)) {
+    throw "Missing Divi module metadata: $moduleJson"
+}
+
+if (-not (Test-Path -LiteralPath $moduleBundle -PathType Leaf)) {
+    throw "Missing Divi module bundle. Run npm run build first: $moduleBundle"
 }
 
 $pluginVersion = $versionMatch.Groups['version'].Value.Trim()
@@ -41,8 +60,26 @@ try {
 
         Get-ChildItem -Path $runtimePath -File -Recurse | ForEach-Object {
             $relativePath = $_.FullName.Substring($root.Length + 1).Replace('\', '/')
+            $isExcluded = $false
 
-            if ($relativePath -like '.git/*' -or $relativePath -like 'dist/*' -or $_.Name -like '.env*') {
+            if (
+                $relativePath -like '.git/*' -or
+                $relativePath -like 'dist/*' -or
+                $_.Name -like '.env*' -or
+                $_.Name -match '[.](next|patch|tmp|bak)$' -or
+                $_.Name -like '*.log'
+            ) {
+                $isExcluded = $true
+            }
+
+            foreach ($pattern in $excludedRuntimePatterns) {
+                if ($relativePath -like $pattern) {
+                    $isExcluded = $true
+                    break
+                }
+            }
+
+            if ($isExcluded) {
                 return
             }
 

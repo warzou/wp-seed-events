@@ -1,0 +1,46 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Check whether a post ID belongs to a WP Seed event.
+ */
+function wp_seed_events_divi_is_event( $post_id ) {
+	$post_id = absint( $post_id );
+
+	return 0 !== $post_id && 'wp_seed_event' === get_post_type( $post_id );
+}
+
+/**
+ * Resolve the current event from a Divi rendering context.
+ *
+ * A real but incompatible loop item must not fall back to its holder page.
+ */
+function wp_seed_events_divi_resolve_event_id( $context = array() ) {
+	$context = is_array( $context ) ? $context : array();
+	$loop_id = absint( $context['loop_id'] ?? 0 );
+
+	if ( 0 !== $loop_id ) {
+		return wp_seed_events_divi_is_event( $loop_id ) ? $loop_id : 0;
+	}
+
+	$post_id = absint( $context['post_id'] ?? 0 );
+
+	if ( wp_seed_events_divi_is_event( $post_id ) ) {
+		return $post_id;
+	}
+
+	global $wp_seed_events_public_event_id;
+
+	$public_event_id = absint( $wp_seed_events_public_event_id ?? 0 );
+
+	if ( wp_seed_events_divi_is_event( $public_event_id ) ) {
+		return $public_event_id;
+	}
+
+	$current_post_id = absint( $context['current_post_id'] ?? get_the_ID() );
+
+	return wp_seed_events_divi_is_event( $current_post_id ) ? $current_post_id : 0;
+}

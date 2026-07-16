@@ -61,7 +61,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Next_Date extends DynamicContentOption
 			return $value;
 		}
 
-		$event_id = $this->get_event_id( $data_args );
+		$event_id = wp_seed_events_divi_resolve_event_id( $data_args );
 
 		if ( 0 === $event_id ) {
 			return '';
@@ -85,41 +85,5 @@ class WP_Seed_Events_Divi_Dynamic_Content_Next_Date extends DynamicContentOption
 				'settings' => $settings,
 			)
 		);
-	}
-
-	/**
-	 * Resolve an event without persisting an event ID in the Divi module.
-	 */
-	private function get_event_id( array $data_args ): int {
-		$post_id = absint( $data_args['post_id'] ?? 0 );
-
-		if ( $this->is_event( $post_id ) ) {
-			return $post_id;
-		}
-
-		global $wp_seed_events_public_event_id;
-
-		$public_event_id = absint( $wp_seed_events_public_event_id ?? 0 );
-
-		if ( $this->is_event( $public_event_id ) ) {
-			return $public_event_id;
-		}
-
-		$loop_id = absint( $data_args['loop_id'] ?? 0 );
-
-		if ( $this->is_event( $loop_id ) ) {
-			return $loop_id;
-		}
-
-		$current_post_id = absint( get_the_ID() );
-
-		return $this->is_event( $current_post_id ) ? $current_post_id : 0;
-	}
-
-	/**
-	 * Check whether a post ID belongs to an event.
-	 */
-	private function is_event( int $post_id ): bool {
-		return 0 !== $post_id && 'wp_seed_event' === get_post_type( $post_id );
 	}
 }
