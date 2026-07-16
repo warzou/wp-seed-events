@@ -26,16 +26,16 @@ function wp_seed_events_gutenberg_event_dates_block_context( $block ) {
  * Resolve the current event without persisting an event ID in block attributes.
  */
 function wp_seed_events_gutenberg_event_dates_resolve_event_id( $context = array() ) {
-	$context      = is_array( $context ) ? $context : array();
-	$post_id      = absint( $context['postId'] ?? 0 );
-	$post_type    = is_scalar( $context['postType'] ?? null ) ? sanitize_key( (string) $context['postType'] ) : '';
-	$is_loop_item = array_key_exists( 'queryId', $context );
+	$context                   = is_array( $context ) ? $context : array();
+	$has_explicit_post_context = array_key_exists( 'postId', $context ) || array_key_exists( 'postType', $context );
+	$post_id                   = absint( $context['postId'] ?? 0 );
+	$post_type                 = is_scalar( $context['postType'] ?? null ) ? sanitize_key( (string) $context['postType'] ) : '';
 
-	if ( 'wp_seed_event' === $post_type && wp_seed_events_gutenberg_event_dates_is_event( $post_id ) ) {
-		return $post_id;
-	}
+	if ( $has_explicit_post_context ) {
+		if ( ( '' === $post_type || 'wp_seed_event' === $post_type ) && wp_seed_events_gutenberg_event_dates_is_event( $post_id ) ) {
+			return $post_id;
+		}
 
-	if ( $is_loop_item ) {
 		return 0;
 	}
 

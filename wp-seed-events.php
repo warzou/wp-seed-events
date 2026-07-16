@@ -208,7 +208,7 @@ function wp_seed_events_register_event_post_type() {
 			'menu_icon'          => 'dashicons-calendar-alt',
 			'menu_position'      => 57,
 			'supports'           => array( 'title', 'thumbnail' ),
-			'show_in_rest'       => false,
+			'show_in_rest'       => true,
 		)
 	);
 
