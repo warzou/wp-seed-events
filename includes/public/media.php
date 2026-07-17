@@ -48,6 +48,18 @@ function wp_seed_events_get_media_object( $attachment_id, $expected_mime = '' ) 
 		return null;
 	}
 
+	$caption  = trim( wp_strip_all_tags( (string) wp_get_attachment_caption( $attachment_id ), true ) );
+	$url_path = wp_parse_url( (string) $url, PHP_URL_PATH );
+	$filename = '';
+
+	if ( is_string( $url_path ) && '' !== $url_path ) {
+		$decoded_path = rawurldecode( $url_path );
+
+		if ( false === strpos( $decoded_path, chr( 0 ) ) ) {
+			$filename = sanitize_file_name( wp_basename( $decoded_path ) );
+		}
+	}
+
 	$metadata = wp_get_attachment_metadata( $attachment_id );
 	$metadata = is_array( $metadata ) ? $metadata : array();
 	$width    = isset( $metadata['width'] ) && is_numeric( $metadata['width'] ) ? absint( $metadata['width'] ) : null;
@@ -59,6 +71,8 @@ function wp_seed_events_get_media_object( $attachment_id, $expected_mime = '' ) 
 		'mime_type' => $mime_type,
 		'title'     => (string) $attachment->post_title,
 		'alt'       => (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ),
+		'caption'   => $caption,
+		'filename'  => $filename,
 		'width'     => $width,
 		'height'    => $height,
 	);

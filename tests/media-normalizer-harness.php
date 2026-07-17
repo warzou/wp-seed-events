@@ -1,0 +1,356 @@
+<?php
+/**
+ * Standalone assertions for event media normalization and Event Data aliases.
+ *
+ * Run with: php tests/media-normalizer-harness.php
+ */
+
+declare(strict_types=1);
+
+define( 'ABSPATH', __DIR__ . '/' );
+
+$GLOBALS['wp_seed_events_media_posts']       = array();
+$GLOBALS['wp_seed_events_media_mime_types']  = array();
+$GLOBALS['wp_seed_events_media_urls']        = array();
+$GLOBALS['wp_seed_events_media_metadata']    = array();
+$GLOBALS['wp_seed_events_media_captions']    = array();
+$GLOBALS['wp_seed_events_media_meta']        = array();
+$GLOBALS['wp_seed_events_media_thumbnails']  = array();
+$GLOBALS['wp_seed_events_media_write_calls'] = array();
+$GLOBALS['wp_seed_events_media_case_count']  = 0;
+
+function absint( $value ) {
+	return abs( (int) $value );
+}
+
+function get_post( $post_id ) {
+	return $GLOBALS['wp_seed_events_media_posts'][ absint( $post_id ) ] ?? null;
+}
+
+function get_post_mime_type( $attachment_id ) {
+	return $GLOBALS['wp_seed_events_media_mime_types'][ absint( $attachment_id ) ] ?? '';
+}
+
+function wp_get_attachment_url( $attachment_id ) {
+	return $GLOBALS['wp_seed_events_media_urls'][ absint( $attachment_id ) ] ?? false;
+}
+
+function wp_get_attachment_metadata( $attachment_id ) {
+	return $GLOBALS['wp_seed_events_media_metadata'][ absint( $attachment_id ) ] ?? false;
+}
+
+function wp_get_attachment_caption( $attachment_id ) {
+	return $GLOBALS['wp_seed_events_media_captions'][ absint( $attachment_id ) ] ?? false;
+}
+
+function get_post_meta( $post_id, $key = '', $single = false ) {
+	$value = $GLOBALS['wp_seed_events_media_meta'][ absint( $post_id ) ][ (string) $key ] ?? ( $single ? '' : array() );
+
+	return $single ? $value : array( $value );
+}
+
+function get_post_thumbnail_id( $post_id ) {
+	return $GLOBALS['wp_seed_events_media_thumbnails'][ absint( $post_id ) ] ?? 0;
+}
+
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( (string) $url, $component );
+}
+
+function wp_basename( $path, $suffix = '' ) {
+	return basename( str_replace( '\\', '/', (string) $path ), (string) $suffix );
+}
+
+function sanitize_file_name( $filename ) {
+	$filename = preg_replace( '/[^A-Za-z0-9._-]+/', '-', (string) $filename );
+
+	return trim( (string) $filename, '-.' );
+}
+
+function wp_strip_all_tags( $value, $remove_breaks = false ) {
+	$value = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $value );
+	$value = strip_tags( (string) $value );
+
+	return $remove_breaks ? preg_replace( '/[\r\n\t ]+/', ' ', $value ) : $value;
+}
+
+function update_post_meta( $post_id, $key, $value ) {
+	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'update_post_meta', $post_id, $key, $value );
+}
+
+function add_post_meta( $post_id, $key, $value ) {
+	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'add_post_meta', $post_id, $key, $value );
+}
+
+function delete_post_meta( $post_id, $key ) {
+	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'delete_post_meta', $post_id, $key );
+}
+
+function set_post_thumbnail( $post_id, $attachment_id ) {
+	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'set_post_thumbnail', $post_id, $attachment_id );
+}
+
+function delete_post_thumbnail( $post_id ) {
+	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'delete_post_thumbnail', $post_id );
+}
+
+function wp_seed_events_get_event_occurrences( $event_id, $args = array() ) {
+	return array();
+}
+
+function wp_seed_events_get_next_active_occurrence( $event_id ) {
+	return array();
+}
+
+function wp_seed_events_get_last_active_occurrence( $event_id ) {
+	return array();
+}
+
+function wp_seed_events_get_event_lifecycle( $event_id ) {
+	return 'undated';
+}
+
+function wp_seed_events_event_type_labels_for_event( $event_id ) {
+	return array( 'Atelier' );
+}
+
+function wp_seed_events_public_event_place_data( $event_id ) {
+	return null;
+}
+
+function wp_seed_events_public_event_people_data( $event_id ) {
+	return array();
+}
+
+function wp_seed_events_public_event_excerpt( $description ) {
+	return (string) $description;
+}
+
+function get_the_title( $post_id ) {
+	$post = get_post( $post_id );
+
+	return $post ? (string) $post->post_title : '';
+}
+
+function get_permalink( $post_id ) {
+	return 'https://example.test/events/event-' . absint( $post_id ) . '/';
+}
+
+require dirname( __DIR__ ) . '/includes/public/media.php';
+require dirname( __DIR__ ) . '/includes/public/event-data.php';
+
+function wp_seed_events_media_assert( $condition, $message ) {
+	if ( ! $condition ) {
+		throw new RuntimeException( $message );
+	}
+}
+
+function wp_seed_events_media_assert_same( $expected, $actual, $message ) {
+	wp_seed_events_media_assert(
+		$expected === $actual,
+		$message . ' Expected ' . var_export( $expected, true ) . ', got ' . var_export( $actual, true ) . '.'
+	);
+}
+
+function wp_seed_events_media_case( $name, $callback ) {
+	try {
+		$callback();
+		$GLOBALS['wp_seed_events_media_case_count']++;
+		echo '[OK] ' . $name . PHP_EOL;
+	} catch ( Throwable $error ) {
+		fwrite( STDERR, '[KO] ' . $name . ': ' . $error->getMessage() . PHP_EOL );
+		exit( 1 );
+	}
+}
+
+function wp_seed_events_media_attachment( $attachment_id, $title, $mime_type, $url, $caption = '', $alt = '', $metadata = array() ) {
+	$GLOBALS['wp_seed_events_media_posts'][ $attachment_id ] = (object) array(
+		'ID'           => $attachment_id,
+		'post_type'    => 'attachment',
+		'post_status'  => 'inherit',
+		'post_title'   => $title,
+		'post_content' => '',
+	);
+	$GLOBALS['wp_seed_events_media_mime_types'][ $attachment_id ] = $mime_type;
+	$GLOBALS['wp_seed_events_media_urls'][ $attachment_id ]       = $url;
+	$GLOBALS['wp_seed_events_media_captions'][ $attachment_id ]   = $caption;
+	$GLOBALS['wp_seed_events_media_metadata'][ $attachment_id ]   = $metadata;
+	$GLOBALS['wp_seed_events_media_meta'][ $attachment_id ]       = array(
+		'_wp_attachment_image_alt' => $alt,
+	);
+}
+
+$GLOBALS['wp_seed_events_media_posts'][501] = (object) array(
+	'ID'           => 501,
+	'post_type'    => 'wp_seed_event',
+	'post_status'  => 'publish',
+	'post_title'   => 'Media contract event',
+	'post_content' => 'Event description',
+);
+
+wp_seed_events_media_attachment(
+	101,
+	'Recto title',
+	'image/jpeg',
+	'https://example.test/wp-content/uploads/2026/07/recto.jpg',
+	'Flyer <em>recto</em><script>alert(1)</script>',
+	'Recto alt',
+	array(
+		'width'  => 1200,
+		'height' => 800,
+	)
+);
+wp_seed_events_media_attachment(
+	102,
+	'Verso title',
+	'image/png',
+	'https://example.test/wp-content/uploads/2026/07/verso%20final.png?version=2',
+	'',
+	'Verso alt',
+	array(
+		'width'  => 900,
+		'height' => 1200,
+	)
+);
+wp_seed_events_media_attachment(
+	103,
+	'Programme title',
+	'application/pdf',
+	'https://cdn.example.test/documents/programme-detaille.pdf',
+	'Programme detaille',
+	'',
+	array()
+);
+wp_seed_events_media_attachment( 104, 'Missing URL', 'image/jpeg', false );
+wp_seed_events_media_attachment(
+	105,
+	'Missing local file',
+	'image/webp',
+	'https://cdn.example.test/remote/missing-local-file.webp',
+	'',
+	'',
+	false
+);
+wp_seed_events_media_attachment( 106, 'No public basename', 'image/jpeg', 'https://cdn.example.test/' );
+
+$GLOBALS['wp_seed_events_media_thumbnails'][501] = 101;
+$GLOBALS['wp_seed_events_media_meta'][501]       = array(
+	'_wp_seed_event_illustration_ids' => array( 102, 101, 999, 102, 105, 104 ),
+	'_wp_seed_event_flyer_pdf_id'     => 103,
+);
+
+wp_seed_events_media_case(
+	'image caption and existing fields',
+	function () {
+		$media = wp_seed_events_get_media_object( 101, 'image/' );
+		wp_seed_events_media_assert_same( 101, $media['id'], 'Image ID changed.' );
+		wp_seed_events_media_assert_same( 'https://example.test/wp-content/uploads/2026/07/recto.jpg', $media['url'], 'Image URL changed.' );
+		wp_seed_events_media_assert_same( 'image/jpeg', $media['mime_type'], 'Image MIME changed.' );
+		wp_seed_events_media_assert_same( 'Recto title', $media['title'], 'Image title changed.' );
+		wp_seed_events_media_assert_same( 'Recto alt', $media['alt'], 'Image alt changed.' );
+		wp_seed_events_media_assert_same( 'Flyer recto', $media['caption'], 'Caption was not normalized to plain text.' );
+		wp_seed_events_media_assert_same( 'recto.jpg', $media['filename'], 'Public filename is incorrect.' );
+		wp_seed_events_media_assert_same( 1200, $media['width'], 'Image width changed.' );
+		wp_seed_events_media_assert_same( 800, $media['height'], 'Image height changed.' );
+		wp_seed_events_media_assert( false === strpos( $media['caption'], '<' ), 'Caption contains HTML.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'image without caption and encoded public filename',
+	function () {
+		$media = wp_seed_events_get_media_object( 102, 'image/' );
+		wp_seed_events_media_assert_same( '', $media['caption'], 'Missing caption must be an empty string.' );
+		wp_seed_events_media_assert_same( 'verso-final.png', $media['filename'], 'Encoded filename was not safely normalized.' );
+		wp_seed_events_media_assert_same( 900, $media['width'], 'Image width changed.' );
+		wp_seed_events_media_assert_same( 1200, $media['height'], 'Image height changed.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'PDF media object',
+	function () {
+		$media = wp_seed_events_get_media_object( 103, 'application/pdf' );
+		wp_seed_events_media_assert_same( 'application/pdf', $media['mime_type'], 'PDF MIME changed.' );
+		wp_seed_events_media_assert_same( 'Programme detaille', $media['caption'], 'PDF caption is missing.' );
+		wp_seed_events_media_assert_same( 'programme-detaille.pdf', $media['filename'], 'PDF filename is incorrect.' );
+		wp_seed_events_media_assert_same( null, $media['width'], 'PDF width must remain null.' );
+		wp_seed_events_media_assert_same( null, $media['height'], 'PDF height must remain null.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'invalid attachment and unavailable public URL',
+	function () {
+		wp_seed_events_media_assert_same( null, wp_seed_events_get_media_object( 999, 'image/' ), 'Invalid attachment must be filtered.' );
+		wp_seed_events_media_assert_same( null, wp_seed_events_get_media_object( 104, 'image/' ), 'Attachment without public URL must be filtered.' );
+		wp_seed_events_media_assert_same( null, wp_seed_events_get_media_object( 103, 'image/' ), 'Unexpected MIME must be filtered.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'missing local file does not expose a server path',
+	function () {
+		$media = wp_seed_events_get_media_object( 105, 'image/' );
+		wp_seed_events_media_assert_same( 'missing-local-file.webp', $media['filename'], 'Filename must come from the public URL.' );
+		wp_seed_events_media_assert_same( null, $media['width'], 'Missing metadata width must remain null.' );
+		wp_seed_events_media_assert_same( null, $media['height'], 'Missing metadata height must remain null.' );
+		wp_seed_events_media_assert( false === strpos( $media['filename'], '/' ), 'Filename contains a path separator.' );
+		wp_seed_events_media_assert( false === strpos( $media['filename'], '\\' ), 'Filename contains a Windows path separator.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'filename is empty when no safe public basename exists',
+	function () {
+		$media = wp_seed_events_get_media_object( 106, 'image/' );
+		wp_seed_events_media_assert_same( '', $media['filename'], 'Unavailable public basename must produce an empty filename.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'normalization order and deduplication stay unchanged',
+	function () {
+		$media = wp_seed_events_get_event_media( 501 );
+		wp_seed_events_media_assert_same( array( 101, 102, 105 ), array_column( $media['communication_visuals'], 'id' ), 'Visual order or deduplication changed.' );
+		wp_seed_events_media_assert_same( 101, $media['featured_image']['id'], 'Featured image changed.' );
+		wp_seed_events_media_assert_same( 101, $media['communication_visual']['id'], 'Communication visual changed.' );
+		wp_seed_events_media_assert_same( array( 102, 105 ), array_column( $media['other_visuals'], 'id' ), 'Other visuals changed.' );
+		wp_seed_events_media_assert_same( 103, $media['event_document']['id'], 'Event document changed.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'Event Data exposes enriched media and preserves aliases',
+	function () {
+		$data = wp_seed_events_get_event_data( 501 );
+		wp_seed_events_media_assert_same( 'Flyer recto', $data['featured_image']['caption'], 'Featured image caption did not reach Event Data.' );
+		wp_seed_events_media_assert_same( 'recto.jpg', $data['communication_visual']['filename'], 'Communication filename did not reach Event Data.' );
+		wp_seed_events_media_assert_same( 'programme-detaille.pdf', $data['event_document']['filename'], 'Document filename did not reach Event Data.' );
+		wp_seed_events_media_assert_same( 101, $data['primary_image_id'], 'Primary image alias changed.' );
+		wp_seed_events_media_assert_same( 101, $data['featured_image_id'], 'Featured image alias changed.' );
+		wp_seed_events_media_assert_same( array( 101, 102, 105 ), $data['illustration_ids'], 'Illustration aliases changed.' );
+		wp_seed_events_media_assert_same( 103, $data['flyer_pdf_id'], 'PDF alias changed.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'normalizer remains read-only and Event Data does not read media metas',
+	function () {
+		wp_seed_events_get_event_data( 501 );
+		wp_seed_events_media_assert_same( array(), $GLOBALS['wp_seed_events_media_write_calls'], 'Media reads triggered a write primitive.' );
+
+		$media_source      = file_get_contents( dirname( __DIR__ ) . '/includes/public/media.php' );
+		$event_data_source = file_get_contents( dirname( __DIR__ ) . '/includes/public/event-data.php' );
+
+		foreach ( array( 'update_post_meta(', 'add_post_meta(', 'delete_post_meta(', 'set_post_thumbnail(', 'delete_post_thumbnail(', 'wp_update_post(', 'wp_insert_post(' ) as $primitive ) {
+			wp_seed_events_media_assert( false === strpos( $media_source, $primitive ), 'Write primitive found in media normalizer: ' . $primitive );
+		}
+
+		foreach ( array( '_thumbnail_id', '_wp_seed_event_illustration_ids', '_wp_seed_event_flyer_pdf_id' ) as $meta_key ) {
+			wp_seed_events_media_assert( false === strpos( $event_data_source, $meta_key ), 'Event Data reads a media meta directly: ' . $meta_key );
+		}
+	}
+);
+
+echo sprintf( '%d media test groups passed.%s', $GLOBALS['wp_seed_events_media_case_count'], PHP_EOL );
