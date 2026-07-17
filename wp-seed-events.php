@@ -99,6 +99,7 @@ add_shortcode( 'wp_seed_events', 'wp_seed_events_event_collection_shortcode' );
 add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
 add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
 add_shortcode( 'wp_seed_event_dates', 'wp_seed_events_event_dates_shortcode' );
+add_shortcode( 'wp_seed_event_visuals', 'wp_seed_events_event_visuals_shortcode' );
 add_shortcode( 'wp_seed_event_people', 'wp_seed_events_event_people_shortcode' );
 add_shortcode( 'wp_seed_event_place', 'wp_seed_events_event_place_shortcode' );
 add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_info_shortcode' );

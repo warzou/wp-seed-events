@@ -877,6 +877,73 @@ function wp_seed_events_event_dates_shortcode( $atts ) {
 	);
 }
 
+function wp_seed_events_event_visuals_shortcode_event_id( $raw_atts ) {
+	if ( is_array( $raw_atts ) && array_key_exists( 'id', $raw_atts ) ) {
+		if ( ! is_scalar( $raw_atts['id'] ) ) {
+			return 0;
+		}
+
+		$raw_id = trim( (string) $raw_atts['id'] );
+
+		if ( '' === $raw_id || ! preg_match( '/^[0-9]+$/', $raw_id ) ) {
+			return 0;
+		}
+
+		$post_id = absint( $raw_id );
+
+		return $post_id > 0 ? $post_id : 0;
+	}
+
+	return wp_seed_events_public_shortcode_event_id( 0 );
+}
+
+function wp_seed_events_event_visuals_shortcode( $atts ) {
+	$raw_atts = is_array( $atts ) ? $atts : array();
+	$atts     = shortcode_atts(
+		array(
+			'id'             => 0,
+			'title'          => 'Visuels de communication',
+			'heading_level'  => 'h2',
+			'show_flyer'     => true,
+			'show_visuals'   => true,
+			'show_document'  => true,
+			'show_captions'  => false,
+			'image_size'     => 'large',
+			'link_original'  => true,
+			'layout'         => 'grid',
+		),
+		$raw_atts,
+		'wp_seed_event_visuals'
+	);
+
+	$post_id = wp_seed_events_event_visuals_shortcode_event_id( $raw_atts );
+
+	if ( 0 === $post_id ) {
+		return '';
+	}
+
+	$event = wp_seed_events_public_event_data( $post_id );
+
+	if ( array() === $event ) {
+		return '';
+	}
+
+	return wp_seed_events_render_public_event_visuals_section(
+		$event,
+		array(
+			'title'          => $atts['title'],
+			'heading_level'  => $atts['heading_level'],
+			'show_flyer'     => $atts['show_flyer'],
+			'show_visuals'   => $atts['show_visuals'],
+			'show_document'  => $atts['show_document'],
+			'show_captions'  => $atts['show_captions'],
+			'image_size'     => $atts['image_size'],
+			'link_original'  => $atts['link_original'],
+			'layout'         => $atts['layout'],
+		)
+	);
+}
+
 function wp_seed_events_event_people_shortcode( $atts ) {
 	$atts = shortcode_atts(
 		array(
