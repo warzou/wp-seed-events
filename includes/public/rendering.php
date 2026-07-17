@@ -179,6 +179,49 @@ function wp_seed_events_public_heading_level_option( $value ) {
 	return in_array( $value, array( 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ? $value : 'h2';
 }
 
+function wp_seed_events_public_boolean_option( $value, $default = true ) {
+	if ( is_bool( $value ) ) {
+		return $value;
+	}
+
+	if ( ! is_scalar( $value ) ) {
+		return (bool) $default;
+	}
+
+	$value = strtolower( trim( (string) $value ) );
+
+	if ( in_array( $value, array( '1', 'yes', 'true', 'on' ), true ) ) {
+		return true;
+	}
+
+	if ( in_array( $value, array( '0', 'no', 'false', 'off' ), true ) ) {
+		return false;
+	}
+
+	return (bool) $default;
+}
+
+function wp_seed_events_public_visuals_layout_option( $value ) {
+	if ( ! is_scalar( $value ) ) {
+		return 'grid';
+	}
+
+	$value = strtolower( trim( (string) $value ) );
+
+	return in_array( $value, array( 'grid', 'list' ), true ) ? $value : 'grid';
+}
+
+function wp_seed_events_public_visuals_image_size_option( $value ) {
+	if ( ! is_scalar( $value ) ) {
+		return 'large';
+	}
+
+	$value = sanitize_key( trim( (string) $value ) );
+	$sizes = function_exists( 'get_intermediate_image_sizes' ) ? get_intermediate_image_sizes() : array();
+
+	return in_array( $value, $sizes, true ) ? $value : 'large';
+}
+
 function wp_seed_events_public_people_role_option( $value ) {
 	$value   = strtolower( trim( (string) $value ) );
 	$aliases = array(
@@ -1013,6 +1056,231 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	<?php
 
 	return trim( ob_get_clean() );
+}
+
+function wp_seed_events_public_event_visual_media_is_valid( $media ) {
+	if ( ! is_array( $media ) ) {
+		return false;
+	}
+
+	$attachment_id = isset( $media['id'] ) ? absint( $media['id'] ) : 0;
+	$url           = isset( $media['url'] ) && is_scalar( $media['url'] ) ? trim( (string) $media['url'] ) : '';
+	$mime_type     = isset( $media['mime_type'] ) && is_scalar( $media['mime_type'] ) ? strtolower( trim( (string) $media['mime_type'] ) ) : '';
+
+	return $attachment_id > 0 && '' !== $url && 0 === strpos( $mime_type, 'image/' );
+}
+
+function wp_seed_events_public_event_document_media_is_valid( $media ) {
+	if ( ! is_array( $media ) ) {
+		return false;
+	}
+
+	$attachment_id = isset( $media['id'] ) ? absint( $media['id'] ) : 0;
+	$url           = isset( $media['url'] ) && is_scalar( $media['url'] ) ? trim( (string) $media['url'] ) : '';
+	$mime_type     = isset( $media['mime_type'] ) && is_scalar( $media['mime_type'] ) ? strtolower( trim( (string) $media['mime_type'] ) ) : '';
+
+	return $attachment_id > 0 && '' !== $url && 'application/pdf' === $mime_type;
+}
+
+function wp_seed_events_public_event_visuals_projection( $event ) {
+	$visuals = array();
+	$seen    = array();
+
+	if ( ! empty( $event['communication_visuals'] ) && is_array( $event['communication_visuals'] ) ) {
+		foreach ( $event['communication_visuals'] as $media ) {
+			if ( ! wp_seed_events_public_event_visual_media_is_valid( $media ) ) {
+				continue;
+			}
+
+			$attachment_id = absint( $media['id'] );
+
+			if ( isset( $seen[ $attachment_id ] ) ) {
+				continue;
+			}
+
+			$seen[ $attachment_id ] = true;
+			$visuals[]               = $media;
+		}
+	}
+
+	if ( array() !== $visuals ) {
+		return array(
+			'flyer'  => $visuals[0],
+			'visuals' => array_slice( $visuals, 1 ),
+		);
+	}
+
+	$flyer         = null;
+	$other_visuals = array();
+
+	if ( ! empty( $event['communication_visual'] ) && wp_seed_events_public_event_visual_media_is_valid( $event['communication_visual'] ) ) {
+		$flyer                         = $event['communication_visual'];
+		$seen[ absint( $flyer['id'] ) ] = true;
+	}
+
+	if ( ! empty( $event['other_visuals'] ) && is_array( $event['other_visuals'] ) ) {
+		foreach ( $event['other_visuals'] as $media ) {
+			if ( ! wp_seed_events_public_event_visual_media_is_valid( $media ) ) {
+				continue;
+			}
+
+			$attachment_id = absint( $media['id'] );
+
+			if ( isset( $seen[ $attachment_id ] ) ) {
+				continue;
+			}
+
+			$seen[ $attachment_id ] = true;
+			$other_visuals[]         = $media;
+		}
+	}
+
+	return array(
+		'flyer'  => $flyer,
+		'visuals' => $other_visuals,
+	);
+}
+
+function wp_seed_events_render_public_event_visuals_section( $event, $options = array() ) {
+	if ( ! is_array( $event ) ) {
+		return '';
+	}
+
+	$options = wp_parse_args(
+		is_array( $options ) ? $options : array(),
+		array(
+			'title'          => 'Visuels de communication',
+			'heading_level'  => 'h2',
+			'show_flyer'     => true,
+			'show_visuals'   => true,
+			'show_document'  => true,
+			'show_captions'  => false,
+			'image_size'     => 'large',
+			'link_original'  => true,
+			'layout'         => 'grid',
+		)
+	);
+
+	$title         = is_scalar( $options['title'] ) ? trim( wp_strip_all_tags( (string) $options['title'], true ) ) : '';
+	$heading_level = wp_seed_events_public_heading_level_option( $options['heading_level'] );
+	$image_size    = wp_seed_events_public_visuals_image_size_option( $options['image_size'] );
+	$layout        = wp_seed_events_public_visuals_layout_option( $options['layout'] );
+	$show_flyer    = wp_seed_events_public_boolean_option( $options['show_flyer'], true );
+	$show_visuals  = wp_seed_events_public_boolean_option( $options['show_visuals'], true );
+	$show_document = wp_seed_events_public_boolean_option( $options['show_document'], true );
+	$show_captions = wp_seed_events_public_boolean_option( $options['show_captions'], false );
+	$link_original = wp_seed_events_public_boolean_option( $options['link_original'], true );
+	$projection    = wp_seed_events_public_event_visuals_projection( $event );
+	$items         = array();
+	$quote         = chr( 34 );
+
+	if ( $show_flyer && is_array( $projection['flyer'] ) ) {
+		$items[] = array(
+			'type'  => 'flyer',
+			'media' => $projection['flyer'],
+		);
+	}
+
+	if ( $show_visuals ) {
+		foreach ( $projection['visuals'] as $media ) {
+			$items[] = array(
+				'type'  => 'visual',
+				'media' => $media,
+			);
+		}
+	}
+
+	$rendered_items = array();
+
+	foreach ( $items as $item ) {
+		$media         = $item['media'];
+		$attachment_id = absint( $media['id'] );
+		$alt            = isset( $media['alt'] ) && is_scalar( $media['alt'] ) ? (string) $media['alt'] : '';
+		$image          = wp_get_attachment_image(
+			$attachment_id,
+			$image_size,
+			false,
+			array(
+				'alt'     => $alt,
+				'class'   => 'wp-seed-event-visuals__image',
+				'loading' => 'lazy',
+			)
+		);
+
+		if ( ! is_string( $image ) || '' === trim( $image ) ) {
+			continue;
+		}
+
+		$image_html = $image;
+		$media_url  = isset( $media['url'] ) && is_scalar( $media['url'] ) ? esc_url( (string) $media['url'] ) : '';
+
+		if ( $link_original && '' !== $media_url ) {
+			$link_label = 'flyer' === $item['type']
+				? 'Voir le flyer recto en taille originale'
+				: 'Voir le visuel de communication en taille originale';
+			$image_html = '<a class=' . $quote . esc_attr( 'wp-seed-event-visuals__image-link' ) . $quote . ' href=' . $quote . $media_url . $quote . ' aria-label=' . $quote . esc_attr( $link_label ) . $quote . '>' . $image . '</a>';
+		}
+
+		$caption = isset( $media['caption'] ) && is_scalar( $media['caption'] )
+			? trim( wp_strip_all_tags( (string) $media['caption'], true ) )
+			: '';
+		$figure  = '<figure class=' . $quote . esc_attr( 'wp-seed-event-visuals__figure' ) . $quote . '>' . $image_html;
+
+		if ( $show_captions && '' !== $caption ) {
+			$figure .= '<figcaption class=' . $quote . esc_attr( 'wp-seed-event-visuals__caption' ) . $quote . '>' . esc_html( $caption ) . '</figcaption>';
+		}
+
+		$figure .= '</figure>';
+
+		$rendered_items[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-visuals__item wp-seed-event-visuals__item--' . $item['type'] ) . $quote . '>' . $figure . '</li>';
+	}
+
+	$document = $event['event_document'] ?? null;
+
+	if ( $show_document && wp_seed_events_public_event_document_media_is_valid( $document ) ) {
+		$document_url = esc_url( (string) $document['url'] );
+
+		if ( '' !== $document_url ) {
+			$filename = isset( $document['filename'] ) && is_scalar( $document['filename'] )
+				? sanitize_file_name( (string) $document['filename'] )
+				: '';
+			$link_text = 'Télécharger le document PDF';
+
+			if ( '' !== $filename ) {
+				$link_text .= ' (' . $filename . ')';
+			}
+
+			$document_link   = '<a class=' . $quote . esc_attr( 'wp-seed-event-visuals__document-link' ) . $quote . ' href=' . $quote . $document_url . $quote . '>' . esc_html( $link_text ) . '</a>';
+			$rendered_items[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-visuals__item wp-seed-event-visuals__item--document wp-seed-event-visuals__document' ) . $quote . '>' . $document_link . '</li>';
+		}
+	}
+
+	if ( array() === $rendered_items ) {
+		return '';
+	}
+
+	$section_classes = array(
+		'wp-seed-event-section',
+		'wp-seed-event-section--visuals',
+		'wp-seed-event-visuals',
+		'is-layout-' . $layout,
+	);
+	$html            = '<section class=' . $quote . esc_attr( implode( ' ', $section_classes ) ) . $quote;
+
+	if ( '' === $title ) {
+		$html .= ' aria-label=' . $quote . esc_attr( 'Visuels de communication' ) . $quote;
+	}
+
+	$html .= '>';
+
+	if ( '' !== $title ) {
+		$html .= '<' . $heading_level . ' class=' . $quote . esc_attr( 'wp-seed-event-visuals__title' ) . $quote . '>' . esc_html( $title ) . '</' . $heading_level . '>';
+	}
+
+	$html .= '<ul class=' . $quote . esc_attr( 'wp-seed-event-visuals__list' ) . $quote . '>' . implode( '', $rendered_items ) . '</ul>';
+	$html .= '</section>';
+
+	return $html;
 }
 
 function wp_seed_events_public_event_occurrence_has_valid_date( $occurrence ) {
