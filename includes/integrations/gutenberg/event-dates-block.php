@@ -10,7 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 function wp_seed_events_gutenberg_event_dates_is_event( $post_id ) {
 	$post_id = absint( $post_id );
 
-	return 0 !== $post_id && 'wp_seed_event' === get_post_type( $post_id );
+	return 0 !== $post_id
+		&& 'wp_seed_event' === get_post_type( $post_id )
+		&& 'publish' === get_post_status( $post_id );
 }
 
 /**

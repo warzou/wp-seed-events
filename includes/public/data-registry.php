@@ -60,6 +60,33 @@ function wp_seed_events_dynamic_data_fields() {
 	);
 }
 
+/**
+ * Read Event Data once per event during the current PHP request.
+ *
+ * Empty results are cached deliberately so repeated invalid contexts do not
+ * trigger additional Event Data work.
+ *
+ * @internal
+ *
+ * @param int $event_id Event post ID.
+ * @return array
+ */
+function wp_seed_events_dynamic_data_get_event_data( $event_id ) {
+	static $event_cache = array();
+
+	$event_id = absint( $event_id );
+
+	if ( 0 === $event_id ) {
+		return array();
+	}
+
+	if ( ! array_key_exists( $event_id, $event_cache ) ) {
+		$event_cache[ $event_id ] = wp_seed_events_get_event_data( $event_id );
+	}
+
+	return $event_cache[ $event_id ];
+}
+
 // Les valeurs retournees sont des chaines texte destinees aux providers ; l'echappement final reste sous la responsabilite du point de rendu.
 function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context = array() ) {
 	$field = sanitize_key( (string) $field );
@@ -74,7 +101,7 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 		return '';
 	}
 
-	$event = wp_seed_events_public_event_data( $event_id );
+	$event = wp_seed_events_dynamic_data_get_event_data( $event_id );
 
 	if ( array() === $event ) {
 		return '';

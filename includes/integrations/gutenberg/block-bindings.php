@@ -53,6 +53,14 @@ function wp_seed_events_gutenberg_block_binding_fields() {
 }
 
 function wp_seed_events_gutenberg_block_binding_event_id( $source_args, $block_instance ) {
+	$context = $block_instance instanceof WP_Block && isset( $block_instance->context ) && is_array( $block_instance->context )
+		? $block_instance->context
+		: array();
+
+	if ( array_key_exists( 'postId', $context ) || array_key_exists( 'postType', $context ) ) {
+		return wp_seed_events_gutenberg_event_dates_resolve_event_id( $context );
+	}
+
 	if ( isset( $source_args['eventId'] ) ) {
 		$event_id = absint( $source_args['eventId'] );
 
@@ -69,9 +77,5 @@ function wp_seed_events_gutenberg_block_binding_event_id( $source_args, $block_i
 		}
 	}
 
-	if ( $block_instance instanceof WP_Block && isset( $block_instance->context['postId'] ) && 'wp_seed_event' === ( $block_instance->context['postType'] ?? '' ) ) {
-		return absint( $block_instance->context['postId'] );
-	}
-
-	return wp_seed_events_dynamic_data_event_id();
+	return wp_seed_events_gutenberg_event_dates_resolve_event_id( $context );
 }
