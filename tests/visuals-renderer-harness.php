@@ -702,4 +702,39 @@ wp_seed_events_visuals_case(
 	}
 );
 
+wp_seed_events_visuals_case(
+	'38 shared styles keep layouts responsive and keyboard focus visible',
+	function () {
+		$styles = file_get_contents( dirname( __DIR__ ) . '/includes/public/event-visuals.css' );
+		$plugin = file_get_contents( dirname( __DIR__ ) . '/wp-seed-events.php' );
+
+		foreach (
+			array(
+				'.wp-seed-event-visuals.is-layout-grid .wp-seed-event-visuals__list',
+				'grid-template-columns:',
+				'minmax(min(100%, 18rem), 1fr)',
+				'.wp-seed-event-visuals.is-layout-list .wp-seed-event-visuals__list',
+				'overflow-wrap: anywhere',
+				'.wp-seed-event-visuals__document-link',
+				'color: inherit',
+				'text-decoration: underline',
+				':focus-visible',
+				'outline:',
+			) as $required
+		) {
+			wp_seed_events_visuals_contains( $required, $styles, 'Shared visuals style is missing: ' . $required );
+		}
+
+		wp_seed_events_visuals_assert(
+			1 === substr_count( $plugin, "add_action( 'enqueue_block_assets', 'wp_seed_events_enqueue_public_visuals_style' );" ),
+			'Shared visuals style hook is not registered exactly once.'
+		);
+		wp_seed_events_visuals_contains(
+			"plugins_url( 'includes/public/event-visuals.css', __FILE__ )",
+			$plugin,
+			'Shared visuals stylesheet is not enqueued from the plugin runtime.'
+		);
+	}
+);
+
 echo 'Visuals renderer harness: ' . $GLOBALS['wp_seed_events_visuals_case_count'] . ' cases passed.' . PHP_EOL;

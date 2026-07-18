@@ -81,6 +81,7 @@ add_action( 'admin_post_nopriv_wp_seed_events_download_occurrence_ics', 'wp_seed
 add_action( 'admin_post_wp_seed_events_download_event_ics', 'wp_seed_events_handle_event_ics_download' );
 add_action( 'admin_post_nopriv_wp_seed_events_download_event_ics', 'wp_seed_events_handle_event_ics_download' );
 add_action( 'wp_footer', 'wp_seed_events_render_public_share_script', 99 );
+add_action( 'enqueue_block_assets', 'wp_seed_events_enqueue_public_visuals_style' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_description', 5 );
@@ -108,6 +109,15 @@ add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_i
 function wp_seed_events_activate() {
 	wp_seed_events_register_event_post_type();
 	flush_rewrite_rules();
+}
+
+function wp_seed_events_enqueue_public_visuals_style() {
+	wp_enqueue_style(
+		'wp-seed-events-public-visuals',
+		plugins_url( 'includes/public/event-visuals.css', __FILE__ ),
+		array(),
+		WP_SEED_EVENTS_VERSION
+	);
 }
 
 

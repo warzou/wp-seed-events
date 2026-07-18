@@ -1,0 +1,72 @@
+.wp-seed-event-visuals {
+	box-sizing: border-box;
+	display: block;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.wp-seed-event-visuals.is-layout-grid {
+	display: block;
+}
+
+.wp-seed-event-visuals__title {
+	max-width: 100%;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.wp-seed-event-visuals__list {
+	list-style: none;
+	margin: 0;
+	min-width: 0;
+	padding: 0;
+}
+
+.wp-seed-event-visuals.is-layout-grid .wp-seed-event-visuals__list {
+	display: grid;
+	gap: var(--wp--style--block-gap, 1.5rem);
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.wp-seed-event-visuals.is-layout-list .wp-seed-event-visuals__list {
+	display: block;
+}
+
+.wp-seed-event-visuals__item,
+.wp-seed-event-visuals__figure,
+.wp-seed-event-visuals__image-link {
+	box-sizing: border-box;
+	max-width: 100%;
+	min-width: 0;
+}
+
+.wp-seed-event-visuals__figure {
+	margin: 0;
+}
+
+.wp-seed-event-visuals__image-link,
+.wp-seed-event-visuals__image {
+	display: block;
+}
+
+.wp-seed-event-visuals__image {
+	height: auto;
+	max-width: 100%;
+}
+
+.wp-seed-event-visuals__caption,
+.wp-seed-event-visuals__document-link {
+	overflow-wrap: anywhere;
+}
+
+.wp-seed-event-visuals__document-link {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.wp-seed-event-visuals__image-link:focus-visible,
+.wp-seed-event-visuals__document-link:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 3px;
+}
