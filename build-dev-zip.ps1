@@ -15,6 +15,10 @@ $gutenbergRuntimeRoot = 'includes/integrations/gutenberg/event-dates-block'
 $gutenbergBlockJson = Join-Path $root "$gutenbergRuntimeRoot/build/block.json"
 $gutenbergBlockScript = Join-Path $root "$gutenbergRuntimeRoot/build/index.js"
 $gutenbergBlockAsset = Join-Path $root "$gutenbergRuntimeRoot/build/index.asset.php"
+$gutenbergVisualsRuntimeRoot = 'includes/integrations/gutenberg/event-visuals-block'
+$gutenbergVisualsBlockJson = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/block.json"
+$gutenbergVisualsBlockScript = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.js"
+$gutenbergVisualsBlockAsset = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.asset.php"
 $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/node_modules/*",
     "$moduleRuntimeRoot/package.json",
@@ -24,7 +28,10 @@ $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/src/index.jsx",
     "$gutenbergRuntimeRoot/node_modules/*",
     "$gutenbergRuntimeRoot/tests/*",
-    "$gutenbergRuntimeRoot/src/*"
+    "$gutenbergRuntimeRoot/src/*",
+    "$gutenbergVisualsRuntimeRoot/node_modules/*",
+    "$gutenbergVisualsRuntimeRoot/tests/*",
+    "$gutenbergVisualsRuntimeRoot/src/*"
 )
 
 $visualsModuleRuntimeRoot = 'includes/integrations/divi/event-visuals-module/visual-builder'
@@ -63,6 +70,12 @@ if (-not (Test-Path -LiteralPath $moduleBundle -PathType Leaf)) {
 foreach ($gutenbergAsset in @($gutenbergBlockJson, $gutenbergBlockScript, $gutenbergBlockAsset)) {
     if (-not (Test-Path -LiteralPath $gutenbergAsset -PathType Leaf)) {
         throw "Missing Gutenberg block asset. Run npm run build:gutenberg first: $gutenbergAsset"
+    }
+}
+
+foreach ($gutenbergVisualsAsset in @($gutenbergVisualsBlockJson, $gutenbergVisualsBlockScript, $gutenbergVisualsBlockAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergVisualsAsset -PathType Leaf)) {
+        throw "Missing Gutenberg visuals block asset. Run npm run build:gutenberg first: $gutenbergVisualsAsset"
     }
 }
 

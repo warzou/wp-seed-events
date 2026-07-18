@@ -31,3 +31,7 @@ build/
 !includes/integrations/gutenberg/event-dates-block/build/index.js
 !includes/integrations/gutenberg/event-dates-block/build/index.asset.php
 *.zip
+!includes/integrations/gutenberg/event-visuals-block/build/
+!includes/integrations/gutenberg/event-visuals-block/build/block.json
+!includes/integrations/gutenberg/event-visuals-block/build/index.js
+!includes/integrations/gutenberg/event-visuals-block/build/index.asset.php

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "wp-seed-events/event-visuals-block",
+  "version": "0.1.23-dev",
+  "title": "WP Seed — Visuels de communication",
+  "category": "widgets",
+  "icon": "format-gallery",
+  "description": "Affiche les visuels de communication de l’événement courant.",
+  "keywords": ["événement", "visuels", "WP Seed"],
+  "textdomain": "wp-seed-events",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Visuels de communication"
+    },
+    "heading_level": {
+      "type": "string",
+      "default": "h2",
+      "enum": ["h2", "h3", "h4", "h5", "h6"]
+    },
+    "show_flyer": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_visuals": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_document": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_captions": {
+      "type": "boolean",
+      "default": false
+    },
+    "image_size": {
+      "type": "string",
+      "default": "large"
+    },
+    "link_original": {
+      "type": "boolean",
+      "default": true
+    },
+    "layout": {
+      "type": "string",
+      "default": "grid",
+      "enum": ["grid", "list"]
+    }
+  },
+  "usesContext": ["postId", "postType", "queryId"],
+  "supports": {
+    "anchor": true,
+    "customClassName": true,
+    "html": false,
+    "color": {
+      "text": true,
+      "background": true,
+      "link": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true
+    },
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true
+    },
+    "__experimentalBorder": {
+      "color": true,
+      "radius": true,
+      "style": true,
+      "width": true
+    },
+    "shadow": true
+  },
+  "editorScript": "file:./index.js"
+}
