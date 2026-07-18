@@ -24,9 +24,10 @@ dist/
 build/
 !includes/integrations/divi/event-dates-module/visual-builder/build/
 !includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js
+!includes/integrations/divi/event-visuals-module/visual-builder/build/
+!includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js
 !includes/integrations/gutenberg/event-dates-block/build/
 !includes/integrations/gutenberg/event-dates-block/build/block.json
 !includes/integrations/gutenberg/event-dates-block/build/index.js
 !includes/integrations/gutenberg/event-dates-block/build/index.asset.php
 *.zip
-

@@ -27,6 +27,24 @@ $excludedRuntimePatterns = @(
     "$gutenbergRuntimeRoot/src/*"
 )
 
+$visualsModuleRuntimeRoot = 'includes/integrations/divi/event-visuals-module/visual-builder'
+$visualsModuleJson = Join-Path $root ($visualsModuleRuntimeRoot + '/src/module.json')
+$visualsModuleBundle = Join-Path $root ($visualsModuleRuntimeRoot + '/build/wp-seed-events-event-visuals.js')
+$excludedRuntimePatterns += @(
+    ($visualsModuleRuntimeRoot + '/node_modules/*'),
+    ($visualsModuleRuntimeRoot + '/package.json'),
+    ($visualsModuleRuntimeRoot + '/package-lock.json'),
+    ($visualsModuleRuntimeRoot + '/webpack.config.js'),
+    ($visualsModuleRuntimeRoot + '/tests/*'),
+    ($visualsModuleRuntimeRoot + '/src/index.jsx')
+)
+
+foreach ($visualsModuleAsset in @($visualsModuleJson, $visualsModuleBundle)) {
+    if (-not (Test-Path -LiteralPath $visualsModuleAsset -PathType Leaf)) {
+        throw ('Missing Divi visuals module asset. Run npm run build first: ' + $visualsModuleAsset)
+    }
+}
+
 $pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
 $versionMatch = [regex]::Match($pluginHeader, '^\s*\*\s*Version:\s*(?<version>[^\r\n]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
 
