@@ -25,10 +25,12 @@ function wp_seed_events_divi_load_next_date() {
 	}
 
 	require_once __DIR__ . '/class-dynamic-content-text.php';
+	require_once __DIR__ . '/class-dynamic-content-url.php';
 	require_once __DIR__ . '/class-dynamic-content-next-date.php';
 
 	if (
 		! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Text', false )
+		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_URL', false )
 		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Next_Date', false )
 	) {
 		return;
@@ -37,12 +39,20 @@ function wp_seed_events_divi_load_next_date() {
 	$options = array();
 
 	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
-		if ( 'text' !== ( $definition['type'] ?? '' ) ) {
+		$type = (string) ( $definition['type'] ?? '' );
+
+		if ( ! in_array( $type, array( 'text', 'url' ), true ) ) {
 			continue;
 		}
 
 		if ( 'next_date' === $field ) {
 			$option = new WP_Seed_Events_Divi_Dynamic_Content_Next_Date();
+		} elseif ( 'url' === $type ) {
+			$option = new WP_Seed_Events_Divi_Dynamic_Content_URL();
+
+			if ( ! $option->configure( $field ) ) {
+				continue;
+			}
 		} else {
 			$option = new WP_Seed_Events_Divi_Dynamic_Content_Text();
 

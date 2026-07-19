@@ -13,6 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase implements DynamicContentOptionInterface {
 	/**
+	 * Registry and Divi value type.
+	 *
+	 * @var string
+	 */
+	protected $field_type = 'text';
+
+	/**
 	 * Registry field key.
 	 *
 	 * @var string
@@ -33,7 +40,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 		$field  = sanitize_key( (string) $field );
 		$fields = wp_seed_events_dynamic_data_fields();
 
-		if ( ! isset( $fields[ $field ] ) || 'text' !== ( $fields[ $field ]['type'] ?? '' ) ) {
+		if ( ! isset( $fields[ $field ] ) || $this->get_type() !== ( $fields[ $field ]['type'] ?? '' ) ) {
 			return false;
 		}
 
@@ -57,6 +64,13 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 	 */
 	public function get_name(): string {
 		return $this->source_name;
+	}
+
+	/**
+	 * Return the registry and Divi value type.
+	 */
+	public function get_type(): string {
+		return $this->field_type;
 	}
 
 	/**
@@ -86,7 +100,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 		$options[ $name ] = array(
 			'id'     => $name,
 			'label'  => $this->get_label(),
-			'type'   => 'text',
+			'type'   => $this->get_type(),
 			'custom' => false,
 			'group'  => esc_html__( 'WP Seed Events', 'wp-seed-events' ),
 			'fields' => array(),
@@ -111,7 +125,9 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 			return '';
 		}
 
-		$resolved_value = wp_seed_events_dynamic_data_get_value( $this->get_field(), $event_id );
+		$resolved_value = $this->prepare_resolved_value(
+			wp_seed_events_dynamic_data_get_value( $this->get_field(), $event_id )
+		);
 
 		if ( '' === $resolved_value ) {
 			return '';
@@ -125,9 +141,19 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 			array(
 				'post_id'  => absint( $data_args['post_id'] ?? 0 ),
 				'name'     => $name,
-				'value'    => esc_html( $resolved_value ),
+				'value'    => $resolved_value,
 				'settings' => $settings,
 			)
 		);
+	}
+
+	/**
+	 * Prepare the resolved value for Divi's wrapper.
+	 *
+	 * @param mixed $value Registry value.
+	 * @return string
+	 */
+	protected function prepare_resolved_value( $value ): string {
+		return esc_html( (string) $value );
 	}
 }

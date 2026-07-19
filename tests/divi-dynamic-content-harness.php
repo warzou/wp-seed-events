@@ -35,6 +35,7 @@ namespace {
 	$GLOBALS['d1_divi_types']          = array();
 	$GLOBALS['d1_divi_statuses']       = array();
 	$GLOBALS['d1_divi_current_id']     = 0;
+	$GLOBALS['d1_divi_queried_id']     = 0;
 	$GLOBALS['d1_divi_data_calls']     = 0;
 	$GLOBALS['d1_divi_case_count']     = 0;
 
@@ -64,6 +65,22 @@ namespace {
 		return preg_replace( '/\[[^\]]+\]/', '', (string) $value );
 	}
 
+	function wp_seed_events_sanitize_public_http_url( $url ) {
+		$url   = trim( (string) $url );
+		$parts = '' !== $url ? parse_url( $url ) : false;
+
+		if (
+			! is_array( $parts )
+			|| empty( $parts['scheme'] )
+			|| empty( $parts['host'] )
+			|| ! in_array( strtolower( (string) $parts['scheme'] ), array( 'http', 'https' ), true )
+		) {
+			return '';
+		}
+
+		return $url;
+	}
+
 	function add_action() {
 	}
 
@@ -77,6 +94,10 @@ namespace {
 
 	function get_the_ID() {
 		return (int) $GLOBALS['d1_divi_current_id'];
+	}
+
+	function get_queried_object_id() {
+		return (int) $GLOBALS['d1_divi_queried_id'];
 	}
 
 	function wp_seed_events_get_event_data( $event_id ) {
@@ -127,6 +148,9 @@ namespace {
 			'excerpt'                 => 'Excerpt ' . (string) $event_id,
 			'practical_info'          => "Line one\nLine two",
 			'event_document_filename' => 'programme-' . (string) $event_id . '.pdf',
+			'url'                     => 'https://example.test/events/event-' . (string) $event_id . '/',
+			'place_url'               => 'http://places.example.test/place-' . (string) $event_id . '/',
+			'event_document_url'      => 'https://cdn.example.test/programme-' . (string) $event_id . '.pdf',
 		);
 	}
 
@@ -169,7 +193,7 @@ namespace {
 	wp_seed_events_divi_load_next_date();
 	$sources = d1_divi_sources_by_name();
 
-	d1_divi_case( 'all registry text sources load once', function () use ( $sources ) {
+	d1_divi_case( 'all registry text and URL sources load once', function () use ( $sources ) {
 		$expected = array_map(
 			static function ( $field ) {
 				return 'wp_seed_events_' . $field;
@@ -194,19 +218,36 @@ namespace {
 			'place_address' => 'Adresse du lieu', 'description' => 'Description',
 			'excerpt' => 'Extrait', 'practical_info' => 'Informations pratiques',
 			'event_document_filename' => 'Nom du document',
+			'url' => 'URL de l’événement', 'place_url' => 'URL du lieu',
+			'event_document_url' => 'URL du document',
 		);
+		$url_fields = array( 'url', 'place_url', 'event_document_url' );
 
 		foreach ( $expected_labels as $field => $label ) {
 			$name    = 'wp_seed_events_' . $field;
 			$options = $sources[ $name ]->register_option_callback( array(), 914, 'content' );
 			d1_divi_assert( isset( $options[ $name ] ), 'missing option: ' . $name );
-			d1_divi_assert( 'WP Seed Events — ' . $label === $options[ $name ]['label'], 'wrong label: ' . $name );
+			d1_divi_assert( 'WP Seed Events — ' . esc_html( $label ) === $options[ $name ]['label'], 'wrong label: ' . $name . ' got ' . $options[ $name ]['label'] . ' expected ' . 'WP Seed Events — ' . esc_html( $label ) );
 			d1_divi_assert( 'WP Seed Events' === $options[ $name ]['group'], 'wrong group: ' . $name );
-			d1_divi_assert( 'text' === $options[ $name ]['type'], 'wrong type: ' . $name );
+			$expected_type = in_array( $field, $url_fields, true ) ? 'url' : 'text';
+			d1_divi_assert( $expected_type === $options[ $name ]['type'], 'wrong type: ' . $name );
 			d1_divi_assert( $options === $sources[ $name ]->register_option_callback( $options, 914, 'content' ), 'option duplicated: ' . $name );
 		}
 	} );
 
+	d1_divi_case( 'three URL sources use one generic public provider family', function () use ( $sources ) {
+		foreach ( array( 'url', 'place_url', 'event_document_url' ) as $field ) {
+			$name = 'wp_seed_events_' . $field;
+			d1_divi_assert( $sources[ $name ] instanceof WP_Seed_Events_Divi_Dynamic_Content_URL, 'URL provider class differs: ' . $name );
+			d1_divi_assert(
+				'<span data-source="' . $name . '">' . $GLOBALS['d1_divi_events'][914][ $field ] . '</span>' === $sources[ $name ]->render_callback(
+					'',
+					array( 'name' => $name, 'post_id' => 914 )
+				),
+				'URL provider output differs: ' . $name
+			);
+		}
+	} );
 	d1_divi_case( 'historical next date source remains compatible', function () use ( $sources ) {
 		$source = $sources['wp_seed_events_next_date'];
 		d1_divi_assert( $source instanceof WP_Seed_Events_Divi_Dynamic_Content_Next_Date, 'next_date compatibility class changed' );
@@ -233,6 +274,21 @@ namespace {
 		);
 	} );
 
+	d1_divi_case( 'delayed page-model URL resolution uses the queried event', function () use ( $sources ) {
+		global $wp_seed_events_public_event_id;
+		$wp_seed_events_public_event_id    = 0;
+		$GLOBALS['d1_divi_current_id']     = 976;
+		$GLOBALS['d1_divi_queried_id']     = 914;
+
+		d1_divi_assert(
+			'<span data-source="wp_seed_events_url">https://example.test/events/event-914/</span>' === $sources['wp_seed_events_url']->render_callback(
+				'',
+				array( 'name' => 'wp_seed_events_url', 'post_id' => 976 )
+			),
+			'delayed model URL did not resolve the queried event'
+		);
+		$GLOBALS['d1_divi_queried_id'] = 0;
+	} );
 	d1_divi_case( 'Loop Builder keeps event contexts isolated', function () use ( $sources ) {
 		global $wp_seed_events_public_event_id;
 		$wp_seed_events_public_event_id = 914;
@@ -245,8 +301,18 @@ namespace {
 			'',
 			array( 'name' => 'wp_seed_events_title', 'post_id' => 1205, 'loop_id' => 998 )
 		);
+		$event_url = $sources['wp_seed_events_url']->render_callback(
+			'',
+			array( 'name' => 'wp_seed_events_url', 'post_id' => 1205, 'loop_id' => 1011 )
+		);
+		$place_url = $sources['wp_seed_events_place_url']->render_callback(
+			'',
+			array( 'name' => 'wp_seed_events_place_url', 'post_id' => 1205, 'loop_id' => 1011 )
+		);
 
 		d1_divi_assert( '<span data-source="wp_seed_events_title">Second event</span>' === $event_value, 'event loop value differs' );
+		d1_divi_assert( '<span data-source="wp_seed_events_url">https://example.test/events/event-1011/</span>' === $event_url, 'event loop URL differs' );
+		d1_divi_assert( '<span data-source="wp_seed_events_place_url">http://places.example.test/place-1011/</span>' === $place_url, 'place loop URL differs' );
 		d1_divi_assert( '' === $page_value, 'incompatible loop leaked the public event' );
 	} );
 
@@ -271,6 +337,14 @@ namespace {
 		);
 	} );
 
+	d1_divi_case( 'URL sources return empty for absent and unsafe values', function () use ( $sources ) {
+		d1_divi_event( 1013, 'Empty URLs' );
+		$GLOBALS['d1_divi_events'][1013]['place_url']          = '';
+		$GLOBALS['d1_divi_events'][1013]['event_document_url'] = 'javascript:alert(1)';
+
+		d1_divi_assert( '' === $sources['wp_seed_events_place_url']->render_callback( '', array( 'name' => 'wp_seed_events_place_url', 'post_id' => 1013 ) ), 'empty URL rendered' );
+		d1_divi_assert( '' === $sources['wp_seed_events_event_document_url']->render_callback( '', array( 'name' => 'wp_seed_events_event_document_url', 'post_id' => 1013 ) ), 'unsafe URL rendered' );
+	} );
 	d1_divi_case( 'several sources share one cached Event Data result', function () use ( $sources ) {
 		$before = $GLOBALS['d1_divi_data_calls'];
 
@@ -284,7 +358,9 @@ namespace {
 	d1_divi_case( 'provider files contain no direct meta access', function () {
 		$paths = array(
 			dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php',
+			dirname( __DIR__ ) . '/includes/integrations/divi/context.php',
 			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-text.php',
+			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-url.php',
 			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-next-date.php',
 		);
 		$source = '';
@@ -297,5 +373,5 @@ namespace {
 		d1_divi_assert( false === strpos( $source, 'WP_Query' ), 'provider runs a query' );
 	} );
 
-	echo 'PASS: ' . (string) $GLOBALS['d1_divi_case_count'] . ' Divi D1 cases.' . PHP_EOL;
+	echo 'PASS: ' . (string) $GLOBALS['d1_divi_case_count'] . ' Divi D2 cases.' . PHP_EOL;
 }

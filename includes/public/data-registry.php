@@ -81,6 +81,24 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Nom public du document complementaire.',
 		),
+		'url'         => array(
+			'key'         => 'url',
+			'label'       => 'URL de l’événement',
+			'type'        => 'url',
+			'description' => 'URL publique canonique de l\'evenement.',
+		),
+		'place_url'   => array(
+			'key'         => 'place_url',
+			'label'       => 'URL du lieu',
+			'type'        => 'url',
+			'description' => 'URL publique associee au lieu.',
+		),
+		'event_document_url' => array(
+			'key'         => 'event_document_url',
+			'label'       => 'URL du document',
+			'type'        => 'url',
+			'description' => 'URL publique du document PDF complementaire.',
+		),
 	);
 }
 
@@ -176,6 +194,12 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':
 			return trim( wp_strip_all_tags( (string) ( $event['event_document_filename'] ?? '' ) ) );
+		case 'url':
+			return wp_seed_events_sanitize_public_http_url( $event['url'] ?? '' );
+		case 'place_url':
+			return wp_seed_events_sanitize_public_http_url( $event['place_url'] ?? '' );
+		case 'event_document_url':
+			return wp_seed_events_sanitize_public_http_url( $event['event_document_url'] ?? '' );
 		default:
 			return '';
 	}

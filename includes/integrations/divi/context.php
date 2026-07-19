@@ -40,6 +40,12 @@ function wp_seed_events_divi_resolve_event_id( $context = array() ) {
 		return $public_event_id;
 	}
 
+	$queried_post_id = absint( get_queried_object_id() );
+
+	if ( wp_seed_events_divi_is_event( $queried_post_id ) ) {
+		return $queried_post_id;
+	}
+
 	$current_post_id = absint( $context['current_post_id'] ?? get_the_ID() );
 
 	return wp_seed_events_divi_is_event( $current_post_id ) ? $current_post_id : 0;

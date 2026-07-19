@@ -17,6 +17,7 @@ $GLOBALS['wp_seed_events_media_captions']    = array();
 $GLOBALS['wp_seed_events_media_meta']        = array();
 $GLOBALS['wp_seed_events_media_thumbnails']  = array();
 $GLOBALS['wp_seed_events_media_places']      = array();
+$GLOBALS['wp_seed_events_media_permalinks']  = array();
 $GLOBALS['wp_seed_events_media_write_calls'] = array();
 $GLOBALS['wp_seed_events_media_case_count']  = 0;
 
@@ -56,6 +57,19 @@ function get_post_thumbnail_id( $post_id ) {
 
 function wp_parse_url( $url, $component = -1 ) {
 	return parse_url( (string) $url, $component );
+}
+
+function esc_url_raw( $url, $protocols = null ) {
+	$url   = trim( (string) $url );
+	$parts = '' !== $url ? parse_url( $url ) : false;
+
+	if ( ! is_array( $parts ) || empty( $parts['scheme'] ) ) {
+		return '';
+	}
+
+	$allowed = is_array( $protocols ) ? array_map( 'strtolower', $protocols ) : array( 'http', 'https' );
+
+	return in_array( strtolower( (string) $parts['scheme'] ), $allowed, true ) ? $url : '';
 }
 
 function wp_basename( $path, $suffix = '' ) {
@@ -145,7 +159,10 @@ function get_the_title( $post_id ) {
 }
 
 function get_permalink( $post_id ) {
-	return 'https://example.test/events/event-' . absint( $post_id ) . '/';
+	$post_id = absint( $post_id );
+
+	return $GLOBALS['wp_seed_events_media_permalinks'][ $post_id ]
+		?? 'https://example.test/events/event-' . $post_id . '/';
 }
 
 require dirname( __DIR__ ) . '/includes/public/media.php';
@@ -357,6 +374,12 @@ wp_seed_events_media_case(
 		wp_seed_events_media_assert_same( 101, $data['featured_image_id'], 'Featured image alias changed.' );
 		wp_seed_events_media_assert_same( array( 101, 102, 105 ), $data['illustration_ids'], 'Illustration aliases changed.' );
 		wp_seed_events_media_assert_same( 103, $data['flyer_pdf_id'], 'PDF alias changed.' );
+		wp_seed_events_media_assert_same( 'https://example.test/events/event-501/', $data['url'], 'Canonical event URL differs.' );
+		wp_seed_events_media_assert_same( 'https://example.test/place/', $data['place_url'], 'Place URL differs.' );
+		wp_seed_events_media_assert_same( 'https://cdn.example.test/documents/programme-detaille.pdf', $data['event_document_url'], 'Document URL differs.' );
+		foreach ( array( 'event_url', 'canonical_url', 'document_url', 'flyer_url' ) as $alias ) {
+			wp_seed_events_media_assert( ! array_key_exists( $alias, $data ), 'Unexpected URL alias exposed: ' . $alias );
+		}
 	}
 );
 
@@ -379,6 +402,52 @@ wp_seed_events_media_case(
 		wp_seed_events_media_assert_same( '', $data['place_address'], 'Missing place address must be empty.' );
 		wp_seed_events_media_assert_same( '', $data['practical_info'], 'Missing practical information must be empty.' );
 		wp_seed_events_media_assert_same( '', $data['event_document_filename'], 'Missing document filename must be empty.' );
+		wp_seed_events_media_assert_same( 'https://example.test/events/event-502/', $data['url'], 'Event URL fallback differs.' );
+		wp_seed_events_media_assert_same( '', $data['place_url'], 'Missing place URL must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['event_document_url'], 'Missing document URL must be empty.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'Event Data rejects unsafe, relative and non-PDF public URLs',
+	function () {
+		$GLOBALS['wp_seed_events_media_posts'][503] = (object) array(
+			'ID'           => 503,
+			'post_type'    => 'wp_seed_event',
+			'post_status'  => 'publish',
+			'post_title'   => 'Unsafe URL event',
+			'post_content' => '',
+		);
+		$GLOBALS['wp_seed_events_media_permalinks'][503] = '/relative-event/';
+		$GLOBALS['wp_seed_events_media_places'][503]     = array(
+			'link' => 'javascript:alert(1)',
+		);
+		$GLOBALS['wp_seed_events_media_meta'][503]       = array(
+			'_wp_seed_event_flyer_pdf_id' => 107,
+		);
+		wp_seed_events_media_attachment(
+			107,
+			'Unsafe document URL',
+			'application/pdf',
+			'file:///var/www/private/programme.pdf'
+		);
+
+		$data = wp_seed_events_get_event_data( 503 );
+		wp_seed_events_media_assert_same( '', $data['url'], 'Relative event URL must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['place_url'], 'Unsafe place URL must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['event_document_url'], 'Local document URL must be empty.' );
+
+		$GLOBALS['wp_seed_events_media_posts'][504] = (object) array(
+			'ID'           => 504,
+			'post_type'    => 'wp_seed_event',
+			'post_status'  => 'publish',
+			'post_title'   => 'Non PDF document',
+			'post_content' => '',
+		);
+		$GLOBALS['wp_seed_events_media_meta'][504] = array(
+			'_wp_seed_event_flyer_pdf_id' => 101,
+		);
+		wp_seed_events_media_assert_same( '', wp_seed_events_get_event_data( 504 )['event_document_url'], 'Non-PDF document URL must be empty.' );
 	}
 );
 

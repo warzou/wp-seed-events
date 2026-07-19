@@ -33,6 +33,22 @@ function strip_shortcodes( $value ) {
 	return preg_replace( '/\[[^\]]+\]/', '', (string) $value );
 }
 
+function wp_seed_events_sanitize_public_http_url( $url ) {
+	$url   = trim( (string) $url );
+	$parts = '' !== $url ? parse_url( $url ) : false;
+
+	if (
+		! is_array( $parts )
+		|| empty( $parts['scheme'] )
+		|| empty( $parts['host'] )
+		|| ! in_array( strtolower( (string) $parts['scheme'] ), array( 'http', 'https' ), true )
+	) {
+		return '';
+	}
+
+	return $url;
+}
+
 function get_the_ID() {
 	return (int) $GLOBALS['d0_current_id'];
 }
@@ -128,6 +144,9 @@ function d0_event( $event_id, $title = '' ) {
 		'excerpt'                 => 'Excerpt ' . (string) $event_id,
 		'practical_info'          => "Line one\nLine two",
 		'event_document_filename' => 'programme-' . (string) $event_id . '.pdf',
+		'url'                     => 'https://example.test/events/event-' . (string) $event_id . '/',
+		'place_url'               => 'http://places.example.test/place-' . (string) $event_id . '/',
+		'event_document_url'      => 'https://cdn.example.test/programme-' . (string) $event_id . '.pdf',
 	);
 }
 
@@ -149,11 +168,11 @@ function d0_case( $label, $callback ) {
 	echo 'OK ' . (string) $GLOBALS['d0_case_count'] . ' - ' . $label . PHP_EOL;
 }
 
-function d0_bind( $field, $context = array() ) {
+function d0_bind( $field, $context = array(), $attribute_name = 'content' ) {
 	return wp_seed_events_gutenberg_block_binding_value(
 		array( 'field' => $field ),
 		new WP_Block( $context ),
-		'content'
+		$attribute_name
 	);
 }
 
@@ -189,6 +208,10 @@ function d0_uncached_value( $field, $event_id ) {
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':
 			return trim( wp_strip_all_tags( (string) ( $event['event_document_filename'] ?? '' ) ) );
+		case 'url':
+		case 'place_url':
+		case 'event_document_url':
+			return wp_seed_events_sanitize_public_http_url( $event[ $field ] ?? '' );
 		default:
 			return '';
 	}
@@ -345,14 +368,15 @@ d0_case( 'cache preserves all existing values', function () {
 	}
 } );
 
-d0_case( 'registry declares the exact D1 text keys once', function () {
+d0_case( 'registry declares the exact D2 keys once', function () {
 	$expected = array(
 		'title', 'types', 'next_date', 'next_time', 'display_date', 'display_time',
 		'place', 'place_address', 'description', 'excerpt', 'practical_info',
-		'event_document_filename',
+		'event_document_filename', 'url', 'place_url', 'event_document_url',
 	);
-	$fields = wp_seed_events_dynamic_data_fields();
-	$keys   = array_keys( $fields );
+	$url_fields = array( 'url', 'place_url', 'event_document_url' );
+	$fields     = wp_seed_events_dynamic_data_fields();
+	$keys       = array_keys( $fields );
 
 	d0_assert( $expected === $keys, 'registry keys differ' );
 	d0_assert( count( $keys ) === count( array_unique( $keys ) ), 'duplicate registry key' );
@@ -360,7 +384,8 @@ d0_case( 'registry declares the exact D1 text keys once', function () {
 
 	foreach ( $fields as $key => $definition ) {
 		d0_assert( $key === $definition['key'], 'registry key alias differs: ' . $key );
-		d0_assert( 'text' === $definition['type'], 'non-text registry field: ' . $key );
+		$expected_type = in_array( $key, $url_fields, true ) ? 'url' : 'text';
+		d0_assert( $expected_type === $definition['type'], 'wrong registry type: ' . $key );
 	}
 } );
 
@@ -391,6 +416,55 @@ d0_case( 'new D1 values use empty fallbacks', function () {
 	}
 } );
 
+d0_case( 'D2 URL projections preserve valid HTTP and HTTPS destinations', function () {
+	d0_event( 115 );
+	d0_assert( 'https://example.test/events/event-115/' === wp_seed_events_dynamic_data_get_value( 'url', 115 ), 'event URL differs' );
+	d0_assert( 'http://places.example.test/place-115/' === wp_seed_events_dynamic_data_get_value( 'place_url', 115 ), 'place URL differs' );
+	d0_assert( 'https://cdn.example.test/programme-115.pdf' === wp_seed_events_dynamic_data_get_value( 'event_document_url', 115 ), 'document URL differs' );
+} );
+
+d0_case( 'D2 URL projections use empty fallbacks', function () {
+	d0_event( 116 );
+	$GLOBALS['d0_events'][116]['url']                = '';
+	$GLOBALS['d0_events'][116]['place_url']          = '';
+	$GLOBALS['d0_events'][116]['event_document_url'] = '';
+
+	foreach ( array( 'url', 'place_url', 'event_document_url' ) as $field ) {
+		d0_assert( '' === wp_seed_events_dynamic_data_get_value( $field, 116 ), 'missing URL is not empty: ' . $field );
+	}
+} );
+
+d0_case( 'D2 URL projections reject unsafe and relative protocols', function () {
+	$unsafe = array(
+		'javascript:alert(1)',
+		'data:text/html,unsafe',
+		'file:///var/www/private.pdf',
+		'mailto:test@example.test',
+		'tel:+3212345678',
+		'/relative/path/',
+		'//example.test/protocol-relative',
+		'not a URL',
+	);
+
+	foreach ( $unsafe as $index => $url ) {
+		$event_id = 117 + $index;
+		d0_event( $event_id );
+		$GLOBALS['d0_events'][ $event_id ]['url'] = $url;
+		d0_assert( '' === wp_seed_events_dynamic_data_get_value( 'url', $event_id ), 'unsafe URL accepted: ' . $url );
+	}
+} );
+
+d0_case( 'Gutenberg core button URL binding uses the existing source', function () {
+	d0_event( 130 );
+	$context = array( 'postId' => 130, 'postType' => 'wp_seed_event' );
+
+	foreach ( array( 'url', 'place_url', 'event_document_url' ) as $field ) {
+		d0_assert(
+			wp_seed_events_dynamic_data_get_value( $field, 130 ) === d0_bind( $field, $context, 'url' ),
+			'core/button URL binding differs: ' . $field
+		);
+	}
+} );
 d0_case( 'multiline text special characters and HTML stay safe', function () {
 	d0_event( 113 );
 	$GLOBALS['d0_events'][113]['title']          = 'Été & cœur';
@@ -415,7 +489,7 @@ d0_case( 'multiline text special characters and HTML stay safe', function () {
 	}
 } );
 
-d0_case( 'all D1 fields share one cached Event Data result', function () {
+d0_case( 'all D2 fields share one cached Event Data result', function () {
 	d0_event( 114 );
 	$before = $GLOBALS['d0_data_calls'];
 
@@ -463,6 +537,7 @@ d0_case( 'D1 adapters do not read storage or write data', function () {
 		dirname( __DIR__ ) . '/includes/integrations/gutenberg/block-bindings.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-text.php',
+		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-url.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-next-date.php',
 	);
 	$source = '';
@@ -540,6 +615,9 @@ d0_case( 'guard event Query Loop exposes every text binding', function () {
 		'place' => 'Place 306', 'place_address' => 'Address 306', 'description' => 'Description 306',
 		'excerpt' => 'Excerpt 306', 'practical_info' => "Line one\nLine two",
 		'event_document_filename' => 'programme-306.pdf',
+		'url' => 'https://example.test/events/event-306/',
+		'place_url' => 'http://places.example.test/place-306/',
+		'event_document_url' => 'https://cdn.example.test/programme-306.pdf',
 	) === $values, 'loop values' );
 } );
 
@@ -601,16 +679,28 @@ $d1_fields = array(
 );
 $d1_before = d0_benchmark( false, 80, $d1_fields, 100000 );
 $d1_after  = d0_benchmark( true, 80, $d1_fields, 100000 );
+$d2_fields = array(
+	'title', 'types', 'next_date', 'next_time', 'display_date', 'display_time',
+	'place', 'place_address', 'description', 'excerpt', 'practical_info', 'event_document_filename',
+	'url', 'place_url', 'event_document_url',
+);
+$d2_before = d0_benchmark( false, 80, $d2_fields, 200000 );
+$d2_after  = d0_benchmark( true, 80, $d2_fields, 200000 );
 
 d0_assert( 42 === (int) $before['event_data_calls_request'], 'baseline benchmark calls' );
 d0_assert( 7 === (int) $after['event_data_calls_request'], 'cached benchmark calls' );
 d0_assert( 84 === (int) $d1_before['event_data_calls_request'], 'D1 baseline benchmark calls' );
 d0_assert( 7 === (int) $d1_after['event_data_calls_request'], 'D1 cached benchmark calls' );
+d0_assert( 105 === (int) $d2_before['event_data_calls_request'], 'D2 baseline benchmark calls' );
+d0_assert( 7 === (int) $d2_after['event_data_calls_request'], 'D2 cached benchmark calls' );
+d0_assert( 525 === (int) $d2_before['occurrence_calls_request'], 'D2 baseline occurrence passes' );
+d0_assert( 35 === (int) $d2_after['occurrence_calls_request'], 'D2 cached occurrence passes' );
 
 echo 'BENCHMARK ' . wp_json_encode(
 	array(
 		'd0' => array( 'before' => $before, 'after' => $after ),
 		'd1' => array( 'before' => $d1_before, 'after' => $d1_after ),
+		'd2' => array( 'before' => $d2_before, 'after' => $d2_after ),
 	),
 	JSON_UNESCAPED_SLASHES
 ) . PHP_EOL;

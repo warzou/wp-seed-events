@@ -7,6 +7,37 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Keep only absolute public HTTP or HTTPS URLs.
+ *
+ * Relative URLs are rejected deliberately: Dynamic Data consumers need a
+ * complete public destination and must not infer a site or request context.
+ *
+ * @param mixed $url Candidate public URL.
+ * @return string
+ */
+function wp_seed_events_sanitize_public_http_url( $url ) {
+	$url = trim( (string) $url );
+
+	if ( '' === $url ) {
+		return '';
+	}
+
+	$url   = esc_url_raw( $url, array( 'http', 'https' ) );
+	$parts = '' !== $url ? wp_parse_url( $url ) : false;
+
+	if (
+		! is_array( $parts )
+		|| empty( $parts['scheme'] )
+		|| empty( $parts['host'] )
+		|| ! in_array( strtolower( (string) $parts['scheme'] ), array( 'http', 'https' ), true )
+	) {
+		return '';
+	}
+
+	return $url;
+}
+
 function wp_seed_events_get_event_data( $event_id ) {
 	$event_id = absint( $event_id );
 	$post     = get_post( $event_id );
@@ -44,11 +75,21 @@ function wp_seed_events_get_event_data( $event_id ) {
 	$document_filename  = is_array( $media['event_document'] )
 		? sanitize_file_name( (string) ( $media['event_document']['filename'] ?? '' ) )
 		: '';
+	$event_url          = wp_seed_events_sanitize_public_http_url( get_permalink( $event_id ) );
+	$place_url          = is_array( $place )
+		? wp_seed_events_sanitize_public_http_url( $place['link'] ?? '' )
+		: '';
+	$event_document_url = (
+		is_array( $media['event_document'] )
+		&& 'application/pdf' === strtolower( trim( (string) ( $media['event_document']['mime_type'] ?? '' ) ) )
+	)
+		? wp_seed_events_sanitize_public_http_url( $media['event_document']['url'] ?? '' )
+		: '';
 
 	return array(
 		'id'                => $event_id,
 		'title'             => get_the_title( $event_id ),
-		'url'               => get_permalink( $event_id ),
+		'url'               => $event_url,
 		'types'             => wp_seed_events_event_type_labels_for_event( $event_id ),
 		'occurrences'        => $occurrences,
 		'active_occurrences' => $active_occurrences,
@@ -58,12 +99,14 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'lifecycle'          => $lifecycle,
 		'place'              => $place,
 		'place_address'      => $place_address,
+		'place_url'          => $place_url,
 		'people'             => wp_seed_events_public_event_people_data( $event_id ),
 		'description'        => $description,
 		'excerpt'            => wp_seed_events_public_event_excerpt( $description ),
 		'practical_info'     => $practical_info,
 		'event_document_filename' => $document_filename,
-		'featured_image'        => $media['featured_image'],
+		'event_document_url'      => $event_document_url,
+		'featured_image'          => $media['featured_image'],
 		'communication_visual'  => $media['communication_visual'],
 		'communication_visuals' => $media['communication_visuals'],
 		'other_visuals'         => $media['other_visuals'],
