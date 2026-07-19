@@ -16,6 +16,7 @@ $GLOBALS['wp_seed_events_media_metadata']    = array();
 $GLOBALS['wp_seed_events_media_captions']    = array();
 $GLOBALS['wp_seed_events_media_meta']        = array();
 $GLOBALS['wp_seed_events_media_thumbnails']  = array();
+$GLOBALS['wp_seed_events_media_places']      = array();
 $GLOBALS['wp_seed_events_media_write_calls'] = array();
 $GLOBALS['wp_seed_events_media_case_count']  = 0;
 
@@ -74,6 +75,17 @@ function wp_strip_all_tags( $value, $remove_breaks = false ) {
 	return $remove_breaks ? preg_replace( '/[\r\n\t ]+/', ' ', $value ) : $value;
 }
 
+function sanitize_text_field( $value ) {
+	return trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $value, true ) ) );
+}
+
+function sanitize_textarea_field( $value ) {
+	$value = wp_strip_all_tags( (string) $value );
+	$value = str_replace( array( "\r\n", "\r" ), "\n", $value );
+
+	return trim( $value );
+}
+
 function update_post_meta( $post_id, $key, $value ) {
 	$GLOBALS['wp_seed_events_media_write_calls'][] = array( 'update_post_meta', $post_id, $key, $value );
 }
@@ -115,7 +127,7 @@ function wp_seed_events_event_type_labels_for_event( $event_id ) {
 }
 
 function wp_seed_events_public_event_place_data( $event_id ) {
-	return null;
+	return $GLOBALS['wp_seed_events_media_places'][ absint( $event_id ) ] ?? array();
 }
 
 function wp_seed_events_public_event_people_data( $event_id ) {
@@ -234,6 +246,13 @@ wp_seed_events_media_attachment(
 wp_seed_events_media_attachment( 106, 'No public basename', 'image/jpeg', 'https://cdn.example.test/' );
 
 $GLOBALS['wp_seed_events_media_thumbnails'][501] = 101;
+$GLOBALS['wp_seed_events_media_places'][501]     = array(
+	'id'      => 701,
+	'name'    => 'Centre Test',
+	'address' => '<strong>3 rue du Test</strong>',
+	'link'    => 'https://example.test/place/',
+	'details' => "Parking dans la cour.\nAccueil 15 minutes avant.",
+);
 $GLOBALS['wp_seed_events_media_meta'][501]       = array(
 	'_wp_seed_event_illustration_ids' => array( 102, 101, 999, 102, 105, 104 ),
 	'_wp_seed_event_flyer_pdf_id'     => 103,
@@ -327,10 +346,39 @@ wp_seed_events_media_case(
 		wp_seed_events_media_assert_same( 'Flyer recto', $data['featured_image']['caption'], 'Featured image caption did not reach Event Data.' );
 		wp_seed_events_media_assert_same( 'recto.jpg', $data['communication_visual']['filename'], 'Communication filename did not reach Event Data.' );
 		wp_seed_events_media_assert_same( 'programme-detaille.pdf', $data['event_document']['filename'], 'Document filename did not reach Event Data.' );
+		wp_seed_events_media_assert_same( 'Event description', $data['excerpt'], 'Existing excerpt changed.' );
+		wp_seed_events_media_assert_same( '3 rue du Test', $data['place_address'], 'Place address projection is incorrect.' );
+		wp_seed_events_media_assert_same( "Parking dans la cour.\nAccueil 15 minutes avant.", $data['practical_info'], 'Practical information projection is incorrect.' );
+		wp_seed_events_media_assert_same( 'programme-detaille.pdf', $data['event_document_filename'], 'Document filename projection is incorrect.' );
+		wp_seed_events_media_assert( false === strpos( $data['place_address'], '<' ), 'Place address contains HTML.' );
+		wp_seed_events_media_assert( false === strpos( $data['practical_info'], '<' ), 'Practical information contains HTML.' );
+		wp_seed_events_media_assert( false === strpos( $data['event_document_filename'], '/' ), 'Document filename contains a path.' );
 		wp_seed_events_media_assert_same( 101, $data['primary_image_id'], 'Primary image alias changed.' );
 		wp_seed_events_media_assert_same( 101, $data['featured_image_id'], 'Featured image alias changed.' );
 		wp_seed_events_media_assert_same( array( 101, 102, 105 ), $data['illustration_ids'], 'Illustration aliases changed.' );
 		wp_seed_events_media_assert_same( 103, $data['flyer_pdf_id'], 'PDF alias changed.' );
+	}
+);
+
+wp_seed_events_media_case(
+	'Event Data text projections use empty fallbacks',
+	function () {
+		$GLOBALS['wp_seed_events_media_posts'][502] = (object) array(
+			'ID'           => 502,
+			'post_type'    => 'wp_seed_event',
+			'post_status'  => 'publish',
+			'post_title'   => 'Empty event',
+			'post_content' => '',
+		);
+		$GLOBALS['wp_seed_events_media_meta'][502]   = array();
+		$GLOBALS['wp_seed_events_media_places'][502] = array();
+
+		$data = wp_seed_events_get_event_data( 502 );
+
+		wp_seed_events_media_assert_same( '', $data['excerpt'], 'Missing excerpt must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['place_address'], 'Missing place address must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['practical_info'], 'Missing practical information must be empty.' );
+		wp_seed_events_media_assert_same( '', $data['event_document_filename'], 'Missing document filename must be empty.' );
 	}
 );
 

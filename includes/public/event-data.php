@@ -28,6 +28,7 @@ function wp_seed_events_get_event_data( $event_id ) {
 	$display_occurrence = array() !== $next_occurrence ? $next_occurrence : $last_occurrence;
 	$lifecycle          = wp_seed_events_get_event_lifecycle( $event_id );
 	$media              = wp_seed_events_get_event_media( $event_id );
+	$place              = wp_seed_events_public_event_place_data( $event_id );
 	$featured_image_id  = absint( $media['featured_image']['id'] ?? 0 );
 	$primary_image_id   = absint( $media['communication_visual']['id'] ?? 0 );
 	$illustration_ids   = array_values(
@@ -38,6 +39,11 @@ function wp_seed_events_get_event_data( $event_id ) {
 	);
 	$flyer_pdf_id       = absint( $media['event_document']['id'] ?? 0 );
 	$description        = trim( (string) $post->post_content );
+	$place_address      = is_array( $place ) ? sanitize_text_field( (string) ( $place['address'] ?? '' ) ) : '';
+	$practical_info     = is_array( $place ) ? sanitize_textarea_field( (string) ( $place['details'] ?? '' ) ) : '';
+	$document_filename  = is_array( $media['event_document'] )
+		? sanitize_file_name( (string) ( $media['event_document']['filename'] ?? '' ) )
+		: '';
 
 	return array(
 		'id'                => $event_id,
@@ -50,10 +56,13 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'last_occurrence'    => $last_occurrence,
 		'display_occurrence' => $display_occurrence,
 		'lifecycle'          => $lifecycle,
-		'place'             => wp_seed_events_public_event_place_data( $event_id ),
-		'people'            => wp_seed_events_public_event_people_data( $event_id ),
-		'description'       => $description,
-		'excerpt'           => wp_seed_events_public_event_excerpt( $description ),
+		'place'              => $place,
+		'place_address'      => $place_address,
+		'people'             => wp_seed_events_public_event_people_data( $event_id ),
+		'description'        => $description,
+		'excerpt'            => wp_seed_events_public_event_excerpt( $description ),
+		'practical_info'     => $practical_info,
+		'event_document_filename' => $document_filename,
 		'featured_image'        => $media['featured_image'],
 		'communication_visual'  => $media['communication_visual'],
 		'communication_visuals' => $media['communication_visuals'],

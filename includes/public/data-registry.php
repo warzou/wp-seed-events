@@ -29,19 +29,19 @@ function wp_seed_events_dynamic_data_fields() {
 		),
 		'next_time'   => array(
 			'key'         => 'next_time',
-			'label'       => 'Horaire de la prochaine date',
+			'label'       => 'Prochaine heure',
 			'type'        => 'text',
 			'description' => 'Horaire de la prochaine date active.',
 		),
 		'display_date' => array(
 			'key'         => 'display_date',
-			'label'       => 'Date de reference',
+			'label'       => 'Date affichée',
 			'type'        => 'text',
 			'description' => 'Prochaine date active, sinon derniere date active.',
 		),
 		'display_time' => array(
 			'key'         => 'display_time',
-			'label'       => 'Horaire de la date de reference',
+			'label'       => 'Heure affichée',
 			'type'        => 'text',
 			'description' => 'Horaire associe a la date de reference.',
 		),
@@ -51,11 +51,35 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Nom du lieu de l\'evenement.',
 		),
+		'place_address' => array(
+			'key'         => 'place_address',
+			'label'       => 'Adresse du lieu',
+			'type'        => 'text',
+			'description' => 'Adresse seule du lieu de l\'evenement.',
+		),
 		'description' => array(
 			'key'         => 'description',
 			'label'       => 'Description',
 			'type'        => 'text',
 			'description' => 'Description texte de l\'evenement.',
+		),
+		'excerpt'     => array(
+			'key'         => 'excerpt',
+			'label'       => 'Extrait',
+			'type'        => 'text',
+			'description' => 'Extrait texte public de l\'evenement.',
+		),
+		'practical_info' => array(
+			'key'         => 'practical_info',
+			'label'       => 'Informations pratiques',
+			'type'        => 'text',
+			'description' => 'Informations pratiques propres a l\'evenement.',
+		),
+		'event_document_filename' => array(
+			'key'         => 'event_document_filename',
+			'label'       => 'Nom du document',
+			'type'        => 'text',
+			'description' => 'Nom public du document complementaire.',
 		),
 	);
 }
@@ -85,6 +109,25 @@ function wp_seed_events_dynamic_data_get_event_data( $event_id ) {
 	}
 
 	return $event_cache[ $event_id ];
+}
+
+/**
+ * Normalize a public multiline value without flattening useful line breaks.
+ *
+ * @param mixed $value Raw public value.
+ * @return string
+ */
+function wp_seed_events_dynamic_data_multiline_text( $value ) {
+	$value = wp_strip_all_tags( strip_shortcodes( (string) $value ) );
+	$value = str_replace( array( "\r\n", "\r" ), "\n", $value );
+	$lines = array_map(
+		static function ( $line ) {
+			return trim( preg_replace( '/[ \t]+/', ' ', $line ) );
+		},
+		explode( "\n", $value )
+	);
+
+	return trim( implode( "\n", $lines ) );
 }
 
 // Les valeurs retournees sont des chaines texte destinees aux providers ; l'echappement final reste sous la responsabilite du point de rendu.
@@ -122,9 +165,17 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_display_time_line( $event ) ) );
 		case 'place':
 			return empty( $event['place']['name'] ) ? '' : trim( wp_strip_all_tags( (string) $event['place']['name'] ) );
+		case 'place_address':
+			return trim( wp_strip_all_tags( (string) ( $event['place_address'] ?? '' ) ) );
 		case 'description':
 			$description = wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) );
 			return trim( preg_replace( '/\s+/', ' ', $description ) );
+		case 'excerpt':
+			return trim( wp_strip_all_tags( (string) ( $event['excerpt'] ?? '' ) ) );
+		case 'practical_info':
+			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
+		case 'event_document_filename':
+			return trim( wp_strip_all_tags( (string) ( $event['event_document_filename'] ?? '' ) ) );
 		default:
 			return '';
 	}

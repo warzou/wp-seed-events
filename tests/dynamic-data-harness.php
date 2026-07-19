@@ -120,10 +120,14 @@ function d0_event( $event_id, $title = '' ) {
 		'types'              => array( 'Atelier', 'Stage' ),
 		'next_date_value'    => 'Next ' . (string) $event_id,
 		'next_time_value'    => '10:00',
-		'display_date_value' => 'Display ' . (string) $event_id,
-		'display_time_value' => '10:00 - 12:00',
-		'place'              => array( 'name' => 'Place ' . (string) $event_id ),
-		'description'        => '<p>Description ' . (string) $event_id . '</p>',
+		'display_date_value'      => 'Display ' . (string) $event_id,
+		'display_time_value'      => '10:00 - 12:00',
+		'place'                   => array( 'name' => 'Place ' . (string) $event_id ),
+		'place_address'           => 'Address ' . (string) $event_id,
+		'description'             => '<p>Description ' . (string) $event_id . '</p>',
+		'excerpt'                 => 'Excerpt ' . (string) $event_id,
+		'practical_info'          => "Line one\nLine two",
+		'event_document_filename' => 'programme-' . (string) $event_id . '.pdf',
 	);
 }
 
@@ -163,14 +167,28 @@ function d0_uncached_value( $field, $event_id ) {
 	switch ( $field ) {
 		case 'title':
 			return trim( wp_strip_all_tags( (string) ( $event['title'] ?? '' ) ) );
+		case 'types':
+			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
+		case 'next_time':
+			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_time_line( $event ) ) );
 		case 'display_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_display_date_line( $event ) ) );
+		case 'display_time':
+			return trim( wp_strip_all_tags( wp_seed_events_public_event_display_time_line( $event ) ) );
 		case 'place':
 			return empty( $event['place']['name'] ) ? '' : trim( wp_strip_all_tags( (string) $event['place']['name'] ) );
+		case 'place_address':
+			return trim( wp_strip_all_tags( (string) ( $event['place_address'] ?? '' ) ) );
 		case 'description':
 			return trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) ) ) );
+		case 'excerpt':
+			return trim( wp_strip_all_tags( (string) ( $event['excerpt'] ?? '' ) ) );
+		case 'practical_info':
+			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
+		case 'event_document_filename':
+			return trim( wp_strip_all_tags( (string) ( $event['event_document_filename'] ?? '' ) ) );
 		default:
 			return '';
 	}
@@ -183,15 +201,15 @@ function d0_percentile( $values, $ratio ) {
 	return $values[ $index ];
 }
 
-function d0_benchmark( $cached, $samples = 80 ) {
-	$fields        = array( 'title', 'next_date', 'display_date', 'place', 'description', 'next_date' );
+function d0_benchmark( $cached, $samples = 80, $fields = array(), $base_offset = 0 ) {
+	$fields        = array() === $fields ? array( 'title', 'next_date', 'display_date', 'place', 'description', 'next_date' ) : $fields;
 	$durations     = array();
 	$memory_deltas = array();
 	$data_calls    = 0;
 	$occ_calls     = 0;
 
 	for ( $sample = 0; $sample < $samples; $sample++ ) {
-		$base = ( $cached ? 30000 : 20000 ) + ( $sample * 10 );
+		$base = ( $cached ? 30000 : 20000 ) + absint( $base_offset ) + ( $sample * 10 );
 
 		for ( $event = 1; $event <= 7; $event++ ) {
 			d0_event( $base + $event );
@@ -327,6 +345,88 @@ d0_case( 'cache preserves all existing values', function () {
 	}
 } );
 
+d0_case( 'registry declares the exact D1 text keys once', function () {
+	$expected = array(
+		'title', 'types', 'next_date', 'next_time', 'display_date', 'display_time',
+		'place', 'place_address', 'description', 'excerpt', 'practical_info',
+		'event_document_filename',
+	);
+	$fields = wp_seed_events_dynamic_data_fields();
+	$keys   = array_keys( $fields );
+
+	d0_assert( $expected === $keys, 'registry keys differ' );
+	d0_assert( count( $keys ) === count( array_unique( $keys ) ), 'duplicate registry key' );
+	d0_assert( $keys === wp_seed_events_gutenberg_block_binding_fields(), 'Gutenberg parity differs' );
+
+	foreach ( $fields as $key => $definition ) {
+		d0_assert( $key === $definition['key'], 'registry key alias differs: ' . $key );
+		d0_assert( 'text' === $definition['type'], 'non-text registry field: ' . $key );
+	}
+} );
+
+d0_case( 'new D1 values are present and use their exact projections', function () {
+	d0_event( 111 );
+	$expected = array(
+		'excerpt'                 => 'Excerpt 111',
+		'practical_info'          => "Line one\nLine two",
+		'place_address'           => 'Address 111',
+		'event_document_filename' => 'programme-111.pdf',
+	);
+
+	foreach ( $expected as $field => $value ) {
+		d0_assert( $value === wp_seed_events_dynamic_data_get_value( $field, 111 ), 'new value differs: ' . $field );
+	}
+} );
+
+d0_case( 'new D1 values use empty fallbacks', function () {
+	d0_event( 112 );
+	$GLOBALS['d0_events'][112]['place']                   = array();
+	$GLOBALS['d0_events'][112]['place_address']           = '';
+	$GLOBALS['d0_events'][112]['excerpt']                 = '';
+	$GLOBALS['d0_events'][112]['practical_info']          = '';
+	$GLOBALS['d0_events'][112]['event_document_filename'] = '';
+
+	foreach ( array( 'excerpt', 'practical_info', 'place_address', 'event_document_filename' ) as $field ) {
+		d0_assert( '' === wp_seed_events_dynamic_data_get_value( $field, 112 ), 'missing value is not empty: ' . $field );
+	}
+} );
+
+d0_case( 'multiline text special characters and HTML stay safe', function () {
+	d0_event( 113 );
+	$GLOBALS['d0_events'][113]['title']          = 'Été & cœur';
+	$GLOBALS['d0_events'][113]['types']          = array( 'Atelier', 'Stage spécial' );
+	$GLOBALS['d0_events'][113]['excerpt']        = '<strong>Résumé & cœur</strong>';
+	$GLOBALS['d0_events'][113]['place_address']  = '<em>3 rue du Test</em>';
+	$GLOBALS['d0_events'][113]['practical_info'] = "  Première ligne  \r\nDeuxième   ligne\n\n[shortcode]Troisième <b>ligne</b>[/shortcode]";
+
+	d0_assert( 'Été & cœur' === wp_seed_events_dynamic_data_get_value( 'title', 113 ), 'special title differs' );
+	d0_assert( 'Atelier, Stage spécial' === wp_seed_events_dynamic_data_get_value( 'types', 113 ), 'type order differs' );
+	d0_assert( 'Résumé & cœur' === wp_seed_events_dynamic_data_get_value( 'excerpt', 113 ), 'excerpt is not plain text' );
+	d0_assert( '3 rue du Test' === wp_seed_events_dynamic_data_get_value( 'place_address', 113 ), 'address is not plain text' );
+	d0_assert(
+		"Première ligne\nDeuxième ligne\n\nTroisième ligne",
+		wp_seed_events_dynamic_data_get_value( 'practical_info', 113 ),
+		'multiline formatting differs'
+	);
+
+	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
+		$value = wp_seed_events_dynamic_data_get_value( $field, 113 );
+		d0_assert( false === strpos( $value, '<' ), 'HTML found in ' . $field );
+	}
+} );
+
+d0_case( 'all D1 fields share one cached Event Data result', function () {
+	d0_event( 114 );
+	$before = $GLOBALS['d0_data_calls'];
+
+	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
+		wp_seed_events_dynamic_data_get_value( $field, 114 );
+		wp_seed_events_dynamic_data_get_value( $field, 114 );
+	}
+
+	d0_assert( 1 === $GLOBALS['d0_data_calls'] - $before, 'D1 fields bypassed request cache' );
+} );
+
 d0_case( 'cache is isolated between PHP requests', function () {
 	d0_assert( function_exists( 'exec' ), 'exec unavailable' );
 	$results = array();
@@ -356,7 +456,27 @@ d0_case( 'cache needs no external object cache', function () use ( $registry_sou
 	d0_assert( false === strpos( $registry_source, 'wp_cache_' ), 'object cache found' );
 } );
 
-/* Gutenberg guard: 14 required cases. */
+d0_case( 'D1 adapters do not read storage or write data', function () {
+	$paths = array(
+		dirname( __DIR__ ) . '/includes/public/event-data.php',
+		dirname( __DIR__ ) . '/includes/public/data-registry.php',
+		dirname( __DIR__ ) . '/includes/integrations/gutenberg/block-bindings.php',
+		dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php',
+		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-text.php',
+		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-next-date.php',
+	);
+	$source = '';
+
+	foreach ( $paths as $path ) {
+		$source .= file_get_contents( $path );
+	}
+
+	foreach ( array( 'get_post_meta(', 'update_post_meta(', 'delete_post_meta(', 'wp_insert_post(', 'wp_update_post(', 'wpdb' ) as $primitive ) {
+		d0_assert( false === strpos( $source, $primitive ), 'storage primitive found: ' . $primitive );
+	}
+} );
+
+/* Gutenberg guard: explicit contexts and all registry text fields. */
 d0_case( 'guard explicit event', function () {
 	d0_event( 301, 'Explicit' );
 	d0_assert( 'Explicit' === d0_bind( 'title', array( 'postId' => 301, 'postType' => 'wp_seed_event' ) ), 'explicit event' );
@@ -407,7 +527,7 @@ d0_case( 'guard model page uses public event', function () {
 	d0_assert( 'Model' === d0_bind( 'title' ), 'model fallback' );
 } );
 
-d0_case( 'guard event Query Loop exposes five bindings', function () {
+d0_case( 'guard event Query Loop exposes every text binding', function () {
 	d0_event( 306, 'Loop' );
 	$context = array( 'postId' => 306, 'postType' => 'wp_seed_event' );
 	$values = array();
@@ -415,8 +535,11 @@ d0_case( 'guard event Query Loop exposes five bindings', function () {
 		$values[ $field ] = d0_bind( $field, $context );
 	}
 	d0_assert( array(
-		'title' => 'Loop', 'next_date' => 'Next 306', 'display_date' => 'Display 306',
-		'place' => 'Place 306', 'description' => 'Description 306',
+		'title' => 'Loop', 'types' => 'Atelier, Stage', 'next_date' => 'Next 306',
+		'next_time' => '10:00', 'display_date' => 'Display 306', 'display_time' => '10:00 - 12:00',
+		'place' => 'Place 306', 'place_address' => 'Address 306', 'description' => 'Description 306',
+		'excerpt' => 'Excerpt 306', 'practical_info' => "Line one\nLine two",
+		'event_document_filename' => 'programme-306.pdf',
 	) === $values, 'loop values' );
 } );
 
@@ -472,12 +595,23 @@ d0_case( 'guard incompatible context never uses global event', function () {
 
 $before = d0_benchmark( false );
 $after  = d0_benchmark( true );
+$d1_fields = array(
+	'title', 'types', 'next_date', 'next_date', 'next_time', 'display_date',
+	'place', 'place_address', 'description', 'excerpt', 'practical_info', 'event_document_filename',
+);
+$d1_before = d0_benchmark( false, 80, $d1_fields, 100000 );
+$d1_after  = d0_benchmark( true, 80, $d1_fields, 100000 );
 
 d0_assert( 42 === (int) $before['event_data_calls_request'], 'baseline benchmark calls' );
 d0_assert( 7 === (int) $after['event_data_calls_request'], 'cached benchmark calls' );
+d0_assert( 84 === (int) $d1_before['event_data_calls_request'], 'D1 baseline benchmark calls' );
+d0_assert( 7 === (int) $d1_after['event_data_calls_request'], 'D1 cached benchmark calls' );
 
 echo 'BENCHMARK ' . wp_json_encode(
-	array( 'before' => $before, 'after' => $after ),
+	array(
+		'd0' => array( 'before' => $before, 'after' => $after ),
+		'd1' => array( 'before' => $d1_before, 'after' => $d1_after ),
+	),
 	JSON_UNESCAPED_SLASHES
 ) . PHP_EOL;
 echo 'PASS: ' . (string) $GLOBALS['d0_case_count'] . ' D0 cases.' . PHP_EOL;

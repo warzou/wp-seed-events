@@ -7,12 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/context.php';
 
 /**
- * Load the Divi 5 Dynamic Content source when its public API exists.
+ * Load the Divi 5 text Dynamic Content sources when its public API exists.
  */
 function wp_seed_events_divi_load_next_date() {
-	static $option = null;
+	static $options = null;
 
-	if ( null !== $option ) {
+	if ( null !== $options ) {
 		return;
 	}
 
@@ -24,14 +24,42 @@ function wp_seed_events_divi_load_next_date() {
 		return;
 	}
 
+	require_once __DIR__ . '/class-dynamic-content-text.php';
 	require_once __DIR__ . '/class-dynamic-content-next-date.php';
 
-	if ( ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Next_Date', false ) ) {
+	if (
+		! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Text', false )
+		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Next_Date', false )
+	) {
 		return;
 	}
 
-	$option = new WP_Seed_Events_Divi_Dynamic_Content_Next_Date();
-	$option->load();
+	$options = array();
+
+	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
+		if ( 'text' !== ( $definition['type'] ?? '' ) ) {
+			continue;
+		}
+
+		if ( 'next_date' === $field ) {
+			$option = new WP_Seed_Events_Divi_Dynamic_Content_Next_Date();
+		} else {
+			$option = new WP_Seed_Events_Divi_Dynamic_Content_Text();
+
+			if ( ! $option->configure( $field ) ) {
+				continue;
+			}
+		}
+
+		$name = $option->get_name();
+
+		if ( '' === $name || isset( $options[ $name ] ) ) {
+			continue;
+		}
+
+		$option->load();
+		$options[ $name ] = $option;
+	}
 }
 add_action( 'init', 'wp_seed_events_divi_load_next_date', 10 );
 

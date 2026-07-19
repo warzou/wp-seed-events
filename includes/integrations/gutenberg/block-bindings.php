@@ -43,13 +43,7 @@ function wp_seed_events_gutenberg_block_binding_value( $source_args, $block_inst
 }
 
 function wp_seed_events_gutenberg_block_binding_fields() {
-	return array(
-		'title',
-		'next_date',
-		'display_date',
-		'place',
-		'description',
-	);
+	return array_keys( wp_seed_events_dynamic_data_fields() );
 }
 
 function wp_seed_events_gutenberg_block_binding_event_id( $source_args, $block_instance ) {
