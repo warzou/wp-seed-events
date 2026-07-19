@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/context.php';
 
 /**
- * Load the Divi 5 text Dynamic Content sources when its public API exists.
+ * Load the Divi 5 Dynamic Content sources when its public API exists.
  */
 function wp_seed_events_divi_load_next_date() {
 	static $options = null;
@@ -26,11 +26,13 @@ function wp_seed_events_divi_load_next_date() {
 
 	require_once __DIR__ . '/class-dynamic-content-text.php';
 	require_once __DIR__ . '/class-dynamic-content-url.php';
+	require_once __DIR__ . '/class-dynamic-content-image.php';
 	require_once __DIR__ . '/class-dynamic-content-next-date.php';
 
 	if (
 		! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Text', false )
 		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_URL', false )
+		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Image', false )
 		|| ! class_exists( 'WP_Seed_Events_Divi_Dynamic_Content_Next_Date', false )
 	) {
 		return;
@@ -41,7 +43,7 @@ function wp_seed_events_divi_load_next_date() {
 	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
 		$type = (string) ( $definition['type'] ?? '' );
 
-		if ( ! in_array( $type, array( 'text', 'url' ), true ) ) {
+		if ( ! in_array( $type, array( 'text', 'url', 'image' ), true ) ) {
 			continue;
 		}
 
@@ -49,6 +51,12 @@ function wp_seed_events_divi_load_next_date() {
 			$option = new WP_Seed_Events_Divi_Dynamic_Content_Next_Date();
 		} elseif ( 'url' === $type ) {
 			$option = new WP_Seed_Events_Divi_Dynamic_Content_URL();
+
+			if ( ! $option->configure( $field ) ) {
+				continue;
+			}
+		} elseif ( 'image' === $type ) {
+			$option = new WP_Seed_Events_Divi_Dynamic_Content_Image();
 
 			if ( ! $option->configure( $field ) ) {
 				continue;

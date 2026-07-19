@@ -37,6 +37,12 @@ function wp_seed_events_gutenberg_block_binding_value( $source_args, $block_inst
 		return '';
 	}
 
+	$fields = wp_seed_events_dynamic_data_fields();
+
+	if ( 'image' === ( $fields[ $field ]['type'] ?? '' ) ) {
+		return wp_seed_events_dynamic_data_get_image_attribute( $field, $attribute_name, $event_id );
+	}
+
 	$value = wp_seed_events_dynamic_data_get_value( $field, $event_id );
 
 	return is_string( $value ) ? $value : '';

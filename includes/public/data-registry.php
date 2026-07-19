@@ -99,6 +99,12 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'url',
 			'description' => 'URL publique du document PDF complementaire.',
 		),
+		'communication_visual' => array(
+			'key'         => 'communication_visual',
+			'label'       => 'Visuel de communication',
+			'type'        => 'image',
+			'description' => 'Premier visuel de communication normalise.',
+		),
 	);
 }
 
@@ -148,7 +154,72 @@ function wp_seed_events_dynamic_data_multiline_text( $value ) {
 	return trim( implode( "\n", $lines ) );
 }
 
-// Les valeurs retournees sont des chaines texte destinees aux providers ; l'echappement final reste sous la responsabilite du point de rendu.
+/**
+ * Validate and normalize a public image object supplied by Event Data.
+ *
+ * @param mixed $value Candidate Event Data media object.
+ * @return array
+ */
+function wp_seed_events_dynamic_data_image_value( $value ) {
+	if ( ! is_array( $value ) ) {
+		return array();
+	}
+
+	$attachment_id = absint( $value['id'] ?? 0 );
+	$mime_type     = strtolower( trim( (string) ( $value['mime_type'] ?? '' ) ) );
+	$url           = wp_seed_events_sanitize_public_http_url( $value['url'] ?? '' );
+
+	if ( 0 === $attachment_id || 0 !== strpos( $mime_type, 'image/' ) || '' === $url ) {
+		return array();
+	}
+
+	return array(
+		'id'        => $attachment_id,
+		'url'       => $url,
+		'mime_type' => $mime_type,
+		'title'     => trim( wp_strip_all_tags( (string) ( $value['title'] ?? '' ), true ) ),
+		'alt'       => trim( wp_strip_all_tags( (string) ( $value['alt'] ?? '' ), true ) ),
+		'caption'   => trim( wp_strip_all_tags( (string) ( $value['caption'] ?? '' ), true ) ),
+		'width'     => isset( $value['width'] ) && is_numeric( $value['width'] ) ? absint( $value['width'] ) : null,
+		'height'    => isset( $value['height'] ) && is_numeric( $value['height'] ) ? absint( $value['height'] ) : null,
+		'filename'  => sanitize_file_name( wp_basename( str_replace( '\\', '/', (string) ( $value['filename'] ?? '' ) ) ) ),
+	);
+}
+
+/**
+ * Project one supported image attribute for a Dynamic Data consumer.
+ *
+ * @param string $field          Registry image field.
+ * @param string $attribute_name Consumer attribute name.
+ * @param int    $event_id       Event post ID.
+ * @param array  $context        Optional resolution context.
+ * @return int|string
+ */
+function wp_seed_events_dynamic_data_get_image_attribute( $field, $attribute_name, $event_id = 0, $context = array() ) {
+	$field          = sanitize_key( (string) $field );
+	$attribute_name = sanitize_key( (string) $attribute_name );
+	$fields         = wp_seed_events_dynamic_data_fields();
+
+	if (
+		! isset( $fields[ $field ] )
+		|| 'image' !== ( $fields[ $field ]['type'] ?? '' )
+		|| ! in_array( $attribute_name, array( 'id', 'url', 'alt', 'title', 'caption' ), true )
+	) {
+		return 'id' === $attribute_name ? 0 : '';
+	}
+
+	$image = wp_seed_events_dynamic_data_get_value( $field, $event_id, $context );
+
+	if ( ! is_array( $image ) || array() === $image ) {
+		return 'id' === $attribute_name ? 0 : '';
+	}
+
+	return 'id' === $attribute_name
+		? absint( $image['id'] ?? 0 )
+		: (string) ( $image[ $attribute_name ] ?? '' );
+}
+
+// Values are neutral registry projections; final escaping belongs to each rendering consumer.
 function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context = array() ) {
 	$field = sanitize_key( (string) $field );
 
@@ -200,6 +271,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return wp_seed_events_sanitize_public_http_url( $event['place_url'] ?? '' );
 		case 'event_document_url':
 			return wp_seed_events_sanitize_public_http_url( $event['event_document_url'] ?? '' );
+		case 'communication_visual':
+			return wp_seed_events_dynamic_data_image_value( $event['communication_visual'] ?? null );
 		default:
 			return '';
 	}

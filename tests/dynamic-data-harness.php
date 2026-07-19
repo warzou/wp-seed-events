@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone D0 assertions for Dynamic Data caching and Gutenberg contexts.
+ * Standalone assertions for Dynamic Data caching and Gutenberg contexts.
  *
  * Run with: php tests/dynamic-data-harness.php
  */
@@ -23,6 +23,14 @@ function absint( $value ) {
 
 function sanitize_key( $value ) {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
+}
+
+function sanitize_file_name( $value ) {
+	return basename( str_replace( '\\', '/', (string) $value ) );
+}
+
+function wp_basename( $value ) {
+	return basename( str_replace( '\\', '/', (string) $value ) );
 }
 
 function wp_strip_all_tags( $value ) {
@@ -147,6 +155,17 @@ function d0_event( $event_id, $title = '' ) {
 		'url'                     => 'https://example.test/events/event-' . (string) $event_id . '/',
 		'place_url'               => 'http://places.example.test/place-' . (string) $event_id . '/',
 		'event_document_url'      => 'https://cdn.example.test/programme-' . (string) $event_id . '.pdf',
+		'communication_visual'    => array(
+			'id'        => 9000 + $event_id,
+			'url'       => 'https://cdn.example.test/visual-' . (string) $event_id . '.jpg',
+			'mime_type' => 'image/jpeg',
+			'title'     => 'Visual ' . (string) $event_id,
+			'alt'       => 'Alt ' . (string) $event_id,
+			'caption'   => 'Caption ' . (string) $event_id,
+			'width'     => 1200,
+			'height'    => 800,
+			'filename'  => 'visual-' . (string) $event_id . '.jpg',
+		),
 	);
 }
 
@@ -212,6 +231,8 @@ function d0_uncached_value( $field, $event_id ) {
 		case 'place_url':
 		case 'event_document_url':
 			return wp_seed_events_sanitize_public_http_url( $event[ $field ] ?? '' );
+		case 'communication_visual':
+			return wp_seed_events_dynamic_data_image_value( $event['communication_visual'] ?? null );
 		default:
 			return '';
 	}
@@ -368,13 +389,15 @@ d0_case( 'cache preserves all existing values', function () {
 	}
 } );
 
-d0_case( 'registry declares the exact D2 keys once', function () {
+d0_case( 'registry declares the exact D3 keys once', function () {
 	$expected = array(
 		'title', 'types', 'next_date', 'next_time', 'display_date', 'display_time',
 		'place', 'place_address', 'description', 'excerpt', 'practical_info',
 		'event_document_filename', 'url', 'place_url', 'event_document_url',
+		'communication_visual',
 	);
-	$url_fields = array( 'url', 'place_url', 'event_document_url' );
+	$url_fields   = array( 'url', 'place_url', 'event_document_url' );
+	$image_fields = array( 'communication_visual' );
 	$fields     = wp_seed_events_dynamic_data_fields();
 	$keys       = array_keys( $fields );
 
@@ -384,7 +407,9 @@ d0_case( 'registry declares the exact D2 keys once', function () {
 
 	foreach ( $fields as $key => $definition ) {
 		d0_assert( $key === $definition['key'], 'registry key alias differs: ' . $key );
-		$expected_type = in_array( $key, $url_fields, true ) ? 'url' : 'text';
+		$expected_type = in_array( $key, $url_fields, true )
+			? 'url'
+			: ( in_array( $key, $image_fields, true ) ? 'image' : 'text' );
 		d0_assert( $expected_type === $definition['type'], 'wrong registry type: ' . $key );
 	}
 } );
@@ -465,6 +490,111 @@ d0_case( 'Gutenberg core button URL binding uses the existing source', function 
 		);
 	}
 } );
+d0_case( 'D3 valid communication visual preserves the neutral public object', function () {
+	d0_event( 131 );
+	$expected = array(
+		'id'        => 9131,
+		'url'       => 'https://cdn.example.test/visual-131.jpg',
+		'mime_type' => 'image/jpeg',
+		'title'     => 'Visual 131',
+		'alt'       => 'Alt 131',
+		'caption'   => 'Caption 131',
+		'width'     => 1200,
+		'height'    => 800,
+		'filename'  => 'visual-131.jpg',
+	);
+
+	d0_assert( $expected === wp_seed_events_dynamic_data_get_value( 'communication_visual', 131 ), 'valid image object differs' );
+} );
+
+d0_case( 'D3 absent and malformed media use an empty object', function () {
+	$cases = array(
+		132 => null,
+		133 => 'not-an-object',
+		134 => array( 'id' => 9134, 'url' => 'https://cdn.example.test/programme.pdf', 'mime_type' => 'application/pdf' ),
+		135 => array( 'id' => 9135, 'url' => '', 'mime_type' => 'image/jpeg' ),
+		136 => array( 'id' => 0, 'url' => 'https://cdn.example.test/visual.jpg', 'mime_type' => 'image/jpeg' ),
+		137 => array( 'id' => 9137, 'url' => 'javascript:alert(1)', 'mime_type' => 'image/jpeg' ),
+	);
+
+	foreach ( $cases as $event_id => $media ) {
+		d0_event( $event_id );
+		$GLOBALS['d0_events'][ $event_id ]['communication_visual'] = $media;
+		d0_assert( array() === wp_seed_events_dynamic_data_get_value( 'communication_visual', $event_id ), 'invalid image accepted: ' . (string) $event_id );
+	}
+} );
+
+d0_case( 'D3 optional image text never invents fallbacks', function () {
+	d0_event( 138 );
+	$GLOBALS['d0_events'][138]['communication_visual']['title']   = '';
+	$GLOBALS['d0_events'][138]['communication_visual']['alt']     = '';
+	$GLOBALS['d0_events'][138]['communication_visual']['caption'] = '';
+	$image = wp_seed_events_dynamic_data_get_value( 'communication_visual', 138 );
+
+	d0_assert( '' === $image['title'], 'empty title replaced' );
+	d0_assert( '' === $image['alt'], 'empty alt replaced' );
+	d0_assert( '' === $image['caption'], 'empty caption replaced' );
+} );
+
+d0_case( 'D3 never falls back to featured image', function () {
+	d0_event( 139 );
+	$GLOBALS['d0_events'][139]['communication_visual'] = null;
+	$GLOBALS['d0_events'][139]['featured_image'] = array(
+		'id' => 9999,
+		'url' => 'https://cdn.example.test/featured.jpg',
+		'mime_type' => 'image/jpeg',
+	);
+
+	d0_assert( array() === wp_seed_events_dynamic_data_get_value( 'communication_visual', 139 ), 'featured image fallback used' );
+} );
+
+d0_case( 'D3 SVG remains a URL-only image object without inline markup', function () {
+	d0_event( 140 );
+	$GLOBALS['d0_events'][140]['communication_visual'] = array(
+		'id' => 9140,
+		'url' => 'https://cdn.example.test/visual.svg',
+		'mime_type' => 'image/svg+xml',
+		'title' => '<svg>Visual</svg>',
+		'alt' => '<script>alert(1)</script>Safe',
+		'caption' => '<b>Caption</b>',
+		'width' => 640,
+		'height' => 480,
+		'filename' => '../../visual.svg',
+	);
+	$image = wp_seed_events_dynamic_data_get_value( 'communication_visual', 140 );
+
+	d0_assert( 'https://cdn.example.test/visual.svg' === $image['url'], 'SVG URL differs' );
+	d0_assert( false === strpos( implode( ' ', array_map( 'strval', $image ) ), '<' ), 'inline SVG or HTML survived' );
+	d0_assert( 'visual.svg' === $image['filename'], 'unsafe filename survived' );
+} );
+
+d0_case( 'Gutenberg core image receives each official attribute projection', function () {
+	d0_event( 141 );
+	$context = array( 'postId' => 141, 'postType' => 'wp_seed_event' );
+	$expected = array(
+		'id' => 9141,
+		'url' => 'https://cdn.example.test/visual-141.jpg',
+		'alt' => 'Alt 141',
+		'title' => 'Visual 141',
+		'caption' => 'Caption 141',
+	);
+
+	foreach ( $expected as $attribute => $value ) {
+		d0_assert( $value === d0_bind( 'communication_visual', $context, $attribute ), 'core/image projection differs: ' . $attribute );
+	}
+
+	d0_assert( '' === d0_bind( 'communication_visual', $context, 'content' ), 'image object serialized as text' );
+} );
+
+d0_case( 'Gutenberg image binding keeps incompatible draft and absent contexts empty', function () {
+	d0_event( 142 );
+	d0_post( 442, 'page' );
+	d0_post( 143, 'wp_seed_event', 'draft' );
+	$GLOBALS['d0_events'][143] = $GLOBALS['d0_events'][142];
+
+	d0_assert( '' === d0_bind( 'communication_visual', array( 'postId' => 442, 'postType' => 'page' ), 'url' ), 'page image leak' );
+	d0_assert( in_array( d0_bind( 'communication_visual', array( 'postId' => 143, 'postType' => 'wp_seed_event' ), 'id' ), array( '', 0 ), true ), 'draft image leak' );
+} );
 d0_case( 'multiline text special characters and HTML stay safe', function () {
 	d0_event( 113 );
 	$GLOBALS['d0_events'][113]['title']          = 'Été & cœur';
@@ -485,11 +615,19 @@ d0_case( 'multiline text special characters and HTML stay safe', function () {
 
 	foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
 		$value = wp_seed_events_dynamic_data_get_value( $field, 113 );
+
+		if ( is_array( $value ) ) {
+			foreach ( array( 'url', 'mime_type', 'title', 'alt', 'caption', 'filename' ) as $image_key ) {
+				d0_assert( false === strpos( (string) ( $value[ $image_key ] ?? '' ), '<' ), 'HTML found in image ' . $image_key );
+			}
+			continue;
+		}
+
 		d0_assert( false === strpos( $value, '<' ), 'HTML found in ' . $field );
 	}
 } );
 
-d0_case( 'all D2 fields share one cached Event Data result', function () {
+d0_case( 'all D3 fields share one cached Event Data result', function () {
 	d0_event( 114 );
 	$before = $GLOBALS['d0_data_calls'];
 
@@ -498,7 +636,7 @@ d0_case( 'all D2 fields share one cached Event Data result', function () {
 		wp_seed_events_dynamic_data_get_value( $field, 114 );
 	}
 
-	d0_assert( 1 === $GLOBALS['d0_data_calls'] - $before, 'D1 fields bypassed request cache' );
+	d0_assert( 1 === $GLOBALS['d0_data_calls'] - $before, 'D3 fields bypassed request cache' );
 } );
 
 d0_case( 'cache is isolated between PHP requests', function () {
@@ -530,7 +668,7 @@ d0_case( 'cache needs no external object cache', function () use ( $registry_sou
 	d0_assert( false === strpos( $registry_source, 'wp_cache_' ), 'object cache found' );
 } );
 
-d0_case( 'D1 adapters do not read storage or write data', function () {
+d0_case( 'D3 adapters do not read storage or write data', function () {
 	$paths = array(
 		dirname( __DIR__ ) . '/includes/public/event-data.php',
 		dirname( __DIR__ ) . '/includes/public/data-registry.php',
@@ -538,6 +676,7 @@ d0_case( 'D1 adapters do not read storage or write data', function () {
 		dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-text.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-url.php',
+		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-image.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-next-date.php',
 	);
 	$source = '';
@@ -618,6 +757,7 @@ d0_case( 'guard event Query Loop exposes every text binding', function () {
 		'url' => 'https://example.test/events/event-306/',
 		'place_url' => 'http://places.example.test/place-306/',
 		'event_document_url' => 'https://cdn.example.test/programme-306.pdf',
+		'communication_visual' => '',
 	) === $values, 'loop values' );
 } );
 
@@ -686,6 +826,9 @@ $d2_fields = array(
 );
 $d2_before = d0_benchmark( false, 80, $d2_fields, 200000 );
 $d2_after  = d0_benchmark( true, 80, $d2_fields, 200000 );
+$d3_fields = array_merge( $d2_fields, array( 'communication_visual' ) );
+$d3_before = d0_benchmark( false, 80, $d3_fields, 300000 );
+$d3_after  = d0_benchmark( true, 80, $d3_fields, 300000 );
 
 d0_assert( 42 === (int) $before['event_data_calls_request'], 'baseline benchmark calls' );
 d0_assert( 7 === (int) $after['event_data_calls_request'], 'cached benchmark calls' );
@@ -695,13 +838,18 @@ d0_assert( 105 === (int) $d2_before['event_data_calls_request'], 'D2 baseline be
 d0_assert( 7 === (int) $d2_after['event_data_calls_request'], 'D2 cached benchmark calls' );
 d0_assert( 525 === (int) $d2_before['occurrence_calls_request'], 'D2 baseline occurrence passes' );
 d0_assert( 35 === (int) $d2_after['occurrence_calls_request'], 'D2 cached occurrence passes' );
+d0_assert( 112 === (int) $d3_before['event_data_calls_request'], 'D3 baseline benchmark calls' );
+d0_assert( 7 === (int) $d3_after['event_data_calls_request'], 'D3 cached benchmark calls' );
+d0_assert( 560 === (int) $d3_before['occurrence_calls_request'], 'D3 baseline occurrence passes' );
+d0_assert( 35 === (int) $d3_after['occurrence_calls_request'], 'D3 cached occurrence passes' );
 
 echo 'BENCHMARK ' . wp_json_encode(
 	array(
 		'd0' => array( 'before' => $before, 'after' => $after ),
 		'd1' => array( 'before' => $d1_before, 'after' => $d1_after ),
 		'd2' => array( 'before' => $d2_before, 'after' => $d2_after ),
+		'd3' => array( 'before' => $d3_before, 'after' => $d3_after ),
 	),
 	JSON_UNESCAPED_SLASHES
 ) . PHP_EOL;
-echo 'PASS: ' . (string) $GLOBALS['d0_case_count'] . ' D0 cases.' . PHP_EOL;
+echo 'PASS: ' . (string) $GLOBALS['d0_case_count'] . ' Dynamic Data D3 cases.' . PHP_EOL;

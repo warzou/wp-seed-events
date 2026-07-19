@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone assertions for Divi text Dynamic Content sources.
+ * Standalone assertions for Divi Dynamic Content sources.
  *
  * Run with: php tests/divi-dynamic-content-harness.php
  */
@@ -47,6 +47,13 @@ namespace {
 		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
 	}
 
+	function sanitize_file_name( $value ) {
+		return basename( str_replace( '\\', '/', (string) $value ) );
+	}
+
+	function wp_basename( $value ) {
+		return basename( str_replace( '\\', '/', (string) $value ) );
+	}
 	function esc_html( $value ) {
 		return htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
 	}
@@ -151,6 +158,17 @@ namespace {
 			'url'                     => 'https://example.test/events/event-' . (string) $event_id . '/',
 			'place_url'               => 'http://places.example.test/place-' . (string) $event_id . '/',
 			'event_document_url'      => 'https://cdn.example.test/programme-' . (string) $event_id . '.pdf',
+			'communication_visual'    => array(
+				'id'        => 9000 + $event_id,
+				'url'       => 'https://cdn.example.test/visual-' . (string) $event_id . '.jpg',
+				'mime_type' => 'image/jpeg',
+				'title'     => 'Visual ' . (string) $event_id,
+				'alt'       => 'Alt ' . (string) $event_id,
+				'caption'   => 'Caption ' . (string) $event_id,
+				'width'     => 1200,
+				'height'    => 800,
+				'filename'  => 'visual-' . (string) $event_id . '.jpg',
+			),
 		);
 	}
 
@@ -193,7 +211,7 @@ namespace {
 	wp_seed_events_divi_load_next_date();
 	$sources = d1_divi_sources_by_name();
 
-	d1_divi_case( 'all registry text and URL sources load once', function () use ( $sources ) {
+	d1_divi_case( 'all registry Dynamic Content sources load once', function () use ( $sources ) {
 		$expected = array_map(
 			static function ( $field ) {
 				return 'wp_seed_events_' . $field;
@@ -220,8 +238,10 @@ namespace {
 			'event_document_filename' => 'Nom du document',
 			'url' => 'URL de l’événement', 'place_url' => 'URL du lieu',
 			'event_document_url' => 'URL du document',
+			'communication_visual' => 'Visuel de communication',
 		);
-		$url_fields = array( 'url', 'place_url', 'event_document_url' );
+		$url_fields   = array( 'url', 'place_url', 'event_document_url' );
+		$image_fields = array( 'communication_visual' );
 
 		foreach ( $expected_labels as $field => $label ) {
 			$name    = 'wp_seed_events_' . $field;
@@ -229,7 +249,9 @@ namespace {
 			d1_divi_assert( isset( $options[ $name ] ), 'missing option: ' . $name );
 			d1_divi_assert( 'WP Seed Events — ' . esc_html( $label ) === $options[ $name ]['label'], 'wrong label: ' . $name . ' got ' . $options[ $name ]['label'] . ' expected ' . 'WP Seed Events — ' . esc_html( $label ) );
 			d1_divi_assert( 'WP Seed Events' === $options[ $name ]['group'], 'wrong group: ' . $name );
-			$expected_type = in_array( $field, $url_fields, true ) ? 'url' : 'text';
+			$expected_type = in_array( $field, $url_fields, true )
+				? 'url'
+				: ( in_array( $field, $image_fields, true ) ? 'image' : 'text' );
 			d1_divi_assert( $expected_type === $options[ $name ]['type'], 'wrong type: ' . $name );
 			d1_divi_assert( $options === $sources[ $name ]->register_option_callback( $options, 914, 'content' ), 'option duplicated: ' . $name );
 		}
@@ -247,6 +269,72 @@ namespace {
 				'URL provider output differs: ' . $name
 			);
 		}
+	} );
+	d1_divi_case( 'communication visual uses one generic public image provider', function () use ( $sources ) {
+		$name   = 'wp_seed_events_communication_visual';
+		$source = $sources[ $name ];
+
+		d1_divi_assert( $source instanceof WP_Seed_Events_Divi_Dynamic_Content_Image, 'image provider class differs' );
+		d1_divi_assert(
+			'<span data-source="' . $name . '">https://cdn.example.test/visual-914.jpg</span>' === $source->render_callback(
+				'',
+				array( 'name' => $name, 'post_id' => 914 )
+			),
+			'image provider output differs'
+		);
+		$args = end( $GLOBALS['d1_divi_wrapper_args'] );
+		d1_divi_assert( 'https://cdn.example.test/visual-914.jpg' === $args['value'], 'Divi image wrapper did not receive a URL' );
+	} );
+
+	d1_divi_case( 'communication visual resolves page model and distinct events', function () use ( $sources ) {
+		global $wp_seed_events_public_event_id;
+		$name = 'wp_seed_events_communication_visual';
+		$wp_seed_events_public_event_id = 914;
+		$GLOBALS['d1_divi_current_id']  = 976;
+
+		d1_divi_assert(
+			'<span data-source="' . $name . '">https://cdn.example.test/visual-914.jpg</span>' === $sources[ $name ]->render_callback(
+				'',
+				array( 'name' => $name, 'post_id' => 976 )
+			),
+			'page model image differs'
+		);
+		d1_divi_assert(
+			'<span data-source="' . $name . '">https://cdn.example.test/visual-1011.jpg</span>' === $sources[ $name ]->render_callback(
+				'',
+				array( 'name' => $name, 'post_id' => 1011 )
+			),
+			'second event image differs'
+		);
+	} );
+
+	d1_divi_case( 'communication visual rejects absent PDF unsafe and featured fallbacks', function () use ( $sources ) {
+		$name = 'wp_seed_events_communication_visual';
+		$cases = array(
+			1113 => null,
+			1114 => array( 'id' => 9114, 'url' => 'https://cdn.example.test/programme.pdf', 'mime_type' => 'application/pdf' ),
+			1115 => array( 'id' => 9115, 'url' => 'javascript:alert(1)', 'mime_type' => 'image/jpeg' ),
+		);
+
+		foreach ( $cases as $event_id => $media ) {
+			d1_divi_event( $event_id, 'Invalid image' );
+			$GLOBALS['d1_divi_events'][ $event_id ]['communication_visual'] = $media;
+			$GLOBALS['d1_divi_events'][ $event_id ]['featured_image'] = array(
+				'id' => 9999,
+				'url' => 'https://cdn.example.test/featured.jpg',
+				'mime_type' => 'image/jpeg',
+			);
+			d1_divi_assert( '' === $sources[ $name ]->render_callback( '', array( 'name' => $name, 'post_id' => $event_id ) ), 'invalid image rendered: ' . (string) $event_id );
+		}
+	} );
+
+	d1_divi_case( 'communication visual stays empty on ordinary and draft contexts', function () use ( $sources ) {
+		global $wp_seed_events_public_event_id;
+		$name = 'wp_seed_events_communication_visual';
+		$wp_seed_events_public_event_id = 0;
+		$GLOBALS['d1_divi_current_id']  = 998;
+		d1_divi_assert( '' === $sources[ $name ]->render_callback( '', array( 'name' => $name, 'post_id' => 998 ) ), 'ordinary page image leak' );
+		d1_divi_assert( '' === $sources[ $name ]->render_callback( '', array( 'name' => $name, 'post_id' => 1057 ) ), 'draft image leak' );
 	} );
 	d1_divi_case( 'historical next date source remains compatible', function () use ( $sources ) {
 		$source = $sources['wp_seed_events_next_date'];
@@ -309,10 +397,15 @@ namespace {
 			'',
 			array( 'name' => 'wp_seed_events_place_url', 'post_id' => 1205, 'loop_id' => 1011 )
 		);
+		$image = $sources['wp_seed_events_communication_visual']->render_callback(
+			'',
+			array( 'name' => 'wp_seed_events_communication_visual', 'post_id' => 1205, 'loop_id' => 1011 )
+		);
 
 		d1_divi_assert( '<span data-source="wp_seed_events_title">Second event</span>' === $event_value, 'event loop value differs' );
 		d1_divi_assert( '<span data-source="wp_seed_events_url">https://example.test/events/event-1011/</span>' === $event_url, 'event loop URL differs' );
 		d1_divi_assert( '<span data-source="wp_seed_events_place_url">http://places.example.test/place-1011/</span>' === $place_url, 'place loop URL differs' );
+		d1_divi_assert( '<span data-source="wp_seed_events_communication_visual">https://cdn.example.test/visual-1011.jpg</span>' === $image, 'event loop image differs' );
 		d1_divi_assert( '' === $page_value, 'incompatible loop leaked the public event' );
 	} );
 
@@ -361,6 +454,7 @@ namespace {
 			dirname( __DIR__ ) . '/includes/integrations/divi/context.php',
 			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-text.php',
 			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-url.php',
+			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-image.php',
 			dirname( __DIR__ ) . '/includes/integrations/divi/class-dynamic-content-next-date.php',
 		);
 		$source = '';
@@ -373,5 +467,5 @@ namespace {
 		d1_divi_assert( false === strpos( $source, 'WP_Query' ), 'provider runs a query' );
 	} );
 
-	echo 'PASS: ' . (string) $GLOBALS['d1_divi_case_count'] . ' Divi D2 cases.' . PHP_EOL;
+	echo 'PASS: ' . (string) $GLOBALS['d1_divi_case_count'] . ' Divi D3 cases.' . PHP_EOL;
 }
