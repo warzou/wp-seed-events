@@ -73,9 +73,9 @@ Les consommateurs de cette API sont :
 - les shortcodes ;
 - le renderer public partage des dates ;
 - le registre Dynamic Data ;
-- le provider Gutenberg ;
-- un futur provider Divi ;
-- une future compatibilite Spectra ;
+- les providers Dynamic Content Divi 5 ;
+- la source Gutenberg Block Bindings ;
+- les blocs Gutenberg et les boucles Spectra ;
 - les futures boucles metier ;
 - une eventuelle REST API plus tard.
 
