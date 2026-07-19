@@ -43,6 +43,7 @@ require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/event-data.php';
+require_once __DIR__ . '/includes/public/people.php';
 require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/sharing.php';
 require_once __DIR__ . '/includes/public/rendering.php';
@@ -3119,12 +3120,14 @@ function wp_seed_events_sanitize_person( $person, $person_key = '' ) {
 		$person_key = wp_seed_events_person_key_from_name( $name );
 	}
 
+	$coordinates = wp_seed_events_normalize_person_coordinates( $person );
+
 	return array(
 		'person_key' => $person_key,
 		'name'       => $name,
-		'phone'      => isset( $person['phone'] ) ? sanitize_text_field( $person['phone'] ) : '',
-		'email'      => isset( $person['email'] ) ? sanitize_text_field( $person['email'] ) : '',
-		'link'       => isset( $person['link'] ) ? esc_url_raw( $person['link'] ) : '',
+		'phone'      => $coordinates['phone'],
+		'email'      => $coordinates['email'],
+		'link'       => $coordinates['link'],
 	);
 }
 
@@ -3227,11 +3230,22 @@ function wp_seed_events_update_person_in_events( $person_key, $person ) {
 				continue;
 			}
 
-			$contact['name']  = $person['name'];
-			$contact['phone'] = $person['phone'];
-			$contact['email'] = $person['email'];
-			$contact['link']  = $person['link'];
-			$has_changes      = true;
+			if ( (string) ( $contact['name'] ?? '' ) !== $person['name'] ) {
+				$contact['name'] = $person['name'];
+				$has_changes     = true;
+			}
+
+			$stored_coordinates = wp_seed_events_normalize_person_coordinates( $contact );
+
+			foreach ( wp_seed_events_contact_publication_fields() as $coordinate_key => $publication_key ) {
+				if ( $stored_coordinates[ $coordinate_key ] === $person[ $coordinate_key ] ) {
+					continue;
+				}
+
+				$contact[ $coordinate_key ]  = $person[ $coordinate_key ];
+				$contact[ $publication_key ] = false;
+				$has_changes                 = true;
+			}
 		}
 		unset( $contact );
 
@@ -3527,12 +3541,33 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 
 	wp_nonce_field( 'wp_seed_events_save_contacts', 'wp_seed_events_contacts_nonce' );
 	?>
+	<input type="hidden" name="wp_seed_event_people_changed" value="0" data-wp-seed-people-changed />
+	<input type="hidden" name="wp_seed_event_people_payload_present" value="1" />
 	<div data-wp-seed-people data-next-index="<?php echo esc_attr( (string) count( $contacts ) ); ?>" data-default-roles="<?php echo esc_attr( implode( ',', $default_roles ) ); ?>">
 		<div data-wp-seed-people-list>
 			<?php foreach ( $contacts as $index => $contact ) : ?>
 				<?php
 				if ( ! is_array( $contact ) || empty( $contact['name'] ) ) {
 					continue;
+				}
+
+				$publication_state  = wp_seed_events_contact_publication_state( $contact );
+				$publication_labels = array();
+
+				if ( $publication_state['publish_email'] ) {
+					$publication_labels[] = 'Email public';
+				}
+
+				if ( $publication_state['publish_phone'] ) {
+					$publication_labels[] = 'Téléphone public';
+				}
+
+				if ( $publication_state['publish_link'] ) {
+					$publication_labels[] = 'Lien public';
+				}
+
+				if ( array() === $publication_labels ) {
+					$publication_labels[] = 'Coordonnées privées';
 				}
 
 				$contact_role_keys = wp_seed_events_contact_role_keys( $contact, $roles );
@@ -3550,6 +3585,9 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 					<input type="hidden" data-wp-seed-person-field="phone" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][phone]" value="<?php echo esc_attr( $contact['phone'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-person-field="email" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][email]" value="<?php echo esc_attr( $contact['email'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-person-field="link" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][link]" value="<?php echo esc_attr( $contact['link'] ?? '' ); ?>" />
+					<input type="hidden" data-wp-seed-person-field="publish_email" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][publish_email]" value="<?php echo $publication_state['publish_email'] ? '1' : '0'; ?>" />
+					<input type="hidden" data-wp-seed-person-field="publish_phone" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][publish_phone]" value="<?php echo $publication_state['publish_phone'] ? '1' : '0'; ?>" />
+					<input type="hidden" data-wp-seed-person-field="publish_link" name="wp_seed_events_contacts[<?php echo esc_attr( (string) $index ); ?>][publish_link]" value="<?php echo $publication_state['publish_link'] ? '1' : '0'; ?>" />
 					<p style="margin: 0;">
 						<strong data-wp-seed-person-name><?php echo esc_html( wp_seed_events_contact_name( $contact ) ); ?></strong><br />
 						<span data-wp-seed-person-role-labels>
@@ -3557,6 +3595,7 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 								<span><?php echo esc_html( $role_label ); ?></span><br />
 							<?php endforeach; ?>
 						</span>
+						<span data-wp-seed-person-publication-status style="font-size: 12px;"><?php echo esc_html( implode( ' · ', $publication_labels ) ); ?></span><br />
 						<span style="font-size: 12px;">
 							<button type="button" class="button-link" data-wp-seed-person-edit>Modifier</button>
 							<span aria-hidden="true"> · </span>
@@ -3609,7 +3648,7 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 			<p>
 				<label>
 					Email (facultatif)<br />
-					<input type="text" data-wp-seed-person-panel-field="email" />
+					<input type="email" data-wp-seed-person-panel-field="email" />
 				</label>
 			</p>
 			<p>
@@ -3618,6 +3657,22 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 					<input type="url" data-wp-seed-person-panel-field="link" />
 				</label>
 			</p>
+			<fieldset data-wp-seed-person-publication>
+				<legend>Publication sur la fiche publique</legend>
+				<p id="wp-seed-person-publication-help">Les coordonnées restent privées tant que leur publication n’est pas autorisée pour cet événement.</p>
+				<p data-wp-seed-person-publication-field="publish_email" hidden>
+					<input id="wp-seed-person-publish-email" type="checkbox" data-wp-seed-person-panel-publication="publish_email" aria-describedby="wp-seed-person-publication-help" disabled />
+					<label for="wp-seed-person-publish-email">Afficher cet email sur la fiche publique de cet événement</label>
+				</p>
+				<p data-wp-seed-person-publication-field="publish_phone" hidden>
+					<input id="wp-seed-person-publish-phone" type="checkbox" data-wp-seed-person-panel-publication="publish_phone" aria-describedby="wp-seed-person-publication-help" disabled />
+					<label for="wp-seed-person-publish-phone">Afficher ce téléphone sur la fiche publique de cet événement</label>
+				</p>
+				<p data-wp-seed-person-publication-field="publish_link" hidden>
+					<input id="wp-seed-person-publish-link" type="checkbox" data-wp-seed-person-panel-publication="publish_link" aria-describedby="wp-seed-person-publication-help" disabled />
+					<label for="wp-seed-person-publish-link">Afficher ce lien sur la fiche publique de cet événement</label>
+				</p>
+			</fieldset>
 			<fieldset>
 				<legend>Rôles pour cet évènement</legend>
 				<?php foreach ( $roles as $role_value => $role_label ) : ?>
@@ -3632,10 +3687,22 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 				<button type="button" class="button" data-wp-seed-person-cancel>Annuler</button>
 			</p>
 		</div>
+		<p class="screen-reader-text" data-wp-seed-person-publication-live aria-live="polite" aria-atomic="true"></p>
+		<style>
+			[data-wp-seed-people] input[type="checkbox"]:focus-visible,
+			[data-wp-seed-people] button:focus-visible {
+				outline: 2px solid #2271b1;
+				outline-offset: 2px;
+			}
+		</style>
 	</div>
 	<?php
 }
 function wp_seed_events_save_contacts( $post_id ) {
+	if ( 'wp_seed_event' !== get_post_type( $post_id ) ) {
+		return;
+	}
+
 	if ( ! isset( $_POST['wp_seed_events_contacts_nonce'] ) ) {
 		return;
 	}
@@ -3650,16 +3717,29 @@ function wp_seed_events_save_contacts( $post_id ) {
 		return;
 	}
 
+	if ( wp_is_post_revision( $post_id ) ) {
+		return;
+	}
+
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
 	}
 
-	$raw_contacts    = isset( $_POST['wp_seed_events_contacts'] ) && is_array( $_POST['wp_seed_events_contacts'] ) ? wp_unslash( $_POST['wp_seed_events_contacts'] ) : array();
-	$available_roles = wp_seed_events_contact_roles();
-	$people          = wp_seed_events_stored_people();
-	$contacts        = array();
+	if ( ! wp_seed_events_people_submission_has_complete_payload( $_POST ) ) {
+		return;
+	}
 
-	foreach ( $raw_contacts as $raw_contact ) {
+	$raw_contacts      = isset( $_POST['wp_seed_events_contacts'] ) && is_array( $_POST['wp_seed_events_contacts'] ) ? wp_unslash( $_POST['wp_seed_events_contacts'] ) : array();
+	$existing_contacts = get_post_meta( $post_id, '_wp_seed_event_contacts', true );
+	$available_roles   = wp_seed_events_contact_roles();
+	$people            = wp_seed_events_stored_people();
+	$contacts          = array();
+
+	if ( ! is_array( $existing_contacts ) ) {
+		$existing_contacts = array();
+	}
+
+	foreach ( $raw_contacts as $raw_index => $raw_contact ) {
 		if ( ! is_array( $raw_contact ) ) {
 			continue;
 		}
@@ -3682,10 +3762,7 @@ function wp_seed_events_save_contacts( $post_id ) {
 			}
 		}
 
-		$name  = isset( $raw_contact['name'] ) ? sanitize_text_field( $raw_contact['name'] ) : '';
-		$phone = isset( $raw_contact['phone'] ) ? sanitize_text_field( $raw_contact['phone'] ) : '';
-		$email = isset( $raw_contact['email'] ) ? sanitize_text_field( $raw_contact['email'] ) : '';
-		$link  = isset( $raw_contact['link'] ) ? esc_url_raw( $raw_contact['link'] ) : '';
+		$name = isset( $raw_contact['name'] ) ? sanitize_text_field( $raw_contact['name'] ) : '';
 
 		if ( '' === $name ) {
 			continue;
@@ -3706,22 +3783,42 @@ function wp_seed_events_save_contacts( $post_id ) {
 			$person_key = wp_seed_events_person_key_from_name( $name, $people );
 		}
 
+		$submitted_contact = array_merge(
+			$raw_contact,
+			array(
+				'person_key' => $person_key,
+				'name'       => $name,
+			)
+		);
+		$existing_contact = isset( $existing_contacts[ $raw_index ] ) && is_array( $existing_contacts[ $raw_index ] )
+			? $existing_contacts[ $raw_index ]
+			: array();
+		$is_existing_association = wp_seed_events_contacts_identify_same_association( $submitted_contact, $existing_contact );
+		$publication             = wp_seed_events_normalize_contact_publication_for_storage(
+			$submitted_contact,
+			$existing_contact,
+			$is_existing_association
+		);
+
 		$people[ $person_key ] = array(
 			'person_key' => $person_key,
 			'name'       => $name,
-			'phone'      => $phone,
-			'email'      => $email,
-			'link'       => $link,
+			'phone'      => $publication['phone'],
+			'email'      => $publication['email'],
+			'link'       => $publication['link'],
 		);
 
 		$contacts[] = array(
-			'person_key' => $person_key,
-			'role'       => $contact_roles[0] ?? '',
-			'roles'      => $contact_roles,
-			'name'       => $name,
-			'phone'      => $phone,
-			'email'      => $email,
-			'link'       => $link,
+			'person_key'    => $person_key,
+			'role'          => $contact_roles[0] ?? '',
+			'roles'         => $contact_roles,
+			'name'          => $name,
+			'phone'         => $publication['phone'],
+			'email'         => $publication['email'],
+			'link'          => $publication['link'],
+			'publish_email' => $publication['publish_email'],
+			'publish_phone' => $publication['publish_phone'],
+			'publish_link'  => $publication['publish_link'],
 		);
 	}
 
@@ -4613,24 +4710,55 @@ JS
 		'jquery',
 		<<<'JS'
 jQuery(function($){
+	var publicationConfig={
+		publish_email:{
+			coordinate:'email',
+			message:'La publication de l’email a été désactivée après sa modification.'
+		},
+		publish_phone:{
+			coordinate:'phone',
+			message:'La publication du téléphone a été désactivée après sa modification.'
+		},
+		publish_link:{
+			coordinate:'link',
+			message:'La publication du lien a été désactivée après sa modification.'
+		}
+	};
+
 	function root(element){
 		return $(element).closest('[data-wp-seed-people]');
 	}
 
-	function panel(root){
-		return root.find('[data-wp-seed-person-panel]');
+	function panel(peopleRoot){
+		return peopleRoot.find('[data-wp-seed-person-panel]');
 	}
 
-	function field(panel,key){
-		return panel.find('[data-wp-seed-person-panel-field="'+key+'"]');
+	function markChanged(peopleRoot){
+		peopleRoot.closest('form').find('[data-wp-seed-people-changed]').val('1');
+	}
+
+	function announce(peopleRoot,message){
+		var live=peopleRoot.find('[data-wp-seed-person-publication-live]');
+		live.text('');
+		window.setTimeout(function(){
+			live.text(message);
+		},0);
+	}
+
+	function field(personPanel,key){
+		return personPanel.find('[data-wp-seed-person-panel-field="'+key+'"]');
+	}
+
+	function publicationField(personPanel,key){
+		return personPanel.find('[data-wp-seed-person-panel-publication="'+key+'"]');
 	}
 
 	function roleFields(personPanel){
 		return personPanel.find('[data-wp-seed-person-panel-role]');
 	}
 
-	function refreshEmpty(root){
-		root.find('[data-wp-seed-people-empty]').prop('hidden',root.find('[data-wp-seed-person-item]').length>0);
+	function refreshEmpty(peopleRoot){
+		peopleRoot.find('[data-wp-seed-people-empty]').prop('hidden',peopleRoot.find('[data-wp-seed-person-item]').length>0);
 	}
 
 	function roleLabel(value){
@@ -4673,8 +4801,8 @@ jQuery(function($){
 		return roles;
 	}
 
-	function defaultRoles(root){
-		return String(root.attr('data-default-roles')||'').split(',').filter(function(role){
+	function defaultRoles(peopleRoot){
+		return String(peopleRoot.attr('data-default-roles')||'').split(',').filter(function(role){
 			return ''!==role;
 		});
 	}
@@ -4686,21 +4814,111 @@ jQuery(function($){
 		});
 	}
 
+	function isAuthorized(value){
+		return true===value||1===value||'1'===String(value);
+	}
+
+	function validEmail(value){
+		value=String(value||'').trim();
+		return ''!==value&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+	}
+
+	function validPhone(value){
+		value=String(value||'').trim();
+		if(''===value||!(/^\+?[0-9\s().\/-]+$/).test(value)){
+			return false;
+		}
+		var digits=value.replace(/\D+/g,'');
+		return digits.length>=6&&digits.length<=15;
+	}
+
+	function validLink(value){
+		value=String(value||'').trim();
+		if(''===value){
+			return false;
+		}
+		try{
+			var parsed=new URL(value);
+			return ('http:'===parsed.protocol||'https:'===parsed.protocol)&&''!==parsed.hostname;
+		}catch(error){
+			return false;
+		}
+	}
+
+	function coordinateIsValid(key,value){
+		if('email'===key){
+			return validEmail(value);
+		}
+		if('phone'===key){
+			return validPhone(value);
+		}
+		return validLink(value);
+	}
+
+	function normalizeCoordinate(key,value){
+		value=String(value||'').trim();
+		if('phone'===key){
+			return value.replace(/\s+/g,' ');
+		}
+		return value;
+	}
+
 	function readItem(item){
 		return{
-			person_key:item.find('[data-wp-seed-person-field="person_key"]').val(),
+			person_key:item.find('[data-wp-seed-person-field="person_key"]').val()||'',
 			roles:readRoles(item),
-			name:item.find('[data-wp-seed-person-field="name"]').val(),
-			phone:item.find('[data-wp-seed-person-field="phone"]').val(),
-			email:item.find('[data-wp-seed-person-field="email"]').val(),
-			link:item.find('[data-wp-seed-person-field="link"]').val()
+			name:item.find('[data-wp-seed-person-field="name"]').val()||'',
+			phone:item.find('[data-wp-seed-person-field="phone"]').val()||'',
+			email:item.find('[data-wp-seed-person-field="email"]').val()||'',
+			link:item.find('[data-wp-seed-person-field="link"]').val()||'',
+			publish_email:item.find('[data-wp-seed-person-field="publish_email"]').val()||'0',
+			publish_phone:item.find('[data-wp-seed-person-field="publish_phone"]').val()||'0',
+			publish_link:item.find('[data-wp-seed-person-field="publish_link"]').val()||'0'
 		};
+	}
+
+	function normalizedItem(data){
+		return{
+			person_key:String(data.person_key||''),
+			roles:$.map(data.roles||[],function(role){return String(role);}),
+			name:String(data.name||''),
+			phone:String(data.phone||''),
+			email:String(data.email||''),
+			link:String(data.link||''),
+			publish_email:isAuthorized(data.publish_email)?'1':'0',
+			publish_phone:isAuthorized(data.publish_phone)?'1':'0',
+			publish_link:isAuthorized(data.publish_link)?'1':'0'
+		};
+	}
+
+	function itemsEqual(first,second){
+		return JSON.stringify(normalizedItem(first))===JSON.stringify(normalizedItem(second));
+	}
+
+	function publicationLabels(data){
+		var labels=[];
+		if(isAuthorized(data.publish_email)){
+			labels.push('Email public');
+		}
+		if(isAuthorized(data.publish_phone)){
+			labels.push('Téléphone public');
+		}
+		if(isAuthorized(data.publish_link)){
+			labels.push('Lien public');
+		}
+		return labels.length?labels:['Coordonnées privées'];
+	}
+
+	function writePublicationStatus(item,data){
+		item.find('[data-wp-seed-person-publication-status]').text(publicationLabels(data).join(' · '));
 	}
 
 	function writeItem(item,data){
 		var roles=data.roles||[];
 		var rolesContainer=item.find('[data-wp-seed-person-roles]');
-		var index=item.find('[data-wp-seed-person-field="name"]').attr('name').match(/wp_seed_events_contacts\[(\d+)\]/)[1];
+		var nameInput=item.find('[data-wp-seed-person-field="name"]');
+		var nameMatch=String(nameInput.attr('name')||'').match(/wp_seed_events_contacts\[(\d+)\]/);
+		var index=nameMatch?nameMatch[1]:'0';
 
 		item.find('[data-wp-seed-person-field="person_key"]').val(data.person_key||'');
 		item.find('[data-wp-seed-person-field="role"]').val(roles[0]||'');
@@ -4708,12 +4926,15 @@ jQuery(function($){
 		$.each(roles,function(_,role){
 			rolesContainer.append($('<input type="hidden" data-wp-seed-person-role />').attr('name','wp_seed_events_contacts['+index+'][roles][]').val(role));
 		});
-		item.find('[data-wp-seed-person-field="name"]').val(data.name);
-		item.find('[data-wp-seed-person-field="phone"]').val(data.phone);
-		item.find('[data-wp-seed-person-field="email"]').val(data.email);
-		item.find('[data-wp-seed-person-field="link"]').val(data.link);
+		$.each(['name','phone','email','link'],function(_,key){
+			item.find('[data-wp-seed-person-field="'+key+'"]').val(data[key]||'');
+		});
+		$.each(publicationConfig,function(key){
+			item.find('[data-wp-seed-person-field="'+key+'"]').val(isAuthorized(data[key])?'1':'0');
+		});
 		item.find('[data-wp-seed-person-name]').text(data.name||'Personne sans nom');
 		writeRoleLabels(item,roles);
+		writePublicationStatus(item,data);
 	}
 
 	function createItem(index,data){
@@ -4721,7 +4942,7 @@ jQuery(function($){
 		item.append($('<input type="hidden" />').attr('name','wp_seed_events_contacts['+index+'][person_key]').attr('data-wp-seed-person-field','person_key'));
 		item.append($('<input type="hidden" />').attr('name','wp_seed_events_contacts['+index+'][role]').attr('data-wp-seed-person-field','role'));
 		item.append($('<span data-wp-seed-person-roles></span>'));
-		$.each(['name','phone','email','link'],function(_,key){
+		$.each(['name','phone','email','link','publish_email','publish_phone','publish_link'],function(_,key){
 			item.append($('<input type="hidden" />').attr('name','wp_seed_events_contacts['+index+']['+key+']').attr('data-wp-seed-person-field',key));
 		});
 		item.append(
@@ -4729,6 +4950,8 @@ jQuery(function($){
 				.append($('<strong data-wp-seed-person-name></strong>'))
 				.append('<br />')
 				.append($('<span data-wp-seed-person-role-labels></span>'))
+				.append($('<span data-wp-seed-person-publication-status></span>').css('fontSize','12px'))
+				.append('<br />')
 				.append($('<span></span>').css('fontSize','12px').append($('<button type="button" class="button-link" data-wp-seed-person-edit>Modifier</button>')).append(' · ').append($('<button type="button" class="button-link-delete" data-wp-seed-person-remove>Supprimer</button>')))
 		);
 		writeItem(item,data);
@@ -4743,13 +4966,70 @@ jQuery(function($){
 		field(personPanel,'link').val(data.link||'');
 	}
 
-	function openPanel(root,item){
-		var personPanel=panel(root);
-		var data=item?readItem(item):{person_key:'',roles:defaultRoles(root),name:'',phone:'',email:'',link:''};
+	function writePanelPublication(personPanel,data){
+		$.each(publicationConfig,function(key){
+			publicationField(personPanel,key).prop('checked',isAuthorized(data[key]));
+		});
+	}
+
+	function refreshPublicationControl(personPanel,key){
+		var config=publicationConfig[key];
+		var checkbox=publicationField(personPanel,key);
+		var wrapper=personPanel.find('[data-wp-seed-person-publication-field="'+key+'"]');
+		var valid=coordinateIsValid(config.coordinate,field(personPanel,config.coordinate).val());
+		var revoked=personPanel.data('wpSeedPublicationRevoked')||{};
+		var disabled=!valid||true===revoked[key];
+
+		if(!valid||true===revoked[key]){
+			checkbox.prop('checked',false);
+		}
+		wrapper.prop('hidden',!valid);
+		checkbox.prop('disabled',disabled);
+	}
+
+	function refreshPublicationControls(personPanel){
+		$.each(publicationConfig,function(key){
+			refreshPublicationControl(personPanel,key);
+		});
+	}
+
+	function readPanel(personPanel){
+		var data={
+			person_key:field(personPanel,'person_key').val()||'',
+			name:field(personPanel,'name').val()||'',
+			phone:field(personPanel,'phone').val()||'',
+			email:field(personPanel,'email').val()||'',
+			link:field(personPanel,'link').val()||'',
+			roles:readPanelRoles(personPanel)
+		};
+		$.each(publicationConfig,function(key){
+			var checkbox=publicationField(personPanel,key);
+			data[key]=!checkbox.prop('disabled')&&checkbox.prop('checked')?'1':'0';
+		});
+		return data;
+	}
+
+	function openPanel(peopleRoot,item){
+		var personPanel=panel(peopleRoot);
+		var data=item?readItem(item):{
+			person_key:'',
+			roles:defaultRoles(peopleRoot),
+			name:'',
+			phone:'',
+			email:'',
+			link:'',
+			publish_email:'0',
+			publish_phone:'0',
+			publish_link:'0'
+		};
 		personPanel.data('wpSeedPersonItem',item||null);
+		personPanel.data('wpSeedOriginalData',$.extend(true,{},data));
+		personPanel.data('wpSeedPublicationRevoked',{});
 		personPanel.find('[data-wp-seed-person-panel-title]').text(item?'Modifier la personne':'Ajouter une personne');
 		fillReusableFields(personPanel,data);
 		writePanelRoles(personPanel,data.roles||[]);
+		writePanelPublication(personPanel,data);
+		refreshPublicationControls(personPanel);
 		personPanel.prop('hidden',false);
 		field(personPanel,'name').trigger('focus');
 	}
@@ -4767,26 +5047,67 @@ jQuery(function($){
 
 	$(document).on('click','[data-wp-seed-reusable-suggestion]',function(e){
 		e.preventDefault();
-		fillReusableFields(panel(root(this)),{
-			person_key:$(this).data('wp-seed-suggestion-key'),
-			name:$(this).data('wp-seed-suggestion-name'),
-			phone:$(this).data('wp-seed-suggestion-phone'),
-			email:$(this).data('wp-seed-suggestion-email'),
-			link:$(this).data('wp-seed-suggestion-link')
-		});
+		var peopleRoot=root(this);
+		var personPanel=panel(peopleRoot);
+		var original=personPanel.data('wpSeedOriginalData')||{};
+		var suggestion={
+			person_key:String($(this).data('wp-seed-suggestion-key')||''),
+			name:String($(this).data('wp-seed-suggestion-name')||''),
+			phone:String($(this).data('wp-seed-suggestion-phone')||''),
+			email:String($(this).data('wp-seed-suggestion-email')||''),
+			link:String($(this).data('wp-seed-suggestion-link')||'')
+		};
+		var samePerson=suggestion.person_key&&suggestion.person_key===String(original.person_key||'');
+
+		fillReusableFields(personPanel,suggestion);
+		if(!samePerson){
+			writePanelPublication(personPanel,{publish_email:'0',publish_phone:'0',publish_link:'0'});
+		}
+		personPanel.data('wpSeedPublicationRevoked',{});
+		refreshPublicationControls(personPanel);
+	});
+
+	$(document).on('input change','[data-wp-seed-person-panel-field="phone"],[data-wp-seed-person-panel-field="email"],[data-wp-seed-person-panel-field="link"]',function(){
+		var peopleRoot=root(this);
+		var personPanel=panel(peopleRoot);
+		var item=personPanel.data('wpSeedPersonItem');
+		var coordinate=$(this).attr('data-wp-seed-person-panel-field');
+		var original=personPanel.data('wpSeedOriginalData')||{};
+		var revoked=personPanel.data('wpSeedPublicationRevoked')||{};
+		var publicationKey='publish_'+coordinate;
+		var changed=!!item&&normalizeCoordinate(coordinate,$(this).val())!==normalizeCoordinate(coordinate,original[coordinate]);
+
+		if(changed&&!revoked[publicationKey]){
+			revoked[publicationKey]=true;
+			personPanel.data('wpSeedPublicationRevoked',revoked);
+			publicationField(personPanel,publicationKey).prop('checked',false);
+			announce(peopleRoot,publicationConfig[publicationKey].message);
+		}
+		if(!changed&&revoked[publicationKey]){
+			revoked[publicationKey]=false;
+			personPanel.data('wpSeedPublicationRevoked',revoked);
+		}
+		refreshPublicationControl(personPanel,publicationKey);
 	});
 
 	$(document).on('click','[data-wp-seed-person-save]',function(e){
 		e.preventDefault();
 		var peopleRoot=root(this);
 		var personPanel=panel(peopleRoot);
-		var data={person_key:field(personPanel,'person_key').val(),name:field(personPanel,'name').val(),phone:field(personPanel,'phone').val(),email:field(personPanel,'email').val(),link:field(personPanel,'link').val(),roles:readPanelRoles(personPanel)};
+		var data=readPanel(personPanel);
 		var item=personPanel.data('wpSeedPersonItem');
+
 		if(!data.name){
 			field(personPanel,'name').trigger('focus');
 			return;
 		}
+
 		if(item){
+			var previous=readItem(item);
+			if(itemsEqual(previous,data)){
+				personPanel.prop('hidden',true);
+				return;
+			}
 			writeItem(item,data);
 		}else{
 			var index=parseInt(peopleRoot.attr('data-next-index'),10)||0;
@@ -4794,6 +5115,8 @@ jQuery(function($){
 			peopleRoot.attr('data-next-index',index+1);
 			peopleRoot.find('[data-wp-seed-people-list]').append(item);
 		}
+
+		markChanged(peopleRoot);
 		personPanel.prop('hidden',true);
 		refreshEmpty(peopleRoot);
 	});
@@ -4806,7 +5129,12 @@ jQuery(function($){
 	$(document).on('click','[data-wp-seed-person-remove]',function(e){
 		e.preventDefault();
 		var peopleRoot=root(this);
-		$(this).closest('[data-wp-seed-person-item]').remove();
+		var item=$(this).closest('[data-wp-seed-person-item]');
+		if(!item.length){
+			return;
+		}
+		item.remove();
+		markChanged(peopleRoot);
 		refreshEmpty(peopleRoot);
 	});
 });

@@ -33,34 +33,6 @@ function wp_seed_events_public_event_place_data( $post_id ) {
 	);
 }
 
-function wp_seed_events_public_event_people_data( $post_id ) {
-	$contacts = get_post_meta( $post_id, '_wp_seed_event_contacts', true );
-
-	if ( ! is_array( $contacts ) ) {
-		return array();
-	}
-
-	$roles  = wp_seed_events_contact_roles();
-	$people = array();
-
-	foreach ( $contacts as $contact ) {
-		if ( ! is_array( $contact ) || empty( $contact['name'] ) ) {
-			continue;
-		}
-
-		$people[] = array(
-			'person_key' => wp_seed_events_contact_person_key( $contact ),
-			'name'       => wp_seed_events_contact_name( $contact ),
-			'role_keys'  => wp_seed_events_contact_role_keys( $contact, $roles ),
-			'roles'      => wp_seed_events_contact_role_labels( $contact, $roles ),
-			'phone'      => isset( $contact['phone'] ) ? (string) $contact['phone'] : '',
-			'email'      => isset( $contact['email'] ) ? (string) $contact['email'] : '',
-			'link'       => isset( $contact['link'] ) ? (string) $contact['link'] : '',
-		);
-	}
-
-	return $people;
-}
 
 function wp_seed_events_public_event_excerpt( $content ) {
 	$content = wp_strip_all_tags( strip_shortcodes( (string) $content ) );
