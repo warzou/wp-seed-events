@@ -916,26 +916,72 @@ function wp_seed_events_event_visuals_shortcode( $atts ) {
 	);
 }
 
+function wp_seed_events_event_people_shortcode_event_id( $raw_atts ) {
+	if ( is_array( $raw_atts ) && array_key_exists( 'id', $raw_atts ) ) {
+		if ( ! is_scalar( $raw_atts['id'] ) ) {
+			return 0;
+		}
+
+		$raw_id = trim( (string) $raw_atts['id'] );
+
+		if ( '' === $raw_id || ! preg_match( '/^[0-9]+$/', $raw_id ) ) {
+			return 0;
+		}
+
+		$post_id = absint( $raw_id );
+
+		return $post_id > 0 ? $post_id : 0;
+	}
+
+	return wp_seed_events_public_shortcode_event_id( 0 );
+}
+
 function wp_seed_events_event_people_shortcode( $atts ) {
-	$atts = shortcode_atts(
+	$raw_atts = is_array( $atts ) ? $atts : array();
+	$atts     = shortcode_atts(
 		array(
-			'id'      => 0,
-			'role'    => 'all',
-			'details' => 'yes',
+			'id'            => 0,
+			'role'          => 'all',
+			'details'       => 'yes',
+			'title'         => 'Contacts et intervenants',
+			'heading_level' => 'h2',
+			'show_roles'    => 'yes',
+			'show_email'    => 'yes',
+			'show_phone'    => 'yes',
+			'show_link'     => 'yes',
+			'layout'        => 'list',
 		),
-		$atts,
+		$raw_atts,
 		'wp_seed_event_people'
 	);
 
-	$event = wp_seed_events_public_event_for_shortcode( $atts['id'] );
+	$post_id = wp_seed_events_event_people_shortcode_event_id( $raw_atts );
 
-	return wp_seed_events_render_public_event_people_section(
-		$event,
-		array(
-			'role'    => wp_seed_events_public_people_role_option( $atts['role'] ),
-			'details' => wp_seed_events_public_yes_no_option( $atts['details'], true ),
-		)
+	if ( 0 === $post_id ) {
+		return '';
+	}
+
+	$event = wp_seed_events_public_event_data( $post_id );
+
+	if ( array() === $event ) {
+		return '';
+	}
+
+	$options = array(
+		'title'         => is_scalar( $atts['title'] ) ? (string) $atts['title'] : 'Contacts et intervenants',
+		'heading_level' => wp_seed_events_public_heading_level_option( $atts['heading_level'] ),
+		'role'          => wp_seed_events_public_people_role_option( $atts['role'] ),
+		'details'       => wp_seed_events_public_yes_no_option( $atts['details'], true ),
+		'layout'        => wp_seed_events_public_event_people_layout_option( $atts['layout'] ),
 	);
+
+	foreach ( array( 'show_roles', 'show_email', 'show_phone', 'show_link' ) as $option_key ) {
+		if ( array_key_exists( $option_key, $raw_atts ) ) {
+			$options[ $option_key ] = wp_seed_events_public_yes_no_option( $atts[ $option_key ], true );
+		}
+	}
+
+	return wp_seed_events_render_public_event_people_section( $event, $options );
 }
 
 function wp_seed_events_event_place_shortcode( $atts ) {
