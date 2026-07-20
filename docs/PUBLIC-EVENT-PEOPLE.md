@@ -6,7 +6,7 @@ Le composant public Personnes affiche les personnes associees a un evenement, le
 
 La chaine de reference est :
 
-`association Personne-evenement -> Event Data publique filtree -> renderer partage Personnes -> shortcode et template natif`.
+`association Personne-evenement -> Event Data publique filtree -> renderer partage Personnes -> shortcode, template natif et adaptateur Divi`.
 
 Les consommateurs ne lisent ni les metas privees, ni le registre global des personnes. Ils recoivent un resultat Event Data deja filtre.
 
@@ -139,6 +139,42 @@ Le template natif `templates/event-single.php` ne reconstruit plus la section Pe
 
 Le template n'ajoute aucun fallback vers les donnees privees et ne produit aucune section lorsque l'evenement n'a pas de personne publique valide.
 
+## P4 : module Divi 5
+
+Le module Divi est enregistre sous l'identifiant :
+
+```text
+wp-seed-events/event-people
+```
+
+Il apparait dans le dossier `WP Seed Events` sous le libelle `WP Seed - Personnes de l'evenement`. Il reste un adaptateur fin : la resolution du contexte charge Event Data une fois, puis le rendu frontend est entierement delegue au renderer partage Personnes.
+
+Le module propose huit reglages de contenu :
+
+| Reglage | Defaut |
+| --- | --- |
+| Titre | `Contacts et intervenants` |
+| Niveau du titre | `h2` |
+| Role affiche | tous les roles |
+| Afficher les roles | oui |
+| Afficher les emails autorises | oui |
+| Afficher les telephones autorises | oui |
+| Afficher les liens autorises | oui |
+| Mise en page | liste |
+
+Les quatre filtres de role canoniques et les dispositions `list` et `grid` utilisent les memes options que le renderer. Le module ne reconstruit aucun HTML metier et n'utilise ni shortcode, ni ID d'evenement fixe, ni meta privee.
+
+La resolution P4 active `strict_post` uniquement pour ce module :
+
+- un contexte evenement explicite valide est utilise ;
+- un ID explicite invalide ou un type de post incompatible retourne une sortie vide ;
+- aucun fallback vers l'evenement public global n'est autorise lorsqu'un contexte post explicite a ete fourni ;
+- le contexte public implicite reste disponible pour la fiche evenement, la page modele et le Loop Builder.
+
+Le Visual Builder affiche un etat neutre sans coordonnee : `Apercu disponible sur le frontend dans un contexte evenement.` Le module est selectionnable, enregistrable et persistant dans Divi 5. Il n'ajoute aucune route REST Personnes ; son chargement et son enregistrement suivent le mecanisme de modules Divi deja utilise par Dates et Visuels.
+
+En frontend, un contexte sans personne valide ne produit aucun wrapper. Les coordonnees peuvent etre masquees par les options du module, mais celui-ci ne peut jamais rendre une coordonnee absente de l'Event Data publique filtree.
+
 ## Confidentialite
 
 Le controle de confidentialite est applique avant le renderer, dans la projection Event Data publique. Masquer une coordonnee dans les options de rendu ne remplace jamais cette protection ; une coordonnee non autorisee n'entre pas dans le contrat public.
@@ -147,7 +183,7 @@ Le deploiement P3 n'active aucune autorisation. Les associations historiques con
 
 ## Etat deploye
 
-P1, P2, P3-A et P3-B sont deployes sur le site de reference en version `0.1.23-dev`.
+P1, P2, P3-A, P3-B et P4 sont deployes sur le site de reference en version `0.1.23-dev`.
 
 La recette couvre :
 
@@ -157,14 +193,18 @@ La recette couvre :
 - les evenements avec plusieurs personnes, une personne et aucune personne ;
 - l'absence de coordonnee privee, `person_key`, meta brute ou shortcode non interprete ;
 - l'absence de duplication entre shortcode et template natif ;
+- les contextes fiche evenement, page modele, page ordinaire et Loop Builder du module Divi ;
+- l'enregistrement, la persistance, les huit reglages et l'etat neutre du Visual Builder ;
+- l'absence de route REST Personnes, d'ID fixe et de fallback pour un contexte explicite incompatible ;
 - la neutralite des associations et autorisations de publication.
 
 ## Limites V1
 
-- aucun composant Personnes dedie pour Divi ou Gutenberg ;
+- aucun bloc Gutenberg Personnes ;
 - aucun champ Dynamic Data detaille supplementaire pour les coordonnees ;
 - aucune personne principale ;
 - aucune republication automatique des donnees historiques ;
 - aucune migration ou nouvelle meta globale ;
 - aucun changement de capacite : les permissions historiques d'edition restent conservees ;
-- P4, qui traiterait d'eventuels adaptateurs builders, n'est pas commence.
+- aucun apercu de coordonnees dans le Visual Builder ; l'apercu reste volontairement neutre ;
+- P5 n'est pas commence.
