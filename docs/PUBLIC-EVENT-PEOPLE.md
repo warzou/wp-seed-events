@@ -6,7 +6,7 @@ Le composant public Personnes affiche les personnes associees a un evenement, le
 
 La chaine de reference est :
 
-`association Personne-evenement -> Event Data publique filtree -> renderer partage Personnes -> shortcode, template natif et adaptateur Divi`.
+`association Personne-evenement -> Event Data publique filtree -> renderer partage Personnes -> shortcode, template natif, Divi et Gutenberg`.
 
 Les consommateurs ne lisent ni les metas privees, ni le registre global des personnes. Ils recoivent un resultat Event Data deja filtre.
 
@@ -175,6 +175,42 @@ Le Visual Builder affiche un etat neutre sans coordonnee : `Apercu disponible su
 
 En frontend, un contexte sans personne valide ne produit aucun wrapper. Les coordonnees peuvent etre masquees par les options du module, mais celui-ci ne peut jamais rendre une coordonnee absente de l'Event Data publique filtree.
 
+## P5 : bloc Gutenberg
+
+Le bloc Gutenberg est enregistre sous l'identifiant :
+
+```text
+wp-seed-events/event-people-block
+```
+
+Il utilise Block API v3, la categorie native `widgets` deja employee par les blocs Dates et Visuels, un rendu dynamique et `save: null`. Il reste un adaptateur fin : le callback PHP resout strictement le contexte, charge Event Data une seule fois et delegue tout le HTML au renderer partage Personnes.
+
+Les huit attributs correspondent directement au contrat du renderer :
+
+| Attribut | Defaut |
+| --- | --- |
+| `title` | `Contacts et intervenants` |
+| `heading_level` | `h2` |
+| `role` | `all` |
+| `show_roles` | `true` |
+| `show_email` | `true` |
+| `show_phone` | `true` |
+| `show_link` | `true` |
+| `layout` | `list` |
+
+L'inspecteur expose ces huit reglages en francais et rappelle que seules les coordonnees deja autorisees sur l'evenement peuvent etre affichees. Masquer une coordonnee ne modifie jamais son autorisation de publication.
+
+L'apercu editeur utilise le composant WordPress standard `ServerSideRender` et la route native de rendu des blocs. Aucune route REST Personnes specifique n'est ajoutee. Le JavaScript ne contient aucun HTML metier et ne lit ni meta, ni association privee.
+
+La resolution de contexte suit les memes garanties que les autres blocs WP Seed Events :
+
+- un `postId` et un `postType` explicites compatibles utilisent l'evenement cible ;
+- un contexte explicite invalide ou incompatible retourne une sortie vide sans fallback ;
+- le fallback public est reserve a l'absence de contexte post explicite ;
+- Query Loop transmet un contexte propre a chaque carte sans cache croise ;
+- une page ordinaire sans contexte evenement affiche un etat editeur neutre et ne produit aucun wrapper en frontend.
+
+Le bloc a ete valide dans l'editeur Gutenberg : insertion, huit reglages, aide de confidentialite, apercu neutre, enregistrement et persistance apres rechargement. La Query Loop native a ete validee avec plusieurs evenements distincts, dont un evenement sans personne qui reste strictement vide.
 ## Confidentialite
 
 Le controle de confidentialite est applique avant le renderer, dans la projection Event Data publique. Masquer une coordonnee dans les options de rendu ne remplace jamais cette protection ; une coordonnee non autorisee n'entre pas dans le contrat public.
@@ -183,7 +219,7 @@ Le deploiement P3 n'active aucune autorisation. Les associations historiques con
 
 ## Etat deploye
 
-P1, P2, P3-A, P3-B et P4 sont deployes sur le site de reference en version `0.1.23-dev`.
+P1, P2, P3-A, P3-B, P4 et P5 sont deployes sur le site de reference en version `0.1.23-dev`.
 
 La recette couvre :
 
@@ -195,16 +231,16 @@ La recette couvre :
 - l'absence de duplication entre shortcode et template natif ;
 - les contextes fiche evenement, page modele, page ordinaire et Loop Builder du module Divi ;
 - l'enregistrement, la persistance, les huit reglages et l'etat neutre du Visual Builder ;
+- l'insertion, la persistance, les huit reglages et l'etat neutre du bloc Gutenberg ;
+- le rendu serveur standard et la Query Loop Gutenberg sans contamination de contexte ;
 - l'absence de route REST Personnes, d'ID fixe et de fallback pour un contexte explicite incompatible ;
 - la neutralite des associations et autorisations de publication.
 
 ## Limites V1
 
-- aucun bloc Gutenberg Personnes ;
 - aucun champ Dynamic Data detaille supplementaire pour les coordonnees ;
 - aucune personne principale ;
 - aucune republication automatique des donnees historiques ;
 - aucune migration ou nouvelle meta globale ;
 - aucun changement de capacite : les permissions historiques d'edition restent conservees ;
 - aucun apercu de coordonnees dans le Visual Builder ; l'apercu reste volontairement neutre ;
-- P5 n'est pas commence.
