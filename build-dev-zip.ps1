@@ -52,6 +52,24 @@ foreach ($visualsModuleAsset in @($visualsModuleJson, $visualsModuleBundle)) {
     }
 }
 
+$peopleModuleRuntimeRoot = 'includes/integrations/divi/event-people-module/visual-builder'
+$peopleModuleJson = Join-Path $root ($peopleModuleRuntimeRoot + '/src/module.json')
+$peopleModuleBundle = Join-Path $root ($peopleModuleRuntimeRoot + '/build/wp-seed-events-event-people.js')
+$excludedRuntimePatterns += @(
+    ($peopleModuleRuntimeRoot + '/node_modules/*'),
+    ($peopleModuleRuntimeRoot + '/package.json'),
+    ($peopleModuleRuntimeRoot + '/package-lock.json'),
+    ($peopleModuleRuntimeRoot + '/webpack.config.js'),
+    ($peopleModuleRuntimeRoot + '/tests/*'),
+    ($peopleModuleRuntimeRoot + '/src/index.jsx')
+)
+
+foreach ($peopleModuleAsset in @($peopleModuleJson, $peopleModuleBundle)) {
+    if (-not (Test-Path -LiteralPath $peopleModuleAsset -PathType Leaf)) {
+        throw ('Missing Divi people module asset. Run npm run build first: ' + $peopleModuleAsset)
+    }
+}
+
 $pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
 $versionMatch = [regex]::Match($pluginHeader, '^\s*\*\s*Version:\s*(?<version>[^\r\n]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
 
