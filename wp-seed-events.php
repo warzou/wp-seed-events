@@ -1354,10 +1354,10 @@ function wp_seed_events_render_media_before_description( $post ) {
 	</div>
 	<div class="postbox" id="wp_seed_events_document">
 		<div class="postbox-header">
-			<h2 class="hndle">Document à télécharger</h2>
+			<h2 class="hndle">Document complémentaire</h2>
 			<div class="handle-actions hide-if-no-js">
 				<button type="button" class="handlediv" aria-expanded="true">
-					<span class="screen-reader-text">Afficher ou masquer le document à télécharger</span>
+					<span class="screen-reader-text">Afficher ou masquer le document complémentaire</span>
 					<span class="toggle-indicator" aria-hidden="true"></span>
 				</button>
 			</div>
@@ -3837,7 +3837,7 @@ function wp_seed_events_save_contacts( $post_id ) {
 function wp_seed_events_media_fields() {
 	return array(
 		'_wp_seed_event_flyer_pdf_id' => array(
-			'label' => 'Document complémentaire (PDF)',
+			'label' => 'Document complémentaire',
 			'type'  => 'application/pdf',
 		),
 	);
@@ -3930,7 +3930,7 @@ function wp_seed_events_render_media_meta_box( $post, $event_media = null ) {
 
 function wp_seed_events_render_media_document_panel( $event_media ) {
 	?>
-	<p class="description">Programme, brochure ou autre document PDF associé à l’événement.</p>
+	<p class="description">Ajoutez un document PDF complémentaire lié à l’événement.</p>
 	<?php
 	foreach ( wp_seed_events_media_fields() as $meta_key => $field ) {
 		$media_object  = '_wp_seed_event_flyer_pdf_id' === $meta_key && is_array( $event_media['event_document'] ?? null ) ? $event_media['event_document'] : null;

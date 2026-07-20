@@ -777,7 +777,7 @@ function wp_seed_events_public_event_field_value( $event, $field ) {
 
 			$url = wp_get_attachment_url( (int) $event['flyer_pdf_id'] );
 
-			return $url ? wp_seed_events_public_url_link( $url, 'Télécharger le flyer' ) : '';
+			return $url ? wp_seed_events_public_url_link( $url, 'Télécharger le document PDF' ) : '';
 		default:
 			return '';
 	}

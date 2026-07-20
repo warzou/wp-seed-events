@@ -78,7 +78,7 @@ defined( 'ABSPATH' ) || exit;
 		<?php $flyer_url = wp_get_attachment_url( (int) $event['flyer_pdf_id'] ); ?>
 		<?php if ( $flyer_url ) : ?>
 			<p class="wp-seed-event-single__flyer">
-				<?php echo wp_kses_post( wp_seed_events_public_url_link( $flyer_url, 'Télécharger le flyer' ) ); ?>
+				<?php echo wp_kses_post( wp_seed_events_public_url_link( $flyer_url, 'Télécharger le document PDF' ) ); ?>
 			</p>
 		<?php endif; ?>
 	<?php endif; ?>
