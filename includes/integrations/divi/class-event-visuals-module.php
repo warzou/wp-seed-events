@@ -143,11 +143,11 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 
 		return Module::render(
 			array(
-				'orderIndex'          => $block->parsed_block['orderIndex'],
-				'storeInstance'       => $block->parsed_block['storeInstance'],
+				'orderIndex'          => $block->parsed_block['orderIndex'] ?? 0,
+				'storeInstance'       => $block->parsed_block['storeInstance'] ?? '',
 				'attrs'               => $attrs,
 				'elements'            => $elements,
-				'id'                  => $block->parsed_block['id'],
+				'id'                  => $block->parsed_block['id'] ?? '',
 				'moduleClassName'     => 'wp_seed_events_divi_event_visuals',
 				'name'                => $block->block_type->name,
 				'moduleCategory'      => $block->block_type->category,
