@@ -1,0 +1,99 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "wp-seed-events/event-people-block",
+  "version": "0.1.23-dev",
+  "title": "WP Seed — Personnes de l’événement",
+  "category": "widgets",
+  "icon": "groups",
+  "description": "Afficher les personnes liées à l’événement courant, avec uniquement les coordonnées autorisées.",
+  "keywords": [
+    "événement",
+    "personnes",
+    "WP Seed"
+  ],
+  "textdomain": "wp-seed-events",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Contacts et intervenants"
+    },
+    "heading_level": {
+      "type": "string",
+      "default": "h2",
+      "enum": [
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6"
+      ]
+    },
+    "role": {
+      "type": "string",
+      "default": "all",
+      "enum": [
+        "all",
+        "organizer",
+        "speaker",
+        "registration_contact",
+        "information_contact"
+      ]
+    },
+    "show_roles": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_email": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_phone": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_link": {
+      "type": "boolean",
+      "default": true
+    },
+    "layout": {
+      "type": "string",
+      "default": "list",
+      "enum": [
+        "list",
+        "grid"
+      ]
+    }
+  },
+  "usesContext": [
+    "postId",
+    "postType",
+    "queryId"
+  ],
+  "supports": {
+    "anchor": true,
+    "customClassName": true,
+    "html": false,
+    "color": {
+      "text": true,
+      "background": true,
+      "link": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true
+    },
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true
+    },
+    "__experimentalBorder": {
+      "color": true,
+      "radius": true,
+      "style": true,
+      "width": true
+    },
+    "shadow": true
+  },
+  "editorScript": "file:./index.js"
+}

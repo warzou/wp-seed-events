@@ -19,6 +19,10 @@ $gutenbergVisualsRuntimeRoot = 'includes/integrations/gutenberg/event-visuals-bl
 $gutenbergVisualsBlockJson = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/block.json"
 $gutenbergVisualsBlockScript = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.js"
 $gutenbergVisualsBlockAsset = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.asset.php"
+$gutenbergPeopleRuntimeRoot = 'includes/integrations/gutenberg/event-people-block'
+$gutenbergPeopleBlockJson = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/block.json"
+$gutenbergPeopleBlockScript = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.js"
+$gutenbergPeopleBlockAsset = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.asset.php"
 $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/node_modules/*",
     "$moduleRuntimeRoot/package.json",
@@ -31,7 +35,10 @@ $excludedRuntimePatterns = @(
     "$gutenbergRuntimeRoot/src/*",
     "$gutenbergVisualsRuntimeRoot/node_modules/*",
     "$gutenbergVisualsRuntimeRoot/tests/*",
-    "$gutenbergVisualsRuntimeRoot/src/*"
+    "$gutenbergVisualsRuntimeRoot/src/*",
+    "$gutenbergPeopleRuntimeRoot/node_modules/*",
+    "$gutenbergPeopleRuntimeRoot/tests/*",
+    "$gutenbergPeopleRuntimeRoot/src/*"
 )
 
 $visualsModuleRuntimeRoot = 'includes/integrations/divi/event-visuals-module/visual-builder'
@@ -94,6 +101,12 @@ foreach ($gutenbergAsset in @($gutenbergBlockJson, $gutenbergBlockScript, $guten
 foreach ($gutenbergVisualsAsset in @($gutenbergVisualsBlockJson, $gutenbergVisualsBlockScript, $gutenbergVisualsBlockAsset)) {
     if (-not (Test-Path -LiteralPath $gutenbergVisualsAsset -PathType Leaf)) {
         throw "Missing Gutenberg visuals block asset. Run npm run build:gutenberg first: $gutenbergVisualsAsset"
+    }
+}
+
+foreach ($gutenbergPeopleAsset in @($gutenbergPeopleBlockJson, $gutenbergPeopleBlockScript, $gutenbergPeopleBlockAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergPeopleAsset -PathType Leaf)) {
+        throw "Missing Gutenberg people block asset. Run npm run build:gutenberg first: $gutenbergPeopleAsset"
     }
 }
 
