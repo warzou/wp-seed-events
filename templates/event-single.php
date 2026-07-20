@@ -57,31 +57,17 @@ defined( 'ABSPATH' ) || exit;
 		</section>
 	<?php endif; ?>
 
-	<?php if ( ! empty( $event['people'] ) ) : ?>
-		<section class="wp-seed-event-single__section wp-seed-event-single__people">
-			<h2>Contacts et intervenants</h2>
-			<ul>
-				<?php foreach ( $event['people'] as $person ) : ?>
-					<li>
-						<strong><?php echo esc_html( $person['name'] ); ?></strong>
-						<?php if ( ! empty( $person['roles'] ) ) : ?>
-							<br /><?php echo esc_html( implode( ' • ', $person['roles'] ) ); ?>
-						<?php endif; ?>
-						<?php if ( ! empty( $person['phone'] ) ) : ?>
-							<br /><?php echo wp_kses_post( wp_seed_events_public_phone_link( $person['phone'] ) ); ?>
-						<?php endif; ?>
-						<?php if ( ! empty( $person['email'] ) ) : ?>
-							<br /><?php echo wp_kses_post( wp_seed_events_public_email_link( $person['email'] ) ); ?>
-						<?php endif; ?>
-						<?php if ( ! empty( $person['link'] ) ) : ?>
-							<br /><?php echo wp_kses_post( wp_seed_events_public_url_link( $person['link'] ) ); ?>
-						<?php endif; ?>
-					</li>
-				<?php endforeach; ?>
-			</ul>
-		</section>
+	<?php
+	$people_html = wp_seed_events_render_public_event_people_section(
+		$event,
+		array(
+			'title' => 'Contacts et intervenants',
+		)
+	);
+	?>
+	<?php if ( '' !== $people_html ) : ?>
+		<?php echo wp_kses_post( $people_html ); ?>
 	<?php endif; ?>
-
 	<?php if ( ! empty( $event['description'] ) ) : ?>
 		<section class="wp-seed-event-single__section wp-seed-event-single__description">
 			<?php echo apply_filters( 'the_content', $event['description'] ); ?>

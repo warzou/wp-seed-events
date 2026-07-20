@@ -781,7 +781,8 @@ $template_source  = file_get_contents( dirname( __DIR__ ) . '/templates/event-si
 p1_assert( false === strpos( $rendering_source, '_wp_seed_event_contacts' ), 'shortcodes read raw contacts meta' );
 p1_assert( false === strpos( $template_source, '_wp_seed_event_contacts' ), 'native template reads raw contacts meta' );
 p1_assert( false !== strpos( $rendering_source, '$event[\'people\']' ), 'shortcodes no longer consume Event Data people' );
-p1_assert( false !== strpos( $template_source, '$event[\'people\']' ), 'native template no longer consumes Event Data people' );
+p1_assert( false !== strpos( $template_source, 'wp_seed_events_render_public_event_people_section(' ), 'native template does not delegate to the public people renderer' );
+p1_assert( false === strpos( $template_source, '$event[\'people\']' ), 'native template reads Event Data people directly' );
 
 $people_admin_source = p1_extract_function( $main_source, 'wp_seed_events_render_people_admin_page', 'wp_seed_events_handle_people_admin_form' );
 p1_assert( false !== strpos( $people_admin_source, "current_user_can( 'edit_posts' )" ), 'people library capability changed without permission audit' );
