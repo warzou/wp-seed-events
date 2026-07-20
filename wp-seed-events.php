@@ -2383,6 +2383,9 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 				<button type="button" class="button" data-wp-seed-date-cancel>Annuler</button>
 			</p>
 		</div>
+		<p class="description" data-wp-seed-date-save-guidance>
+			Après avoir enregistré la date, pensez à mettre à jour l’événement pour conserver vos modifications.
+		</p>
 	</div>
 	<?php
 }
