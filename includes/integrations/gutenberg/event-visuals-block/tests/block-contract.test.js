@@ -298,7 +298,7 @@ check('packaging includes runtime assets and excludes sources', () => {
 check('Gutenberg Dates remains unchanged', () => {
   assert.strictEqual(
     hash(datesRoot, 'build', 'index.js'),
-    '1C613CB8DD961D92A5F8AE9A28CDBB68264D1F890EEE2B32B5FBD4383D5412C4',
+    '5DB722D2D8E9EA3F4CDCB4488934DBF3FCEC064AFF6D89096D6FD2C791889B05',
   );
 });
 

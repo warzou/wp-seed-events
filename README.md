@@ -1,58 +1,71 @@
 # WP Seed Events
 
-WP Seed Events est un futur plugin WordPress autonome dédié au métier évènement.
+Version actuelle : `0.2.0-alpha.1`
 
-Le plugin devra pouvoir fonctionner seul. Il pourra détecter WP Seed Content Kit et
-s'y connecter de manière optionnelle, mais ne devra jamais en dépendre pour ses
-fonctions essentielles.
+WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette version est une alpha de validation de la V1.
 
-## Vision produit
+## Fonctionnalites principales
 
-WP Seed Events vise à fournir une base simple, robuste et portable pour publier
-des évènements dans WordPress :
+- evenements, occurrences, lieux, medias et personnes ;
+- lifecycle admin, collections publiques et URLs canoniques ;
+- exports ICS et partage minimal ;
+- visuels de communication et document PDF complementaire ;
+- coordonnees Personnes privees par defaut ;
+- templates et shortcodes ;
+- Dynamic Data ;
+- modules Divi 5 Dates, Visuels et Personnes ;
+- blocs Gutenberg Dates, Visuels et Personnes ;
+- Query Loop Core et Loop Builder Divi.
 
-- évènements ;
-- occurrences ;
-- lieux ;
-- médias ;
-- QR Code ;
-- export ICS ;
-- statut temporel ;
-- rendu public minimal.
+## Statut alpha
 
-L'objectif est de couvrir correctement le coeur métier avant toute ambition de
-présentation avancée.
+Cette version est destinee a la validation. Une sauvegarde des fichiers et de la base WordPress est recommandee avant installation. La compatibilite ascendante totale n'est pas garantie avant une version stable.
 
-## Architecture retenue
+## Prerequis et surfaces supportees
 
-L'architecture validée est l'Option C :
+Le plugin respecte les APIs WordPress et fonctionne sans builder obligatoire. La recette de reference a ete realisee avec WordPress 7.0.2, PHP 8.4.21 et Divi 5.9.0.
 
-- plugin autonome ;
-- domaine évènement indépendant ;
-- intégration optionnelle avec WP Seed Content Kit si celui-ci est détecté ;
-- aucune dépendance obligatoire à WP Seed Content Kit ;
-- rendu public minimal intégré ;
-- séparation nette entre métier évènement et moteurs d'affichage avancés.
+Surfaces validees :
 
-## Ce que le projet refuse
+- administration et rendu WordPress natifs ;
+- Gutenberg et Query Loop Core ;
+- Astra et Spectra sans adaptateur metier ;
+- Divi 5 et Loop Builder ;
+- shortcodes comme fallback universel.
 
-WP Seed Events ne doit pas devenir :
+## Installation
 
-- un moteur de templates avancé ;
-- une couche Divi avancée ;
-- un constructeur d'affichage ;
-- une extension dépendante de WP Seed Content Kit ;
-- un projet qui mélange prématurément logique métier et logique de présentation.
+1. Sauvegarder les fichiers et la base WordPress.
+2. Installer `wp-seed-events-0.2.0-alpha.1.zip` depuis Extensions > Ajouter une extension.
+3. Activer WP Seed Events.
+4. Ouvrir une fiche evenement puis verifier son rendu public.
 
-## Statut actuel
+## Mise a jour depuis 0.1.23-dev
 
-Le dépôt est en phase d'implémentation incrémentale supervisée.
+1. Conserver une copie exacte du dossier actif `wp-seed-events`.
+2. Remplacer le plugin avec le ZIP `0.2.0-alpha.1`.
+3. Ne lancer aucun backfill sauf besoin explicite indique dans l'administration.
+4. Verifier la version active, une fiche evenement, les collections, les ICS et les builders utilises.
 
-Le Lot 0 est réalisé : le fichier principal minimal `wp-seed-events.php` existe
-et fournit un bootstrap plugin activable.
+Le changement de version ne declenche aucune migration, aucun backfill et aucune republication de coordonnee.
 
-Aucune fonctionnalité métier n'est encore implémentée : aucun CPT, aucun
-shortcode, aucun écran admin, aucun champ et aucune intégration WP Seed Content.
+## Rollback
 
-Les prochaines étapes doivent suivre le plan d'implémentation validé, lot par
-lot, avec validation humaine avant commit ou passage au lot suivant.
+Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas et reglages restent dans la base WordPress et ne sont pas inclus dans le ZIP du plugin. Verifier ensuite la version active, REST, wp-admin et une fiche publique.
+
+## Recette rapide
+
+- ouvrir l'administration d'un evenement ;
+- verifier l'aide Dates et le panneau Document complementaire ;
+- ouvrir une fiche publique et un export ICS ;
+- verifier une collection et une page modele ;
+- verifier les modules ou blocs builders utilises ;
+- confirmer qu'aucune coordonnee Personnes non autorisee n'est visible.
+
+## Limites connues
+
+- coexistence avec la boite native Image mise en avant ;
+- cas du slug accentue degrade encore a isoler ;
+- placement du partage dependant du theme en page modele complete.
+
+Voir `docs/RELEASE-0.2.0-alpha.1.md` et `CHANGELOG.md` pour les details de release.

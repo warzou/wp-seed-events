@@ -219,7 +219,7 @@ Le deploiement P3 n'active aucune autorisation. Les associations historiques con
 
 ## Etat deploye
 
-P1, P2, P3-A, P3-B, P4 et P5 sont deployes sur le site de reference en version `0.1.23-dev`.
+P1, P2, P3-A, P3-B, P4 et P5 sont deployes sur le site de reference en version `0.2.0-alpha.1`.
 
 La recette couvre :
 
