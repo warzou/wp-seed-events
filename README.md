@@ -62,6 +62,14 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - verifier les modules ou blocs builders utilises ;
 - confirmer qu'aucune coordonnee Personnes non autorisee n'est visible.
 
+## Retours sur l'alpha
+
+- creer une issue par symptome distinct et verifier les doublons avant creation ;
+- ne jamais publier de secret ni de donnee personnelle ;
+- indiquer la version concernee : 0.2.0-alpha.1 ;
+- donner la priorite aux anomalies reproductibles ;
+- aucune nouvelle fonctionnalite n'est garantie pendant l'alpha.
+
 ## Limites connues
 
 - coexistence avec la boite native Image mise en avant ;

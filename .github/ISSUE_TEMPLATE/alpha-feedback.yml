@@ -1,0 +1,167 @@
+name: "Retour alpha — WP Seed Events"
+description: "Signaler un bug, une incompréhension ou une régression observée avec WP Seed Events 0.2.0-alpha.1."
+title: "[Alpha] "
+labels:
+  - "alpha-feedback"
+  - "status: needs-triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de décrire un seul symptôme par issue et de vérifier les doublons avant de continuer.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: "Résumé du problème"
+      description: "Décrivez brièvement le bug, l'incompréhension ou la régression."
+      placeholder: "En une ou deux phrases..."
+    validations:
+      required: true
+
+  - type: input
+    id: screen
+    attributes:
+      label: "Page ou écran concerné"
+      description: "Indiquez la page publique ou l'écran d'administration concerné."
+      placeholder: "Exemple : Événements > Modifier ou fiche publique"
+    validations:
+      required: true
+
+  - type: input
+    id: event
+    attributes:
+      label: "Événement concerné"
+      description: "Indiquez un titre ou un identifiant non sensible, sans donnée privée."
+      placeholder: "Titre public ou ID, si utile"
+
+  - type: dropdown
+    id: builder
+    attributes:
+      label: "Builder éventuel"
+      description: "Sélectionnez le contexte de composition utilisé."
+      options:
+        - "Aucun / WordPress natif"
+        - "Gutenberg"
+        - "Divi"
+        - "Spectra"
+        - "Autre"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Étapes de reproduction"
+      description: "Listez les actions permettant de reproduire le problème."
+      placeholder: |
+        1. Ouvrir...
+        2. Cliquer...
+        3. Constater...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Résultat attendu"
+      description: "Expliquez ce qui aurait dû se produire."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Résultat obtenu"
+      description: "Expliquez précisément ce qui s'est produit."
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: "Navigateur et version"
+      placeholder: "Exemple : Chrome 140"
+    validations:
+      required: true
+
+  - type: input
+    id: wordpress
+    attributes:
+      label: "Version WordPress"
+      placeholder: "Exemple : 7.0.2"
+    validations:
+      required: true
+
+  - type: input
+    id: php
+    attributes:
+      label: "Version PHP"
+      placeholder: "Exemple : 8.4.21"
+    validations:
+      required: true
+
+  - type: input
+    id: builder_version
+    attributes:
+      label: "Version Divi ou autre builder"
+      placeholder: "Exemple : Divi 5.9.0 ou sans objet"
+    validations:
+      required: true
+
+  - type: input
+    id: theme
+    attributes:
+      label: "Thème"
+      placeholder: "Nom et version du thème actif"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: "Impact"
+      description: "Indiquez l'effet concret sans attribuer de sévérité finale."
+      options:
+        - "Fonction inutilisable"
+        - "Fonction utilisable avec difficulté"
+        - "Gêne mineure"
+        - "Incompréhension ou suggestion"
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: "Contournement disponible"
+      description: "Indiquez une solution temporaire, ou écrivez « Aucun »."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: "Reproductibilité"
+      options:
+        - "Toujours"
+        - "Souvent"
+        - "Parfois"
+        - "Une seule fois"
+        - "Non déterminée"
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Captures ou logs expurgés"
+      description: "Ajoutez uniquement des captures ou extraits nettoyés de toute information sensible."
+      placeholder: "Glissez les fichiers ici ou collez un extrait expurgé."
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: "Confidentialité"
+      options:
+        - label: "Je confirme qu'aucun secret, mot de passe, chemin serveur ou coordonnée personnelle privée n'est joint."
+          required: true
