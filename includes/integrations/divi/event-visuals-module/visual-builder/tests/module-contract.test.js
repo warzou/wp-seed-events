@@ -106,8 +106,11 @@ test('loop context consumes the Divi runtime loop post ID', () => {
   assert.deepStrictEqual(metadata.attributes.__loop_post_id, { type: 'string', default: '' });
   assert.ok(source.includes("name\":\"loop_post_id"));
   assert.ok(source.includes('__loop_post_id: loopPostIdContext'));
-  assert.ok(phpModule.includes("$loop_post_id = absint( $attrs['__loop_post_id'] ?? 0 );"));
-  assert.ok(phpModule.includes("return array( 'loop_id' => $loop_post_id );"));
+  assert.ok(phpModule.includes('wp_seed_events_divi_get_module_event_context'));
+  assert.ok(contextHelper.includes('DynamicContentUtils'));
+  assert.ok(contextHelper.includes('get_loop_post_id'));
+  assert.ok(contextHelper.includes("return array( 'loop_id' => $loop_post_id );"));
+  assert.ok(source.includes('loop_id: loopPostId'));
   assert.ok(!phpModule.includes('get_the_ID()'));
   assert.ok(!phpModule.includes('WPSEED_V4_CONTEXT'));
 });
@@ -219,11 +222,11 @@ test('packaging requires runtime assets and excludes sources', () => {
   assert.ok(buildScript.includes('webpack.config.js'));
 });
 
-test('validated Dates bundle remains byte-for-byte unchanged', () => {
+test('Dates bundle matches the validated Loop Builder context build', () => {
   const hash = crypto.createHash('sha256').update(fs.readFileSync(datesBundlePath)).digest('hex').toUpperCase();
   assert.strictEqual(
     hash,
-    '29DE7133AEF744577CAE2E5D786477AB2D2EAF3A178BD6D7CF8B926D28D13ED3',
+    'D22280E8346F324AB7568816EB02B357A192DD1032AA17771EDBFAD5D3F917D6',
   );
 });
 

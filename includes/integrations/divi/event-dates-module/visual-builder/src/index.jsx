@@ -16,6 +16,8 @@ const { useFetch } = window.divi.rest;
 
 import metadata from './module.json';
 
+const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
+
 const getContentValues = (attrs) => attrs?.content?.innerContent?.desktop?.value ?? {};
 
 const normalizeOptions = (attrs) => {
@@ -74,10 +76,15 @@ const EventDatesPreview = ({ attrs, id, name, elements }) => {
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const postId = Number(currentPage?.id ?? 0);
+  const loopPostId = Number(attrs?.__loop_post_id ?? 0);
 
   const requestData = useMemo(
-    () => ({ post_id: postId, ...options }),
-    [postId, optionsKey],
+    () => ({
+      post_id: postId,
+      ...(loopPostId > 0 ? { loop_id: loopPostId } : {}),
+      ...options,
+    }),
+    [postId, loopPostId, optionsKey],
   );
   const restRoute = useMemo(
     () => `/wp-seed-events/v1/divi-event-dates-preview?${new URLSearchParams(requestData).toString()}`,
@@ -140,6 +147,7 @@ const eventDatesModule = {
     edit: EventDatesPreview,
   },
   placeholderContent: {
+    __loop_post_id: loopPostIdContext,
     content: {
       innerContent: {
         desktop: {

@@ -86,10 +86,15 @@ const EventVisualsPreview = ({ attrs, id, name, elements }) => {
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const postId = Number(currentPage?.id ?? 0);
+  const loopPostId = Number(attrs?.__loop_post_id ?? 0);
 
   const requestData = useMemo(
-    () => ({ post_id: postId, ...options }),
-    [postId, optionsKey],
+    () => ({
+      post_id: postId,
+      ...(loopPostId > 0 ? { loop_id: loopPostId } : {}),
+      ...options,
+    }),
+    [postId, loopPostId, optionsKey],
   );
   const restRoute = useMemo(
     () => '/wp-seed-events/v1/divi-event-visuals-preview?' + new URLSearchParams(requestData).toString(),

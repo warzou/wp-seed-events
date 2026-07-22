@@ -21,6 +21,12 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Types associes a l\'evenement.',
 		),
+		'status'      => array(
+			'key'         => 'status',
+			'label'       => 'Statut',
+			'type'        => 'text',
+			'description' => 'Statut metier public de l\'evenement.',
+		),
 		'next_date'   => array(
 			'key'         => 'next_date',
 			'label'       => 'Prochaine date',
@@ -244,6 +250,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return trim( wp_strip_all_tags( (string) ( $event['title'] ?? '' ) ) );
 		case 'types':
 			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
+		case 'status':
+			return wp_seed_events_public_event_status_label( $event['lifecycle'] ?? '' );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
 		case 'next_time':

@@ -59,12 +59,15 @@ test('publication help is explicit without private flags', () => {
 test('context uses post ID, post type and query ID', () => {
   assert.deepStrictEqual(metadata.usesContext, ['postId', 'postType', 'queryId']);
   assert.ok(source.includes('__loop_post_id: loopPostIdContext'));
-  assert.ok(/'post_type'\s*=>\s*sanitize_key/.test(phpModule));
+  assert.ok(/'post_type'\s*=>\s*sanitize_key/.test(context));
+  assert.ok(context.includes('DynamicContentUtils'));
+  assert.ok(context.includes('get_loop_post_id'));
+  assert.ok(phpModule.includes('wp_seed_events_divi_get_module_event_context'));
 });
 test('explicit incompatible post context is guarded', () => {
   assert.ok(context.includes("$strict_post && '' !== $post_type"));
   assert.ok(context.includes('$strict_post && 0 !== $post_id'));
-  assert.ok(phpModule.includes("'strict_post' => true"));
+  assert.ok(context.includes("'strict_post' => true"));
 });
 test('Event Data API is called exactly once', () => {
   assert.strictEqual((phpModule.match(/wp_seed_events_get_event_data/g) || []).length, 1);
@@ -136,11 +139,11 @@ test('packaging includes runtime and excludes sources', () => {
   assert.ok(buildScript.includes("'/src/index.jsx'"));
   assert.ok(buildScript.includes("'/tests/*'"));
 });
-test('historical Dates bundle remains unchanged', () => {
-  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), '29DE7133AEF744577CAE2E5D786477AB2D2EAF3A178BD6D7CF8B926D28D13ED3');
+test('Dates bundle matches the validated Loop Builder context build', () => {
+  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), 'D22280E8346F324AB7568816EB02B357A192DD1032AA17771EDBFAD5D3F917D6');
 });
-test('historical Visuals bundle remains unchanged', () => {
-  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js')), '9804C5E6347C7D7FFFD3525DE15F5F45DA532A09F84472ABBF2ABA1F9E9687F9');
+test('Visuals bundle matches the validated Loop Builder context build', () => {
+  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js')), 'C82A7AB7A185D8373C35225390C4DA97956F7B414FD6D35CA2A9F558F1355F5F');
 });
 
 assert.strictEqual(passed, 25);

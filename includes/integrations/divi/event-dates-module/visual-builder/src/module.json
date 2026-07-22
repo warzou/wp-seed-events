@@ -9,6 +9,7 @@
   "moduleOrderClassName": "wp_seed_events_divi_event_dates",
   "usesContext": ["postId", "queryId"],
   "attributes": {
+    "__loop_post_id": {"type": "string", "default": ""},
     "module": {
       "type": "object",
       "selector": "{{selector}}",

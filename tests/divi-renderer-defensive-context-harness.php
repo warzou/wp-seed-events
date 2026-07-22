@@ -53,6 +53,16 @@ namespace ET\Builder\Packages\ModuleLibrary {
 	}
 }
 
+namespace ET\Builder\Packages\Module\Layout\Components\DynamicContent {
+	class DynamicContentUtils {
+		public static $loop_post_id = 0;
+
+		public static function get_loop_post_id( array $attrs, string $module_id, ?int $store_instance = null ): int {
+			return self::$loop_post_id;
+		}
+	}
+}
+
 namespace {
 	use ET\Builder\Packages\Module\Module;
 
@@ -260,6 +270,19 @@ namespace {
 			foreach ( array( 'orderIndex', 'storeInstance', 'id' ) as $key ) {
 				defensive_assert( $first['args'][ $key ] === $second['args'][ $key ], 'Successive metadata differs.' );
 			}
+		} );
+	}
+
+	foreach ( $modules as $label => $class_name ) {
+		defensive_case( $label . ' resolves an ancestor Loop Builder event', function () use ( $class_name ) {
+			\ET\Builder\Packages\Module\Layout\Components\DynamicContent\DynamicContentUtils::$loop_post_id = 10;
+			$result = defensive_render(
+				$class_name,
+				array( 'id' => 'module-in-loop', 'storeInstance' => 3 ),
+				array( 'postId' => 20, 'postType' => 'page' )
+			);
+			\ET\Builder\Packages\Module\Layout\Components\DynamicContent\DynamicContentUtils::$loop_post_id = 0;
+			defensive_assert( false !== strpos( $result['html'], 'data-event="10"' ), 'Ancestor loop event did not render.' );
 		} );
 	}
 

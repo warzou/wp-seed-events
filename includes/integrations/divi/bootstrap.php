@@ -5,6 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/context.php';
+require_once __DIR__ . '/collection-query.php';
 
 /**
  * Load the Divi 5 Dynamic Content sources when its public API exists.

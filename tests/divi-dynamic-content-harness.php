@@ -91,6 +91,9 @@ namespace {
 	function add_action() {
 	}
 
+	function add_filter() {
+	}
+
 	function get_post_type( $post_id = 0 ) {
 		return $GLOBALS['d1_divi_types'][ absint( $post_id ) ] ?? false;
 	}
@@ -134,6 +137,12 @@ namespace {
 		return (string) ( $event['display_time_value'] ?? '' );
 	}
 
+	function wp_seed_events_public_event_status_label( $value ) {
+		$labels = array( 'upcoming' => 'À venir', 'past' => 'Passé', 'undated' => 'Sans date', 'cancelled_only' => 'Annulé' );
+
+		return $labels[ (string) $value ] ?? '';
+	}
+
 	require dirname( __DIR__ ) . '/includes/public/data-registry.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php';
 
@@ -145,6 +154,7 @@ namespace {
 			'id'                      => $event_id,
 			'title'                   => $title,
 			'types'                   => array( 'Atelier', 'Stage' ),
+			'lifecycle'               => 'upcoming',
 			'next_date_value'         => 'Next ' . (string) $event_id,
 			'next_time_value'         => '10:00',
 			'display_date_value'      => 'Display ' . (string) $event_id,
@@ -230,7 +240,7 @@ namespace {
 
 	d1_divi_case( 'labels groups and types are correct', function () use ( $sources ) {
 		$expected_labels = array(
-			'title' => 'Titre', 'types' => 'Types', 'next_date' => 'Prochaine date',
+			'title' => 'Titre', 'types' => 'Types', 'status' => 'Statut', 'next_date' => 'Prochaine date',
 			'next_time' => 'Prochaine heure', 'display_date' => 'Date affichée',
 			'display_time' => 'Heure affichée', 'place' => 'Lieu',
 			'place_address' => 'Adresse du lieu', 'description' => 'Description',
@@ -403,6 +413,7 @@ namespace {
 		);
 
 		d1_divi_assert( '<span data-source="wp_seed_events_title">Second event</span>' === $event_value, 'event loop value differs' );
+		d1_divi_assert( '<span data-source="wp_seed_events_status">À venir</span>' === $sources['wp_seed_events_status']->render_callback( '', array( 'name' => 'wp_seed_events_status', 'post_id' => 1205, 'loop_id' => 1011 ) ), 'event loop status differs' );
 		d1_divi_assert( '<span data-source="wp_seed_events_url">https://example.test/events/event-1011/</span>' === $event_url, 'event loop URL differs' );
 		d1_divi_assert( '<span data-source="wp_seed_events_place_url">http://places.example.test/place-1011/</span>' === $place_url, 'place loop URL differs' );
 		d1_divi_assert( '<span data-source="wp_seed_events_communication_visual">https://cdn.example.test/visual-1011.jpg</span>' === $image, 'event loop image differs' );

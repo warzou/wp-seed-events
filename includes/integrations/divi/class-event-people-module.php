@@ -29,7 +29,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 	}
 
 	public static function render_callback( $attrs, $content, $block, $elements ) {
-		$event_id = wp_seed_events_divi_resolve_event_id( self::get_block_context( $attrs, $block ) );
+		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$options  = self::normalize_options( self::get_content_values( $attrs ) );
 		$html     = self::render_people( $event_id, $options );
 
@@ -111,39 +111,6 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		return $options;
 	}
 
-	private static function get_block_context( $attrs, $block ) {
-		$loop_post_id = absint( $attrs['__loop_post_id'] ?? 0 );
-
-		if ( 0 !== $loop_post_id ) {
-			return array( 'loop_id' => $loop_post_id );
-		}
-
-		$block_context = is_object( $block ) && isset( $block->context ) && is_array( $block->context )
-			? $block->context
-			: array();
-		$context_post_id = absint( $block_context['postId'] ?? 0 );
-		$query_id        = absint( $block_context['queryId'] ?? 0 );
-
-		if ( 0 !== $query_id ) {
-			return array( 'loop_id' => $context_post_id );
-		}
-
-		global $wp_seed_events_public_event_id;
-
-		if ( wp_seed_events_divi_is_event( $wp_seed_events_public_event_id ?? 0 ) ) {
-			return array();
-		}
-
-		if ( array_key_exists( 'postId', $block_context ) || array_key_exists( 'postType', $block_context ) ) {
-			return array(
-				'post_id'    => $context_post_id,
-				'post_type'  => sanitize_key( (string) ( $block_context['postType'] ?? '' ) ),
-				'strict_post' => true,
-			);
-		}
-
-		return array();
-	}
 
 	public static function module_classnames( $args ) {
 		$args['classnamesInstance']->add(

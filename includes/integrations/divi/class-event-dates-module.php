@@ -102,7 +102,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	 * Render the module on the frontend.
 	 */
 	public static function render_callback( $attrs, $content, $block, $elements ) {
-		$event_id = wp_seed_events_divi_resolve_event_id( self::get_block_context( $block ) );
+		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$options  = self::normalize_options( self::get_content_values( $attrs ) );
 		$html     = self::render_dates( $event_id, $options );
 
@@ -217,22 +217,6 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		return ! in_array( strtolower( trim( (string) $value ) ), array( '0', 'off' ), true );
 	}
 
-	/**
-	 * Read public WordPress block context without persisting an event ID.
-	 */
-	private static function get_block_context( $block ) {
-		$block_context = is_object( $block ) && isset( $block->context ) && is_array( $block->context )
-			? $block->context
-			: array();
-		$context_post_id = absint( $block_context['postId'] ?? 0 );
-		$query_id        = absint( $block_context['queryId'] ?? 0 );
-
-		if ( 0 !== $query_id ) {
-			return array( 'loop_id' => $context_post_id );
-		}
-
-		return array( 'post_id' => $context_post_id );
-	}
 
 	/**
 	 * Register standard Divi element class names.

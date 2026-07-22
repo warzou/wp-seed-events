@@ -24,12 +24,13 @@ composants dédiés, car elles portent un ordre, une cardinalité variable et de
 ## Registre canonique
 
 Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
-16 sources : 12 textes, 3 URL et 1 image.
+17 sources : 13 textes, 3 URL et 1 image.
 
 | Clé | Libellé | Type | Projection Event Data | Valeur absente |
 | --- | --- | --- | --- | --- |
 | `title` | Titre | `text` | `title` | chaîne vide |
 | `types` | Types | `text` | `types[]`, séparés par une virgule | chaîne vide |
+| `status` | Statut | `text` | `lifecycle`, libellé public localisé | chaîne vide |
 | `next_date` | Prochaine date | `text` | `next_occurrence` formatée | chaîne vide |
 | `next_time` | Prochaine heure | `text` | heure de `next_occurrence` | chaîne vide |
 | `display_date` | Date affichée | `text` | `display_occurrence` formatée | chaîne vide |
@@ -140,7 +141,7 @@ utilisée comme fallback et n'est jamais ajoutée à `communication_visuals`.
 ## Divi 5
 
 Divi enregistre un provider générique par type logique : texte, URL et image.
-Les 16 options sont générées depuis le registre et apparaissent une seule fois
+Les 17 options sont générées depuis le registre et apparaissent une seule fois
 dans le groupe `WP Seed Events` avec leurs libellés français.
 
 - les textes alimentent les champs texte natifs ;

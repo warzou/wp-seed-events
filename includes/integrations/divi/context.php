@@ -14,6 +14,76 @@ function wp_seed_events_divi_is_event( $post_id ) {
 }
 
 /**
+ * Read the event context attached by Divi to a module or one of its ancestors.
+ *
+ * Loop Builder stores __loop_post_id on the repeated block. Child modules must
+ * therefore use Divi's own ancestor-aware resolver instead of relying only on
+ * their local attributes or on the holder page context.
+ *
+ * @param array  $attrs Module attributes.
+ * @param object $block Divi block instance.
+ * @return array
+ */
+function wp_seed_events_divi_get_module_event_context( $attrs, $block ) {
+	$attrs        = is_array( $attrs ) ? $attrs : array();
+	$parsed_block = is_object( $block ) && isset( $block->parsed_block ) && is_array( $block->parsed_block )
+		? $block->parsed_block
+		: array();
+	$parsed_attrs = isset( $parsed_block['attrs'] ) && is_array( $parsed_block['attrs'] )
+		? $parsed_block['attrs']
+		: array();
+	$module_attrs = array_replace( $parsed_attrs, $attrs );
+	$loop_post_id = absint( $module_attrs['__loop_post_id'] ?? 0 );
+
+	$dynamic_content_utils = '\\ET\\Builder\\Packages\\Module\\Layout\\Components\\DynamicContent\\DynamicContentUtils';
+	$module_id             = isset( $parsed_block['id'] ) && is_scalar( $parsed_block['id'] )
+		? (string) $parsed_block['id']
+		: '';
+	$store_instance        = isset( $parsed_block['storeInstance'] ) && is_numeric( $parsed_block['storeInstance'] )
+		? (int) $parsed_block['storeInstance']
+		: null;
+
+	if (
+		0 === $loop_post_id
+		&& '' !== $module_id
+		&& class_exists( $dynamic_content_utils )
+		&& is_callable( array( $dynamic_content_utils, 'get_loop_post_id' ) )
+	) {
+		$loop_post_id = absint( $dynamic_content_utils::get_loop_post_id( $module_attrs, $module_id, $store_instance ) );
+	}
+
+	if ( 0 !== $loop_post_id ) {
+		return array( 'loop_id' => $loop_post_id );
+	}
+
+	$block_context = is_object( $block ) && isset( $block->context ) && is_array( $block->context )
+		? $block->context
+		: array();
+	$context_post_id = absint( $block_context['postId'] ?? 0 );
+	$query_id        = absint( $block_context['queryId'] ?? 0 );
+
+	if ( 0 !== $query_id ) {
+		return array( 'loop_id' => $context_post_id );
+	}
+
+	global $wp_seed_events_public_event_id;
+
+	if ( wp_seed_events_divi_is_event( $wp_seed_events_public_event_id ?? 0 ) ) {
+		return array();
+	}
+
+	if ( array_key_exists( 'postId', $block_context ) || array_key_exists( 'postType', $block_context ) ) {
+		return array(
+			'post_id'     => $context_post_id,
+			'post_type'   => sanitize_key( (string) ( $block_context['postType'] ?? '' ) ),
+			'strict_post' => true,
+		);
+	}
+
+	return array();
+}
+
+/**
  * Resolve the current event from a Divi rendering context.
  *
  * A real but incompatible loop item must not fall back to its holder page.

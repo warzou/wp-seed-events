@@ -46,6 +46,7 @@ require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/people.php';
 require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/sharing.php';
+require_once __DIR__ . '/includes/public/collections.php';
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';

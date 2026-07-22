@@ -7,10 +7,10 @@ WP Seed Events doit permettre d'afficher des collections publiques d'evenements 
 Le modele retenu est simple :
 
 ```text
-WP Seed Events choisit les evenements
+WP Seed Events choisit et ordonne les evenements
   -> Event Data API prepare chaque evenement
-  -> event-card.php affiche chaque carte
-  -> le theme ou le builder gere la mise en page autour
+  -> event-card.php affiche chaque carte du shortcode
+  -> Divi peut composer une carte et repeter la meme selection metier
 ```
 
 ## Role des collections publiques
@@ -40,7 +40,8 @@ Options autorisees en V1 :
 - `limit` : nombre maximum d'evenements a afficher ;
 - `status` : `upcoming`, `past` ou `all` ;
 - `type` : type d'evenement a afficher ;
-- `pinned` : `all` ou `only`.
+- `pinned` : `all` ou `only` ;
+- `order` : `asc` ou `desc` pour la date de reference.
 
 Exemples :
 
@@ -50,6 +51,7 @@ Exemples :
 [wp_seed_events status="past"]
 [wp_seed_events type="atelier"]
 [wp_seed_events pinned="only"]
+[wp_seed_events type="atelier" status="upcoming" order="asc"]
 ```
 
 ## Regles metier
@@ -70,9 +72,15 @@ Les evenements passes doivent etre affiches du plus recent au plus ancien.
 
 `status="all"` affiche les evenements publies, qu'ils soient a venir, passes ou sans date.
 
-Les evenements dates restent tries selon leur date metier.
+Les evenements dates restent tries selon leur date de reference.
 
 Les evenements sans date apparaissent apres les evenements dates.
+
+En ordre croissant, les dates de reference passees et futures partagent une
+chronologie unique de la plus ancienne a la plus recente. En ordre decroissant,
+l'ordre est inverse. La date de reference est la prochaine occurrence active
+pour un evenement a venir et la derniere occurrence active pour un evenement
+passe.
 
 ### Evenements sans date
 
@@ -112,6 +120,27 @@ Le type principal utilise dans les permaliens ne remplace pas les types multiple
 
 Le filtrage par type doit donc s'appuyer sur les types associes a l'evenement, pas uniquement sur le type principal.
 
+## Contrat canonique et Divi
+
+`wp_seed_events_query_event_collection()` est la source unique de selection,
+de tri et de pagination. Le shortcode et l'adaptateur Divi consomment ce meme
+resultat.
+
+Cette API accepte `type`, `status`, `pinned`, `order`, `page` et `per_page`,
+puis retourne les objets Event Data, les IDs ordonnés, le total et les
+informations de pagination.
+
+Les futurs adaptateurs Gutenberg Query Loop et Spectra devront transformer
+leurs réglages vers ces mêmes arguments et réutiliser les IDs retournés. Ils ne
+devront ni relire les metas historiques, ni recalculer le lifecycle, ni
+réimplémenter le tri par occurrences.
+
+Divi conserve la composition visuelle des cartes. Son adaptateur de requete ne
+produit aucun HTML et ne consulte aucune meta privee saisie par l'utilisateur.
+Les filtres stables `wp_seed_events_type`, `wp_seed_events_status` et
+`wp_seed_events_pinned` sont des cles virtuelles documentees, jamais stockees.
+Le tri `wp_seed_events_business_date` est exposé sous le libellé « 1re date de l’événement ». Voir `DIVI-EVENT-COLLECTIONS.md`.
+
 ## Relation avec l'Event Data API
 
 La collection choisit les evenements.
@@ -136,7 +165,6 @@ Le theme ou le builder peut ensuite placer la collection dans une section, une c
 
 La V1 ne doit pas ajouter :
 
-- pagination ;
 - filtres interactifs ;
 - calendrier ;
 - recherche publique ;
@@ -148,9 +176,7 @@ La V1 ne doit pas ajouter :
 - design avance ;
 - options de colonnes ;
 - options de couleurs ;
-- module Divi ;
 - bloc Gutenberg custom ;
-- provider builder dedie ;
 - systeme de template complexe.
 
 ## Principe durable

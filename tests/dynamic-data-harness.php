@@ -121,6 +121,12 @@ function wp_seed_events_public_event_display_time_line( $event ) {
 	return (string) ( $event['display_time_value'] ?? '' );
 }
 
+function wp_seed_events_public_event_status_label( $value ) {
+	$labels = array( 'upcoming' => 'À venir', 'past' => 'Passé', 'undated' => 'Sans date', 'cancelled_only' => 'Annulé' );
+
+	return $labels[ (string) $value ] ?? '';
+}
+
 class WP_Block {
 	public $context;
 
@@ -142,6 +148,7 @@ function d0_event( $event_id, $title = '' ) {
 		'id'                 => $event_id,
 		'title'              => $title,
 		'types'              => array( 'Atelier', 'Stage' ),
+		'lifecycle'          => 'upcoming',
 		'next_date_value'    => 'Next ' . (string) $event_id,
 		'next_time_value'    => '10:00',
 		'display_date_value'      => 'Display ' . (string) $event_id,
@@ -207,6 +214,8 @@ function d0_uncached_value( $field, $event_id ) {
 			return trim( wp_strip_all_tags( (string) ( $event['title'] ?? '' ) ) );
 		case 'types':
 			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
+		case 'status':
+			return wp_seed_events_public_event_status_label( $event['lifecycle'] ?? '' );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
 		case 'next_time':
@@ -380,7 +389,7 @@ d0_case( 'cache call order is neutral', function () {
 d0_case( 'cache preserves all existing values', function () {
 	d0_event( 110, '<strong>Stable</strong>' );
 	$expected = array(
-		'title' => 'Stable', 'types' => 'Atelier, Stage', 'next_date' => 'Next 110',
+		'title' => 'Stable', 'types' => 'Atelier, Stage', 'status' => 'À venir', 'next_date' => 'Next 110',
 		'next_time' => '10:00', 'display_date' => 'Display 110', 'display_time' => '10:00 - 12:00',
 		'place' => 'Place 110', 'description' => 'Description 110',
 	);
@@ -391,7 +400,7 @@ d0_case( 'cache preserves all existing values', function () {
 
 d0_case( 'registry declares the exact D3 keys once', function () {
 	$expected = array(
-		'title', 'types', 'next_date', 'next_time', 'display_date', 'display_time',
+		'title', 'types', 'status', 'next_date', 'next_time', 'display_date', 'display_time',
 		'place', 'place_address', 'description', 'excerpt', 'practical_info',
 		'event_document_filename', 'url', 'place_url', 'event_document_url',
 		'communication_visual',
@@ -749,7 +758,7 @@ d0_case( 'guard event Query Loop exposes every text binding', function () {
 		$values[ $field ] = d0_bind( $field, $context );
 	}
 	d0_assert( array(
-		'title' => 'Loop', 'types' => 'Atelier, Stage', 'next_date' => 'Next 306',
+		'title' => 'Loop', 'types' => 'Atelier, Stage', 'status' => 'À venir', 'next_date' => 'Next 306',
 		'next_time' => '10:00', 'display_date' => 'Display 306', 'display_time' => '10:00 - 12:00',
 		'place' => 'Place 306', 'place_address' => 'Address 306', 'description' => 'Description 306',
 		'excerpt' => 'Excerpt 306', 'practical_info' => "Line one\nLine two",

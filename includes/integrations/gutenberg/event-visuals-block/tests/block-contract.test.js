@@ -302,7 +302,7 @@ check('Gutenberg Dates remains unchanged', () => {
   );
 });
 
-check('Divi modules remain unchanged', () => {
+check('Divi modules match the validated Loop Builder context builds', () => {
   assert.strictEqual(
     hash(
       pluginRoot,
@@ -314,11 +314,11 @@ check('Divi modules remain unchanged', () => {
       'build',
       'wp-seed-events-event-dates.js',
     ),
-    '29DE7133AEF744577CAE2E5D786477AB2D2EAF3A178BD6D7CF8B926D28D13ED3',
+    'D22280E8346F324AB7568816EB02B357A192DD1032AA17771EDBFAD5D3F917D6',
   );
   assert.strictEqual(
     hash(diviVisualsRoot, 'build', 'wp-seed-events-event-visuals.js'),
-    '9804C5E6347C7D7FFFD3525DE15F5F45DA532A09F84472ABBF2ABA1F9E9687F9',
+    'C82A7AB7A185D8373C35225390C4DA97956F7B414FD6D35CA2A9F558F1355F5F',
   );
 });
 
