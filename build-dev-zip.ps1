@@ -23,6 +23,9 @@ $gutenbergPeopleRuntimeRoot = 'includes/integrations/gutenberg/event-people-bloc
 $gutenbergPeopleBlockJson = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/block.json"
 $gutenbergPeopleBlockScript = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.js"
 $gutenbergPeopleBlockAsset = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.asset.php"
+$gutenbergCollectionRuntimeRoot = 'includes/integrations/gutenberg/event-collection-query'
+$gutenbergCollectionScript = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.js"
+$gutenbergCollectionAsset = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.asset.php"
 $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/node_modules/*",
     "$moduleRuntimeRoot/package.json",
@@ -38,7 +41,10 @@ $excludedRuntimePatterns = @(
     "$gutenbergVisualsRuntimeRoot/src/*",
     "$gutenbergPeopleRuntimeRoot/node_modules/*",
     "$gutenbergPeopleRuntimeRoot/tests/*",
-    "$gutenbergPeopleRuntimeRoot/src/*"
+    "$gutenbergPeopleRuntimeRoot/src/*",
+    "$gutenbergCollectionRuntimeRoot/node_modules/*",
+    "$gutenbergCollectionRuntimeRoot/tests/*",
+    "$gutenbergCollectionRuntimeRoot/src/*"
 )
 
 $visualsModuleRuntimeRoot = 'includes/integrations/divi/event-visuals-module/visual-builder'
@@ -110,6 +116,12 @@ foreach ($gutenbergPeopleAsset in @($gutenbergPeopleBlockJson, $gutenbergPeopleB
     }
 }
 
+
+foreach ($gutenbergCollectionBuildAsset in @($gutenbergCollectionScript, $gutenbergCollectionAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergCollectionBuildAsset -PathType Leaf)) {
+        throw "Missing Gutenberg event collection asset. Run npm run build:gutenberg first: $gutenbergCollectionBuildAsset"
+    }
+}
 $pluginVersion = $versionMatch.Groups['version'].Value.Trim()
 
 Write-Output 'Building WP Seed Events dev ZIP'

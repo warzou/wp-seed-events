@@ -41,3 +41,6 @@ build/
 !includes/integrations/gutenberg/event-people-block/build/block.json
 !includes/integrations/gutenberg/event-people-block/build/index.js
 !includes/integrations/gutenberg/event-people-block/build/index.asset.php
+!includes/integrations/gutenberg/event-collection-query/build/
+!includes/integrations/gutenberg/event-collection-query/build/index.js
+!includes/integrations/gutenberg/event-collection-query/build/index.asset.php

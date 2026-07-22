@@ -206,4 +206,68 @@ collection_case( 'public lifecycle labels', function () {
 	collection_assert( 'Annulé' === wp_seed_events_public_event_status_label( 'cancelled_only' ), 'Cancelled label differs.' );
 } );
 
+collection_case( 'canonical bridge preserves builder pagination and exclusions', function () {
+	$query = wp_seed_events_apply_collection_to_query_args(
+		array(
+			'posts_per_page' => 2,
+			'paged'          => 2,
+			'post__not_in'   => array( 102 ),
+		),
+		array(
+			'type'   => 'atelier',
+			'status' => 'upcoming',
+			'order'  => 'asc',
+		)
+	);
+
+	collection_assert( 2 === $query['posts_per_page'] && 2 === $query['paged'], 'Builder pagination changed.' );
+	collection_assert( ! in_array( 102, $query['post__in'], true ), 'Excluded event was restored.' );
+	collection_assert( 'post__in' === $query['orderby'], 'Canonical ID order is not preserved.' );
+} );
+
+collection_case( 'canonical bridge fails closed on an empty selection', function () {
+	$query = wp_seed_events_apply_collection_to_query_args(
+		array(),
+		array(
+			'type'   => 'missing-type',
+			'status' => 'upcoming',
+		)
+	);
+
+	collection_assert( array( 0 ) === $query['post__in'], 'Empty selection did not fail closed.' );
+} );
+
+collection_case( 'significant volume remains deterministic', function () {
+	$events = $GLOBALS['collection_events'];
+	$types  = $GLOBALS['collection_types'];
+	$pinned = $GLOBALS['collection_pinned'];
+
+	for ( $index = 0; $index < 500; $index++ ) {
+		collection_event(
+			1000 + $index,
+			'upcoming',
+			'2027-01-' . str_pad( (string) ( 1 + ( $index % 28 ) ), 2, '0', STR_PAD_LEFT ) . ' 10:00',
+			'volume'
+		);
+	}
+
+	$started = microtime( true );
+	$first   = wp_seed_events_query_event_collection(
+		array( 'type' => 'volume', 'status' => 'upcoming', 'per_page' => 25, 'page' => 4 )
+	);
+	$second  = wp_seed_events_query_event_collection(
+		array( 'type' => 'volume', 'status' => 'upcoming', 'per_page' => 25, 'page' => 4 )
+	);
+	$elapsed = microtime( true ) - $started;
+
+	$GLOBALS['collection_events'] = $events;
+	$GLOBALS['collection_types']  = $types;
+	$GLOBALS['collection_pinned'] = $pinned;
+
+	collection_assert( 500 === $first['total'] && 20 === $first['total_pages'], 'Volume totals differ.' );
+	collection_assert( 25 === count( $first['ids'] ), 'Volume page size differs.' );
+	collection_assert( $first['ids'] === $second['ids'], 'Volume order is not deterministic.' );
+	collection_assert( $elapsed < 2.0, 'Volume harness exceeded its generous local guard.' );
+} );
+
 echo 'Event collection query harness: ' . $GLOBALS['collection_cases'] . '/' . $GLOBALS['collection_cases'] . ' OK' . PHP_EOL;

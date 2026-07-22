@@ -146,6 +146,52 @@ function wp_seed_events_get_event_collection( $args = array() ) {
 	return $result['events'];
 }
 
+/**
+ * Apply the canonical collection selection to existing WP_Query arguments.
+ *
+ * Builders keep ownership of pagination and rendering. This bridge only
+ * supplies the complete, ordered ID list selected by the public collection
+ * contract.
+ *
+ * @param array $query_args      Existing WP_Query arguments.
+ * @param array $collection_args Canonical collection arguments.
+ * @return array
+ */
+function wp_seed_events_apply_collection_to_query_args( $query_args, $collection_args = array() ) {
+	if ( ! is_array( $query_args ) ) {
+		return $query_args;
+	}
+
+	$collection_args             = is_array( $collection_args ) ? $collection_args : array();
+	$collection_args['per_page'] = -1;
+	$result                       = wp_seed_events_query_event_collection( $collection_args );
+	$event_ids                    = array_map( 'absint', $result['ids'] ?? array() );
+
+	if ( ! empty( $query_args['post__in'] ) ) {
+		$allowed   = array_map( 'absint', (array) $query_args['post__in'] );
+		$event_ids = array_values(
+			array_filter(
+				$event_ids,
+				static function ( $event_id ) use ( $allowed ) {
+					return in_array( $event_id, $allowed, true );
+				}
+			)
+		);
+	}
+
+	if ( ! empty( $query_args['post__not_in'] ) ) {
+		$excluded  = array_map( 'absint', (array) $query_args['post__not_in'] );
+		$event_ids = array_values( array_diff( $event_ids, $excluded ) );
+	}
+
+	$query_args['post__in']            = array() === $event_ids ? array( 0 ) : $event_ids;
+	$query_args['orderby']             = 'post__in';
+	$query_args['order']               = 'ASC';
+	$query_args['ignore_sticky_posts'] = true;
+
+	return $query_args;
+}
+
 function wp_seed_events_public_collection_status( $value ) {
 	$value = strtolower( trim( (string) $value ) );
 
