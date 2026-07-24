@@ -119,6 +119,20 @@ add_filter( 'query_loop_block_query_vars', 'wp_seed_events_gutenberg_filter_coll
 /**
  * Register the custom parameters used by the Query Loop editor preview.
  *
+ * @param mixed $value Raw REST parameter.
+ * @return string
+ */
+function wp_seed_events_gutenberg_collection_rest_sanitize_slug( $value ) {
+	if ( ! is_scalar( $value ) ) {
+		return '';
+	}
+
+	return sanitize_title( (string) $value );
+}
+
+/**
+ * Register the custom parameters used by the Query Loop editor preview.
+ *
  * @param array $params REST collection parameters.
  * @return array
  */
@@ -130,7 +144,7 @@ function wp_seed_events_gutenberg_collection_rest_params( $params ) {
 	$params['wpSeedEventsType']       = array(
 		'description'       => 'Filter the event collection by public type.',
 		'type'              => 'string',
-		'sanitize_callback' => 'sanitize_title',
+		'sanitize_callback' => 'wp_seed_events_gutenberg_collection_rest_sanitize_slug',
 	);
 	$params['wpSeedEventsStatus']     = array(
 		'description' => 'Filter the event collection by public lifecycle.',

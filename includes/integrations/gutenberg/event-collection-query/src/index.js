@@ -49,50 +49,6 @@ const DEFAULT_QUERY = {
   wpSeedEventsOrderBy: BUSINESS_ORDER,
 };
 
-function binding( field ) {
-  return {
-    metadata: {
-      bindings: {
-        content: {
-          source: 'wp-seed-events/event-field',
-          args: { field },
-        },
-      },
-    },
-  };
-}
-
-const INNER_BLOCKS = [
-  [
-    'core/post-template',
-    { layout: { type: 'grid', columnCount: 2 } },
-    [
-      [ 'wp-seed-events/event-visuals-block', { title: '', show_document: false } ],
-      [ 'core/post-title', { isLink: true } ],
-      [ 'core/paragraph', binding( 'type' ) ],
-      [ 'core/paragraph', binding( 'status' ) ],
-      [ 'wp-seed-events/event-dates-block', { title: '', scope: 'all' } ],
-      [ 'core/post-excerpt' ],
-      [ 'core/paragraph', binding( 'place' ) ],
-      [ 'wp-seed-events/event-people-block', { title: '' } ],
-    ],
-  ],
-  [
-    'core/query-pagination',
-    { paginationArrow: 'arrow', layout: { type: 'flex', justifyContent: 'space-between' } },
-    [
-      [ 'core/query-pagination-previous' ],
-      [ 'core/query-pagination-numbers' ],
-      [ 'core/query-pagination-next' ],
-    ],
-  ],
-  [
-    'core/query-no-results',
-    {},
-    [ [ 'core/paragraph', { content: __( 'Aucun événement à afficher.', 'wp-seed-events' ) } ] ],
-  ],
-];
-
 registerBlockVariation( 'core/query', {
   name: NAMESPACE,
   title: __( 'WP Seed Events — Collection d’événements', 'wp-seed-events' ),
@@ -106,7 +62,6 @@ registerBlockVariation( 'core/query', {
     namespace: NAMESPACE,
     query: DEFAULT_QUERY,
   },
-  innerBlocks: INNER_BLOCKS,
   allowedControls: [],
   scope: [ 'inserter' ],
   isActive: ( blockAttributes ) => blockAttributes.namespace === NAMESPACE,
@@ -199,6 +154,14 @@ const withEventCollectionControls = createHigherOrderComponent(
               max={ 100 }
               onChange={ ( value ) => updateQuery( { perPage: value || 1 } ) }
             />
+            <p>
+              <strong>{ __( 'Présentation de la carte', 'wp-seed-events' ) }</strong>
+              <br />
+              { __(
+                'La carte compacte ou détaillée est un point de départ modifiable librement. Pour réutiliser la même structure, enregistrez la collection comme composition WordPress. Utilisez une composition synchronisée seulement si sa structure et ses réglages doivent rester identiques.',
+                'wp-seed-events',
+              ) }
+            </p>
           </PanelBody>
         </InspectorControls>
       </Fragment>

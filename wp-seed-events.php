@@ -54,6 +54,7 @@ require_once __DIR__ . '/includes/integrations/gutenberg/event-dates-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-visuals-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-people-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-query.php';
+require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-patterns.php';
 require_once __DIR__ . '/includes/integrations/divi/bootstrap.php';
 
 register_activation_hook( __FILE__, 'wp_seed_events_activate' );

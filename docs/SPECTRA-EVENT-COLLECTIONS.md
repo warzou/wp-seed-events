@@ -35,3 +35,20 @@ Si ces garanties sont obtenues, l'adaptateur devra etre charge conditionnellemen
 - Gutenberg Core Query Loop : integration disponible et recettable.
 - Spectra Free : aucun Loop Builder compatible a adapter dans l'environnement audite.
 - Spectra Pro : contrat central, documentation et harness prets ; installation et recette explicites requises apres une activation volontaire, avant toute annonce de compatibilite et toute integration runtime conditionnelle.
+
+## Composition avec Spectra gratuit
+
+Spectra gratuit peut servir d'outil de mise en page autour des blocs Core et
+WP Seed Events lorsqu'il est deja installe. Cette composition reste celle de
+Gutenberg : WP Seed Events ne charge aucun adaptateur Spectra et n'en depend
+pas.
+
+Les patterns fournis par WP Seed Events utilisent exclusivement des blocs Core
+et WP Seed Events. Ils restent donc disponibles lorsque Spectra est absent.
+Aucun plugin Spectra n'est installe ou active automatiquement.
+
+Un pattern qui reference un bloc fourni par une extension absente peut
+apparaitre comme bloc manquant dans l'editeur WordPress. Pour cette raison,
+aucun bloc Spectra n'est inclus dans les presentations par defaut de WP Seed
+Events. L'utilisateur peut remplacer ou entourer les blocs de la carte avec
+Spectra apres insertion, sous sa propre responsabilite editoriale.

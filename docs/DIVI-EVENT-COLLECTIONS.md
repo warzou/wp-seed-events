@@ -93,3 +93,30 @@ fallback vers un autre événement ne doit être ajouté pour forcer l'aperçu.
 Le shortcode `[wp_seed_events]` reste le fallback universel et consomme le
 même contrat canonique. Aucun utilisateur ne doit renseigner les metas privées
 historiques de WP Seed Events dans Divi.
+
+## Reutiliser une carte avec les outils Divi
+
+Le parcours recommande reste entierement natif :
+
+1. activer le Loop Builder sur un Group, une ligne ou un autre conteneur ;
+2. choisir `wp_seed_event`, puis regler type, statut, epingles et ordre ;
+3. construire la carte dans le conteneur repete ;
+4. utiliser les modules Dates, Visuels et Personnes pour les collections
+   structurees ;
+5. utiliser Dynamic Content pour les champs simples ;
+6. enregistrer la structure dans la Divi Library ;
+7. appliquer des presets aux modules pour mutualiser les styles ;
+8. utiliser un element global seulement si la structure et la requete doivent
+   rester liees ;
+9. utiliser Theme Builder pour les affectations globales.
+
+La responsabilite de chaque mecanisme est distincte :
+
+- **Loop Builder** : selection et repetition metier ;
+- **Library** : structure reutilisable, copiee lors d'une insertion ordinaire ;
+- **Presets** : styles reutilisables et actualisables globalement ;
+- **Element global** : structure et reglages propages a toutes les occurrences ;
+- **Theme Builder** : affectation globale d'une composition.
+
+WP Seed Events ne cree aucun modele Divi concurrent et n'enregistre aucune
+carte Divi imposee.

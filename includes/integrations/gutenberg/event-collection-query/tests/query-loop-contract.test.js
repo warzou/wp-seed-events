@@ -12,6 +12,10 @@ const collections = fs.readFileSync(
   path.join( root, 'includes/public/collections.php' ),
   'utf8',
 );
+const patterns = fs.readFileSync(
+  path.join( root, 'includes/integrations/gutenberg/event-collection-patterns.php' ),
+  'utf8',
+);
 
 let cases = 0;
 
@@ -69,24 +73,66 @@ check( 'order values are complete', () => {
 check( 'pagination uses the native perPage attribute', () => {
   assert.ok( source.includes( 'perPage: 6' ) );
   assert.ok( source.includes( 'updateQuery( { perPage: value || 1 } )' ) );
-  assert.ok( source.includes( "'core/query-pagination'" ) );
+  assert.ok( patterns.includes( 'wp:query-pagination' ) );
 } );
 
 check( 'card composition remains editable blocks', () => {
   [
-    "'core/post-template'",
-    "'core/post-title'",
-    "'core/post-excerpt'",
-    "'wp-seed-events/event-dates-block'",
-    "'wp-seed-events/event-visuals-block'",
-    "'wp-seed-events/event-people-block'",
-  ].forEach( ( block ) => assert.ok( source.includes( block ), `${ block } missing` ) );
+    'wp:post-template',
+    'wp:post-title',
+    'wp:post-excerpt',
+    'wp:wp-seed-events/event-dates-block',
+    'wp:wp-seed-events/event-visuals-block',
+    'wp:wp-seed-events/event-people-block',
+  ].forEach( ( block ) => assert.ok( patterns.includes( block ), `${ block } missing` ) );
 } );
 
 check( 'dynamic fields use the existing binding source', () => {
-  assert.ok( source.includes( "source: 'wp-seed-events/event-field'" ) );
+  assert.ok( patterns.includes( '"source":"wp-seed-events/event-field"' ) );
   [ 'type', 'status', 'place' ].forEach( ( field ) =>
-    assert.ok( source.includes( `binding( '${ field }' )` ) ),
+    assert.ok( patterns.includes( `"field":"${ field }"` ) ),
+  );
+} );
+
+check( 'bound Core blocks use canonical non-self-closing serialization', () => {
+  assert.ok( ! /<!-- wp:paragraph .*\/-->/.test( patterns ) );
+  assert.ok( ! patterns.includes( 'wp:read-more' ) );
+  assert.equal( ( patterns.match( /<p><\/p>/g ) || [] ).length, 4 );
+  assert.equal( ( patterns.match( /<p>Aucun événement à afficher\.<\/p>/g ) || [] ).length, 2 );
+  assert.equal( ( patterns.match( /wp:button \{"metadata":\{"bindings":\{"url"/g ) || [] ).length, 2 );
+  assert.equal( ( patterns.match( /wp-block-button__link wp-element-button/g ) || [] ).length, 2 );
+  assert.equal( ( patterns.match( /"field":"url"/g ) || [] ).length, 2 );
+} );
+
+check( 'variation delegates the initial presentation to Query Loop patterns', () => {
+  assert.ok( ! source.includes( 'innerBlocks:' ) );
+  assert.ok( source.includes( 'Présentation de la carte' ) );
+  assert.ok( source.includes( 'point de départ modifiable librement' ) );
+} );
+
+check( 'two official Query Loop patterns are registered', () => {
+  assert.equal( ( patterns.match( /register_block_pattern_category\(/g ) || [] ).length, 1 );
+  assert.equal( ( patterns.match( /register_block_pattern\(/g ) || [] ).length, 2 );
+  assert.ok( patterns.includes( "'wp-seed-events/event-collection-compact'" ) );
+  assert.ok( patterns.includes( "'wp-seed-events/event-collection-detailed'" ) );
+  assert.equal( ( patterns.match( /'blockTypes'\s*=>\s*array\( 'core\/query' \)/g ) || [] ).length, 2 );
+} );
+
+check( 'patterns keep the canonical collection query contract', () => {
+  [
+    '"namespace":"wp-seed-events/event-collection"',
+    '"postType":"wp_seed_event"',
+    '"wpSeedEventsCollection":true',
+    '"wpSeedEventsStatus":"upcoming"',
+    '"wpSeedEventsPinned":"all"',
+    '"wpSeedEventsOrder":"ASC"',
+    '"wpSeedEventsOrderBy":"business_date"',
+  ].forEach( ( token ) => assert.ok( patterns.includes( token ), `${ token } missing` ) );
+} );
+
+check( 'patterns have no external builder dependency', () => {
+  [ 'spectra', 'uagb', 'divi', 'et_pb_', 'content-kit', 'shortcode' ].forEach( ( token ) =>
+    assert.ok( ! patterns.toLowerCase().includes( token ), `${ token } found` ),
   );
 } );
 
@@ -103,6 +149,12 @@ check( 'editor REST parameters are scoped to events', () => {
   assert.ok( bootstrap.includes( "add_filter( 'rest_wp_seed_event_collection_params'" ) );
   assert.ok( bootstrap.includes( "add_filter( 'rest_wp_seed_event_query'" ) );
   assert.ok( ! bootstrap.includes( "add_filter( 'rest_post_query'" ) );
+} );
+
+check( 'empty event type uses a scalar-only REST sanitizer', () => {
+  assert.ok( bootstrap.includes( 'wp_seed_events_gutenberg_collection_rest_sanitize_slug' ) );
+  assert.ok( bootstrap.includes( "return sanitize_title( (string) $value );" ) );
+  assert.ok( ! bootstrap.includes( "'sanitize_callback' => 'sanitize_title'" ) );
 } );
 
 check( 'frontend and editor share one adapter', () => {
@@ -139,6 +191,7 @@ check( 'no shortcode or fixed event ID is used', () => {
   [ 'do_shortcode', '[wp_seed_event', '914', '1566' ].forEach( ( token ) => {
     assert.ok( ! source.includes( token ), `${ token } in source` );
     assert.ok( ! bootstrap.includes( token ), `${ token } in bootstrap` );
+    assert.ok( ! patterns.includes( token ), `${ token } in patterns` );
   } );
 } );
 

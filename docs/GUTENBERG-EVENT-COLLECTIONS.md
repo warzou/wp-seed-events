@@ -41,7 +41,39 @@ Les deux chemins appellent `wp_seed_events_apply_collection_to_query_args()`, qu
 
 ## Composition
 
-La carte initiale est composee de blocs Core et WP Seed Events modifiables : visuels, titre lie, type, statut, dates, extrait, lieu et personnes. Chaque bloc enfant herite du contexte de l'item courant. Aucun HTML de carte fixe, shortcode, ID d'evenement ou meta privee n'est serialise.
+L'insertion de `WP Seed Events - Collection d'evenements` ouvre le choix natif
+des patterns du Query Loop. WP Seed Events enregistre une categorie
+`WP Seed Events - Collections` et deux presentations de depart :
+
+- `WP Seed Events - Carte compacte` :
+  visuel principal, titre lie, dates sans horaires, lieu et lien vers la fiche ;
+- `WP Seed Events - Carte detaillee` :
+  visuel principal, titre lie, type, statut, extrait, dates et horaires, lieu,
+  personnes et lien vers la fiche.
+
+Les slugs stables sont respectivement
+`wp-seed-events/event-collection-compact` et
+`wp-seed-events/event-collection-detailed`. Les deux patterns sont associes a
+`core/query` par l'API publique `register_block_pattern()`. Ils reprennent le
+namespace et les attributs metier de la variation ; aucun second moteur de
+requete n'est cree.
+
+Chaque carte est composee uniquement de blocs Core et WP Seed Events
+modifiables. Les blocs enfants heritent de `postId`, `postType` et `queryId`
+pour l'item courant. Aucun HTML de carte fixe, shortcode, ID d'evenement ou
+meta privee n'est serialise.
+
+## Reutilisation
+
+Les deux presentations sont des points de depart non synchronises. Une fois
+inseree, chaque collection peut etre modifiee librement sans recevoir les
+changements futurs du pattern fourni par le plugin.
+
+L'utilisateur peut enregistrer sa collection comme composition WordPress pour
+la reutiliser. Une composition synchronisee convient uniquement lorsque la
+structure de carte et les reglages de requete doivent rester identiques dans
+toutes ses occurrences. Pour des collections aux filtres differents, utiliser
+une composition non synchronisee puis ajuster les controles metier.
 
 Plusieurs collections WP Seed Events peuvent coexister sur une page avec des reglages distincts. Leur namespace et leur marqueur isolent leurs requetes ; les Query Loops Core ordinaires restent inchangees. L'apercu REST et le frontend consomment la meme liste canonique d'IDs, dans le meme ordre, tout en laissant Core gerer la pagination.
 
