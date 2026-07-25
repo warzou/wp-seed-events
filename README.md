@@ -1,8 +1,8 @@
 # WP Seed Events
 
-Version actuelle : `0.2.0-alpha.2`
+Version actuelle : `0.2.0-alpha.3`
 
-WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette version alpha consolide la V1 et ajoute des collections personnalisables dans Divi et Gutenberg.
+WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette version alpha corrige la generation initiale des slugs dans les interfaces WordPress localisees, sans migration des URL existantes.
 
 ## Fonctionnalites principales
 
@@ -39,17 +39,17 @@ Astra et Spectra restent facultatifs. Spectra n'est pas installe sur le site de 
 ## Installation
 
 1. Sauvegarder les fichiers et la base WordPress.
-2. Installer `wp-seed-events-0.2.0-alpha.2.zip` depuis Extensions > Ajouter une extension.
+2. Installer `wp-seed-events-0.2.0-alpha.3.zip` depuis Extensions > Ajouter une extension.
 3. Activer WP Seed Events.
 4. Ouvrir une fiche evenement puis verifier son rendu public.
 
-## Mise a jour depuis 0.2.0-alpha.1
+## Mise a jour depuis une alpha anterieure
 
 1. Conserver une copie exacte du dossier actif `wp-seed-events`.
-2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-alpha.2.zip`.
+2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-alpha.3.zip`.
 3. Verifier la version active, une fiche evenement, les collections, les ICS et les builders utilises.
 
-Le changement de version ne declenche aucune migration, aucun backfill et aucune republication de coordonnee.
+Le changement de version ne declenche aucune migration, aucun backfill, aucune republication de coordonnee et aucune modification des slugs existants.
 
 ## Rollback
 
@@ -67,7 +67,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 - creer une issue par symptome distinct et verifier les doublons avant creation ;
 - ne jamais publier de secret ni de donnee personnelle ;
-- indiquer la version concernee : `0.2.0-alpha.2` ;
+- indiquer la version testee dans le champ dedie ;
 - donner la priorite aux anomalies reproductibles ;
 - aucune nouvelle fonctionnalite n'est garantie pendant l'alpha.
 
@@ -78,7 +78,6 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - la performance des collections devra etre mesuree avant beta sur de tres gros catalogues ;
 - Spectra n'est ni requis ni recete sur le site de reference ;
 - coexistence avec la boite native Image mise en avant ;
-- cas du slug accentue degrade encore a isoler ;
 - placement du partage dependant du theme en page modele complete.
 
-Voir `docs/RELEASE-0.2.0-alpha.2.md` et `CHANGELOG.md` pour les details de release.
+Voir `docs/RELEASE-0.2.0-alpha.3.md` et `CHANGELOG.md` pour les details de release.

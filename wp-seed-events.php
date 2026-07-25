@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.2.0-alpha.2
+ * Version: 0.2.0-alpha.3
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
@@ -150,6 +150,11 @@ function wp_seed_events_prepare_event_title_and_slug( $data, $postarr ) {
 
 function wp_seed_events_event_slug_is_provisional( $data, $post_id ) {
 	$slug = isset( $data['post_name'] ) ? trim( (string) $data['post_name'] ) : '';
+	$post = 0 < $post_id ? get_post( $post_id ) : null;
+
+	if ( 0 < $post_id && ( ! ( $post instanceof WP_Post ) || 'auto-draft' !== $post->post_status ) ) {
+		return false;
+	}
 
 	if ( '' === $slug ) {
 		return true;
@@ -159,8 +164,21 @@ function wp_seed_events_event_slug_is_provisional( $data, $post_id ) {
 		return true;
 	}
 
-	if ( in_array( $slug, array( 'auto-draft', 'sans-titre', 'untitled' ), true ) ) {
-		return true;
+	$provisional_bases = array(
+		'auto-draft',
+		'sans-titre',
+		'untitled',
+		sanitize_title( __( 'Auto Draft' ) ),
+	);
+
+	if ( $post instanceof WP_Post && '' !== trim( (string) $post->post_title ) ) {
+		$provisional_bases[] = sanitize_title( (string) $post->post_title );
+	}
+
+	foreach ( array_unique( array_filter( $provisional_bases ) ) as $base ) {
+		if ( preg_match( '/^' . preg_quote( $base, '/' ) . '(?:-[0-9]+)?$/D', $slug ) ) {
+			return true;
+		}
 	}
 
 	return false;

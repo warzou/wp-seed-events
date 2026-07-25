@@ -1,5 +1,5 @@
 name: "Retour alpha — WP Seed Events"
-description: "Signaler un bug, une incompréhension ou une régression observée avec WP Seed Events 0.2.0-alpha.1."
+description: "Signaler un bug, une incompréhension ou une régression observée avec une préversion de WP Seed Events."
 title: "[Alpha] "
 labels:
   - "alpha-feedback"
@@ -16,6 +16,15 @@ body:
       label: "Résumé du problème"
       description: "Décrivez brièvement le bug, l'incompréhension ou la régression."
       placeholder: "En une ou deux phrases..."
+    validations:
+      required: true
+
+  - type: input
+    id: plugin_version
+    attributes:
+      label: "Version testée de WP Seed Events"
+      description: "Indiquez la version affichée dans l’administration WordPress ou le nom du ZIP installé."
+      placeholder: "Exemple : version indiquee dans Extensions"
     validations:
       required: true
 

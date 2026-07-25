@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0-alpha.3 - 2026-07-25
+
+Cette alpha corrige la generation du slug lors du premier enregistrement d'un nouvel evenement dans une interface WordPress localisee. Elle ne modifie ni les donnees existantes, ni les contrats metier, ni les integrations builders.
+
+### Corrections
+
+- Generation correcte des slugs des nouveaux evenements dans les interfaces WordPress localisees.
+- Reconnaissance des suffixes numeriques ajoutes aux slugs provisoires des auto-brouillons.
+- Intervention limitee a la premiere sauvegarde pertinente d'un `wp_seed_event`.
+- Preservation des slugs manuels, des sauvegardes suivantes et des URL existantes.
+- Formulaire de retour alpha rendu independant d'une version fixe.
+
+### Compatibilite
+
+- Aucune migration automatique des evenements existants.
+- Aucun changement de stockage ou de donnees.
+- Contrats Collections, Dates et Personnes inchanges.
+- Gutenberg et Divi inchanges en dehors de leur metadata de version.
+- Content Kit et Spectra non requis.
+
 ## 0.2.0-alpha.2 - 2026-07-25
 
 Cette alpha consolide la composition visuelle des collections d'evenements et les controles de rendu Dates et Personnes, sans migration ni changement de stockage.
