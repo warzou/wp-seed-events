@@ -222,7 +222,7 @@ namespace {
 
 	function p4_invoke( $method, ...$args ) {
 		$reflection = new ReflectionMethod( WP_Seed_Events_Divi_Event_People_Module::class, $method );
-		$reflection->setAccessible( true );
+
 		return $reflection->invoke( null, ...$args );
 	}
 

@@ -130,10 +130,7 @@ Cette API accepte `type`, `status`, `pinned`, `order`, `page` et `per_page`,
 puis retourne les objets Event Data, les IDs ordonnés, le total et les
 informations de pagination.
 
-Les futurs adaptateurs Gutenberg Query Loop et Spectra devront transformer
-leurs réglages vers ces mêmes arguments et réutiliser les IDs retournés. Ils ne
-devront ni relire les metas historiques, ni recalculer le lifecycle, ni
-réimplémenter le tri par occurrences.
+L’adaptateur Gutenberg Query Loop transforme ses réglages vers ces mêmes arguments et réutilise les IDs retournés. Un éventuel adaptateur Spectra devra suivre le même contrat après une recette dédiée. Aucun adaptateur ne doit relire les metas historiques, recalculer le lifecycle ou réimplémenter le tri par occurrences.
 
 Divi conserve la composition visuelle des cartes. Son adaptateur de requete ne
 produit aucun HTML et ne consulte aucune meta privee saisie par l'utilisateur.
@@ -153,13 +150,7 @@ Elle ne doit pas relire directement les champs metier pour produire une carte.
 
 ## Relation avec event-card.php
 
-`event-card.php` est le rendu de reference d'une carte evenement.
-
-La collection V1 doit reutiliser ce rendu pour chaque evenement.
-
-Elle ne doit pas introduire un second design de carte.
-
-Le theme ou le builder peut ensuite placer la collection dans une section, une colonne ou une page.
+`event-card.php` est le rendu de reference des cartes du shortcode. Divi et Gutenberg conservent la composition visuelle de leurs cartes avec leurs outils natifs, tout en consommant la même sélection métier. WP Seed Events ne crée aucun moteur de template concurrent.
 
 ## Ce que la V1 ne doit pas faire
 
@@ -176,7 +167,6 @@ La V1 ne doit pas ajouter :
 - design avance ;
 - options de colonnes ;
 - options de couleurs ;
-- bloc Gutenberg custom ;
 - systeme de template complexe.
 
 ## Principe durable
@@ -190,3 +180,19 @@ Elles ne possedent pas le rendu unitaire.
 Elles ne possedent pas les donnees metier.
 
 Elles consomment l'Event Data API et reutilisent la carte publique existante.
+
+## Contrat alpha.2 fige
+
+La fonction `wp_seed_events_query_event_collection()` accepte publiquement :
+
+- `type` ;
+- `status` : `upcoming`, `past` ou `all` ;
+- `pinned` : `all` ou `only` ;
+- `order` : `asc` ou `desc` ;
+- `page` ;
+- `per_page` ;
+- `limit`, conserve pour le shortcode historique.
+
+Elle retourne les Event Data selectionnees, les IDs ordonnes, le total et les informations de pagination. Les occurrences annulees ne definissent jamais la date active de classement. Les evenements sans date exploitable apparaissent en fin de collection avec `status=all` et sont exclus de `upcoming` et `past`.
+
+Le shortcode, Divi et Gutenberg consomment ce contrat. Aucun builder ne recalcule le lifecycle ou le tri par occurrence.

@@ -16,10 +16,7 @@ contexte builder
   -> adaptateur Divi ou Gutenberg
 ```
 
-Les données simples sont destinées aux champs natifs des builders. Les
-collections structurées Dates et Visuels de communication restent des
-composants dédiés, car elles portent un ordre, une cardinalité variable et des
-états qui ne peuvent pas être réduits à une chaîne.
+Les données simples sont destinées aux champs natifs des builders. Les composants structurés Dates, Visuels de communication et Personnes restent dédiés, car ils portent un ordre, une cardinalité variable, des permissions ou des états qui ne peuvent pas être réduits à une chaîne.
 
 ## Registre canonique
 
@@ -160,16 +157,14 @@ Gutenberg enregistre une seule source Block Bindings :
 wp-seed-events/event-field
 ```
 
-L'argument `field` sélectionne l'une des 16 clés du registre. Les usages validés
+L'argument `field` sélectionne l'une des 17 clés du registre. Les usages validés
 sont :
 
 - `core/paragraph` et `core/heading` pour `content` ;
 - `core/button` pour `url` ;
 - `core/image` pour `id`, `url`, `alt`, `title` et `caption`.
 
-La même source fonctionne dans une fiche, une page modèle, le Query Loop Core
-et une boucle Spectra. Elle ne sérialise aucun ID d'événement et n'ajoute aucun
-shortcode. Spectra et Astra ne nécessitent aucun adaptateur métier.
+La même source fonctionne dans une fiche, une page modèle et le Query Loop Core. Elle ne sérialise aucun ID d’événement et n’ajoute aucun shortcode. Spectra reste facultatif, absent du site de référence et sans compatibilité runtime avancée revendiquée dans cette alpha.
 
 Exemple de binding texte :
 
@@ -196,7 +191,8 @@ Les collections suivantes utilisent le renderer partagé et leurs adaptateurs
 dédiés :
 
 - Dates : occurrences ordonnées, états, horaires et liens calendrier ;
-- Visuels de communication : recto, autres visuels et document complémentaire.
+- Visuels de communication : recto, autres visuels et document complémentaire ;
+- Personnes : rôles multiples et coordonnées publiques filtrées.
 
 Le shortcode reste le fallback universel. Les modules Divi et blocs Gutenberg
 restent des adaptateurs minces autour des mêmes renderers. Aucun composant ne
@@ -229,6 +225,4 @@ attribut cible. Le registre fournit des projections neutres déjà normalisées.
 - aucune nouvelle source ne doit être ajoutée sans contrat Event Data public et
   besoin builder validé.
 
-La prochaine décision produit porte sur un éventuel composant Personnes
-détaillées et sur la visibilité explicite de ses coordonnées. Ce chantier n'est
-pas commencé.
+Le composant Personnes existe comme renderer structuré et comme adaptateur Divi et Gutenberg. Les coordonnées restent volontairement absentes de Dynamic Data : elles ne peuvent être rendues que par le composant Personnes après filtrage des permissions de publication.

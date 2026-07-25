@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.0-alpha.2 - 2026-07-25
+
+Cette alpha consolide la composition visuelle des collections d'evenements et les controles de rendu Dates et Personnes, sans migration ni changement de stockage.
+
+### Collections et builders
+
+- Collections d'evenements personnalisables dans le Loop Builder Divi et le Query Loop Gutenberg.
+- Filtres metier par type, statut et epinglage.
+- Tri par `1re date de l'evenement`, fonde sur les occurrences actives plutot que sur la date de publication WordPress.
+- Pagination Gutenberg et ordre stable, avec les evenements sans date places en fin de collection.
+- Patterns Gutenberg `Carte compacte` et `Carte detaillee`, non synchronises et modifiables librement.
+
+### Dates et personnes
+
+- Choix explicites : Prochaine date, Premiere date, Derniere date, Toutes les prochaines dates, Toutes les dates passees et Toutes les dates.
+- Controles des horaires, occurrences annulees, format et liens calendrier.
+- Filtrage de plusieurs roles Personnes en logique OU.
+- Controles distincts du nom, des roles, du telephone, de l'e-mail, du lien et de leur caractere cliquable.
+- Les permissions de publication restent l'autorite absolue ; un builder ne peut jamais rendre une coordonnee privee.
+
+### Integration et compatibilite
+
+- Apercus Gutenberg et pont Block Bindings ameliores.
+- Statut public ajoute au registre Dynamic Data.
+- Shortcodes et alias alpha.1 conserves sans rupture silencieuse.
+- Divi et Gutenberg restent facultatifs ; Content Kit et Spectra ne sont pas requis.
+
+### Limites connues
+
+- Les patterns sont non synchronises par defaut.
+- Certains apercus Divi restent neutres hors contexte evenement ; le frontend reste la reference.
+- La performance des collections devra etre mesuree avant beta sur de tres gros catalogues.
+- Spectra n'est pas installe sur le site de reference et aucune compatibilite runtime avancee n'est revendiquee.
+
 ## 0.2.0-alpha.1 - 2026-07-20
 
 Cette version alpha est destinee a la validation de la premiere V1 complete de WP Seed Events.

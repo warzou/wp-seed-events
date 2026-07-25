@@ -1,8 +1,13 @@
+param(
+    [ValidatePattern('^[^\\/:*?"<>|]+[.]zip$')]
+    [string]$OutputFileName = 'wp-seed-events-dev.zip'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $dist = Join-Path $root 'dist'
-$zipPath = Join-Path $dist 'wp-seed-events-dev.zip'
+$zipPath = Join-Path $dist $OutputFileName
 $pluginFile = Join-Path $root 'wp-seed-events.php'
 $pluginRuntimeDirs = @(
     'includes',

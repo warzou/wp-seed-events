@@ -158,3 +158,7 @@ renderer ou le meme contrat d'occurrences, sans acces au stockage.
 Ce contrat n'ajoute aucun shortcode, module builder, bloc Gutenberg, style
 inline, tri configurable, grille, migration, backfill ou changement de
 stockage.
+
+## Contrat alpha.2 fige
+
+Le contrat public reste `mode`, `scope`, `show_cancelled`, `show_times`, `format` et `show_calendar_links`. Les builders traduisent leurs six libelles explicites vers ce contrat sans modifier les regles metier. Le shortcode conserve les combinaisons avancees et les alias historiques.

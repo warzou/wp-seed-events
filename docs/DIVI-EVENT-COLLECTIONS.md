@@ -120,3 +120,9 @@ La responsabilite de chaque mecanisme est distincte :
 
 WP Seed Events ne cree aucun modele Divi concurrent et n'enregistre aucune
 carte Divi imposee.
+
+## Statut alpha.2
+
+Le Loop Builder, les filtres `type`, `status` et `pinned`, le tri visible `1re date de l'evenement`, l'ordre et la pagination utilisent le contrat canonique des collections. Les modules Dates, Visuels et Personnes recoivent le contexte de chaque item en frontend.
+
+La Divi Library, les presets et les elements globaux restent les mecanismes recommandes pour reutiliser une carte. WP Seed Events ne cree aucun second moteur de template et n'impose aucun design.

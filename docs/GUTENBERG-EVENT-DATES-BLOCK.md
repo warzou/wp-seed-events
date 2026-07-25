@@ -72,7 +72,7 @@ Le callback du bloc :
 
 1. résout l'événement depuis le contexte Gutenberg ;
 2. charge son contrat Event Data ;
-3. normalise les six options ;
+3. normalise les huit attributs ;
 4. délègue au renderer partagé ;
 5. ajoute le wrapper natif Gutenberg avec `get_block_wrapper_attributes()` uniquement lorsque le renderer retourne du HTML.
 
@@ -301,6 +301,10 @@ Le module Divi `wp-seed-events/event-dates` est l'adaptateur équivalent pour Di
 - aucune mise en page galerie, grille ou carrousel ;
 - aucune intégration Astra ou Spectra spécifique ;
 - aucune exposition REST des metas métier privées ;
-- aucun composant Visuels ou Personnes inclus dans ce lot.
+- les composants Visuels et Personnes restent indépendants du bloc Dates.
 
-Les composants Visuels de communication, les Dynamic Data simples complémentaires et l'évaluation des Personnes détaillées constituent des lots ultérieurs séparés.
+Les blocs Visuels et Personnes utilisent leurs propres renderers partagés ; Dynamic Data reste réservé aux valeurs simples.
+
+## Choix alpha.2
+
+L'inspecteur propose exactement : Prochaine date, Premiere date, Derniere date, Toutes les prochaines dates, Toutes les dates passees et Toutes les dates. Les attributs `mode` et `scope` restent le contrat persistant et assurent la compatibilite des blocs alpha.1.

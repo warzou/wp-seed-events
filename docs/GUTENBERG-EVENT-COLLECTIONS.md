@@ -82,3 +82,11 @@ Plusieurs collections WP Seed Events peuvent coexister sur une page avec des reg
 Le contrat canonique charge actuellement tous les evenements publies avant filtrage et tri. Le harness de reference couvre 500 evenements et verifie la pagination, la stabilite et un garde-temps local genereux. Aucune limite arbitraire n'est appliquee, car elle pourrait omettre des resultats valides.
 
 Cette dette devra etre mesuree sur des catalogues plus volumineux. Une optimisation future devra conserver exactement les memes IDs, le meme ordre, les memes totaux et les regles d'occurrences.
+
+## Experience alpha.2
+
+Le bouton natif `Modifier le design` ouvre les presentations `Carte compacte` et `Carte detaillee`. Les deux utilisent uniquement des blocs Core et WP Seed Events et restent modifiables visuellement apres insertion.
+
+La carte compacte utilise le bloc Dates en mode Prochaine date, sans horaires ni liens calendrier et sans bloc Personnes par defaut. La carte detaillee utilise Toutes les prochaines dates, affiche les horaires et inclut Personnes avec Organisateurs et Intervenants. Les coordonnees restent soumises aux permissions de publication.
+
+Le bloc parent expose Type d'evenement, Statut, Evenements epingles, Trier par, Ordre et Elements par page. Les patterns officiels sont non synchronises ; l'utilisateur peut ensuite enregistrer une composition WordPress synchronisee ou non selon son besoin.

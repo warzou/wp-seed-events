@@ -10,7 +10,7 @@ Identifiants persistants :
 - dossier Divi : `wp-seed-events` (`WP Seed Events`) ;
 - classe module : `wp_seed_events_divi_event_dates`.
 
-Une valeur Dynamic Content convient à une donnée simple, par exemple `next_date`. Les dates constituent une collection ordonnée avec des états, des horaires et des actions : elles utilisent donc un composant dédié. Cette exception reste limitée aux collections métier Dates et Visuels. Les personnes détaillées sont un besoin futur non commencé ; leurs coordonnées publiques ne devront être exposées que lorsqu'elles sont explicitement activées.
+Une valeur Dynamic Content convient à une donnée simple, par exemple `next_date`. Les dates constituent une collection ordonnée avec des états, des horaires et des actions : elles utilisent donc un composant dédié. Dates, Visuels et Personnes sont les trois composants structurés disponibles. Les coordonnées Personnes restent filtrées par leurs autorisations de publication avant tout rendu.
 
 ## Architecture universelle
 
@@ -18,7 +18,7 @@ La chaîne de référence est :
 
 `Event Occurrences API → Event Data API → renderer partagé Dates → consommateurs`.
 
-Les consommateurs actuels sont le template natif, le shortcode universel et l'adaptateur Divi. Un futur bloc Gutenberg/Spectra devra appeler le même renderer. Astra pourra consommer ce bloc ou le shortcode de fallback. Aucun HTML métier n'est reconstruit dans React et aucun couplage métier à Divi n'est autorisé.
+Les consommateurs actuels sont le template natif, le shortcode universel, le module Divi et le bloc Gutenberg. Tous appellent le même renderer. Aucun HTML métier n’est reconstruit dans React et aucun couplage métier à Divi n’est autorisé.
 
 La partie PHP est chargée depuis `includes/integrations/divi/bootstrap.php` lorsque l'API Divi 5 est disponible. `class-event-dates-module.php` enregistre les métadonnées, le callback frontend et l'endpoint de prévisualisation. Le bundle Visual Builder transmet uniquement le contexte et les attributs, puis affiche le HTML renvoyé par le serveur.
 
@@ -88,7 +88,7 @@ Le responsive visuel est délégué aux réglages standard de Divi et à la stru
 
 `[wp_seed_event_dates]` reste le fallback universel et utilise le même renderer. Il n'est pas l'expérience builder principale. Le provider Divi `next_date` reste réservé à une valeur scalaire ; le module Dates traite la collection complète.
 
-Le futur bloc Gutenberg/Spectra reprendra le même contrat Contenu et le même renderer. Aucun bloc Gutenberg, module Visuels ou module Personnes n'est inclus dans ce lot.
+Le bloc Gutenberg Dates reprend le même contrat de contenu et le même renderer. Les composants Visuels et Personnes restent des adaptateurs séparés autour de leurs renderers partagés.
 
 ## Développement et build
 
@@ -129,4 +129,8 @@ La recette couvre insertion, sauvegarde, réouverture, contenu brut natif, optio
 - aucun ID d'événement ne peut être forcé dans le module ;
 - l'aperçu d'une page ordinaire ou d'une page modèle hors contexte événement est volontairement vide ;
 - le module ne remplace pas les valeurs Dynamic Content scalaires ;
-- les futurs composants Visuels et Personnes ne sont pas commencés.
+- les composants Visuels et Personnes restent indépendants du module Dates.
+
+## Choix alpha.2
+
+Le controle `Dates affichees` propose exactement : Prochaine date, Premiere date, Derniere date, Toutes les prochaines dates, Toutes les dates passees et Toutes les dates. Les valeurs persistantes `mode` et `scope` restent compatibles avec les modules alpha.1.

@@ -122,7 +122,7 @@ pdf_labels_case( '19 no builder-specific PDF label duplication', function () use
 pdf_labels_case( '20 UTF-8 without BOM or mojibake', function () use ( $root ) {
 	foreach ( array( 'wp-seed-events.php', 'includes/public/rendering.php', 'templates/event-single.php', 'tests/pdf-labels-guidance-harness.php' ) as $relative ) {
 		$bytes = file_get_contents( $root . '/' . $relative );
-		pdf_labels_assert( "ï»¿" !== substr( $bytes, 0, 3 ), 'BOM found in ' . $relative );
+		pdf_labels_assert( "\xEF\xBB\xBF" !== substr( $bytes, 0, 3 ), 'BOM found in ' . $relative );
 		pdf_labels_assert( 1 === preg_match( '//u', $bytes ), 'Invalid UTF-8 in ' . $relative );
 		foreach ( array( 'c383', 'c382', 'c3a2e282ac' ) as $signature ) {
 			pdf_labels_assert( false === strpos( $bytes, hex2bin( $signature ) ), 'Mojibake found in ' . $relative );

@@ -327,7 +327,7 @@ namespace {
 	}
 
 	$dates_normalize = new ReflectionMethod( WP_Seed_Events_Divi_Event_Dates_Module::class, 'normalize_options' );
-	$dates_normalize->setAccessible( true );
+
 	$date_selections = array(
 		'next'         => array( 'next', 'upcoming' ),
 		'first'        => array( 'first', 'all' ),

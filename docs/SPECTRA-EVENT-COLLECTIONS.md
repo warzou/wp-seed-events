@@ -52,3 +52,9 @@ apparaitre comme bloc manquant dans l'editeur WordPress. Pour cette raison,
 aucun bloc Spectra n'est inclus dans les presentations par defaut de WP Seed
 Events. L'utilisateur peut remplacer ou entourer les blocs de la carte avec
 Spectra apres insertion, sous sa propre responsabilite editoriale.
+
+## Compatibilite alpha.2
+
+Spectra est facultatif et non requis par WP Seed Events. Il n'est pas installe sur le site de reference. Les patterns officiels n'incluent aucun bloc Spectra et cette alpha ne revendique aucune compatibilite runtime avancee avec une boucle Spectra.
+
+Gutenberg Core, les blocs WP Seed Events et le contrat canonique restent utilisables sans Spectra. Toute integration runtime future devra faire l'objet d'une installation volontaire, d'un audit des hooks officiels et d'une recette distincte.

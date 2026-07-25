@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Seed Events
  * Description: Autonomous event publishing foundation for WordPress.
- * Version: 0.2.0-alpha.1
+ * Version: 0.2.0-alpha.2
  * Author: WP Seed
  * Text Domain: wp-seed-events
  *
