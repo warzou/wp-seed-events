@@ -128,6 +128,23 @@ p3a_case( '34 shortcode equals renderer', function () {
 } );
 p3a_case( '35 private coordinates', function () { $html = wp_seed_events_event_people_shortcode( array( 'id' => 914 ) ); p3a_contains( 'alice@example.test', $html, 'Public missing.' ); p3a_not_contains( 'private-alice', $html, 'Email leaked.' ); p3a_not_contains( '999999999', str_replace( ' ', '', $html ), 'Phone leaked.' ); p3a_not_contains( 'private.example.test', $html, 'URL leaked.' ); } );
 
+p3a_case( 'roles list uses OR and all remains exclusive', function () {
+	$html = wp_seed_events_event_people_shortcode( array( 'id' => 914, 'roles' => 'organizer,speaker' ) );
+	p3a_assert( 2 === p3a_count_people( $html ), 'Multiple shortcode roles did not use OR.' );
+	$all = wp_seed_events_event_people_shortcode( array( 'id' => 914, 'roles' => 'all,speaker' ) );
+	p3a_assert( 4 === p3a_count_people( $all ), 'All shortcode role is not exclusive.' );
+} );
+
+p3a_case( 'show name and link controls are forwarded', function () {
+	$html = wp_seed_events_event_people_shortcode( array( 'id' => 914, 'roles' => 'organizer', 'show_name' => 'no', 'show_roles' => 'no', 'link_phone' => 'no', 'link_email' => 'no', 'link_url' => 'no' ) );
+	p3a_contains( '__name screen-reader-text', $html, 'Hidden name is not accessible.' );
+	p3a_not_contains( 'mailto:', $html, 'Email link toggle was ignored.' );
+	p3a_not_contains( 'tel:', $html, 'Phone link toggle was ignored.' );
+	p3a_not_contains( '__link-anchor', $html, 'URL link toggle was ignored.' );
+	p3a_contains( 'alice@example.test', $html, 'Public coordinate disappeared.' );
+	p3a_not_contains( 'private-alice', $html, 'Private coordinate leaked.' );
+} );
+
 $source = file_get_contents( dirname( __DIR__ ) . '/includes/public/rendering.php' );
 $start = strpos( $source, 'function wp_seed_events_event_people_shortcode_event_id' );
 $end = strpos( $source, 'function wp_seed_events_event_place_shortcode' );

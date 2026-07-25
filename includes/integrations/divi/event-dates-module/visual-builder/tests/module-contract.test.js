@@ -25,14 +25,37 @@ const contentItems = metadata.attributes.content.settings.innerContent.items;
 
 assert.strictEqual(metadata.name, 'wp-seed-events/event-dates');
 assert.strictEqual(metadata.folder, 'wp-seed-events');
-assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.scope, 'all');
+const defaults = metadata.attributes.content.default.innerContent.desktop.value;
+assert.strictEqual(defaults.mode, 'all');
+assert.strictEqual(defaults.scope, 'all');
+assert.strictEqual(defaults.format, 'long');
+const dateSelection = contentItems.dateSelection;
+assert.ok(dateSelection);
+assert.strictEqual(dateSelection.subName, 'date_selection');
+assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
+  'next',
+  'first',
+  'last',
+  'all_upcoming',
+  'all_past',
+  'all',
+]);
+[
+  'Prochaine date',
+  'Première date',
+  'Dernière date',
+  'Toutes les prochaines dates',
+  'Toutes les dates passées',
+  'Toutes les dates',
+].forEach((label) => assert.ok(JSON.stringify(dateSelection).includes(label)));
 
 [
   'title',
   'heading_level',
-  'scope',
+  'date_selection',
   'show_cancelled',
   'show_times',
+  'format',
   'show_calendar_links',
 ].forEach((field) => {
   assert.ok(
@@ -40,6 +63,7 @@ assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.valu
     `Missing persistent field: ${field}`,
   );
 });
+assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
 
 [
   'wp-seed-event-dates__title',
@@ -56,6 +80,22 @@ assert.ok(source.includes('useFetch'));
 assert.ok(source.includes('AbortController'));
 assert.ok(source.includes('URLSearchParams'));
 assert.ok(source.includes('/wp-seed-events/v1/divi-event-dates-preview?'));
+[
+  "selection === 'next'",
+  "selection === 'first' || selection === 'last'",
+  "scope = 'all'",
+  "selection === 'all_upcoming'",
+  "selection === 'all_past'",
+  "selection === 'all'",
+  "date_selection: 'all'",
+].forEach((mapping) => assert.ok(source.includes(mapping), `Missing Divi mapping: ${mapping}`));
+[
+  "in_array( $choice, array( 'first', 'last' ), true )",
+  "$scope = 'all'",
+  "'all_upcoming' === $choice",
+  "'all_past' === $choice",
+  "'all' === $choice",
+].forEach((mapping) => assert.ok(phpModule.includes(mapping), `Missing PHP mapping: ${mapping}`));
 assert.deepStrictEqual(metadata.attributes.__loop_post_id, { type: 'string', default: '' });
 assert.ok(source.includes('__loop_post_id: loopPostIdContext'));
 assert.ok(source.includes('loop_id: loopPostId'));

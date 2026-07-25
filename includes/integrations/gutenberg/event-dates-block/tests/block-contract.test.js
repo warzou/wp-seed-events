@@ -40,17 +40,21 @@ assert.notStrictEqual(metadata.name, diviMetadata.name);
 assert.strictEqual(metadata.apiVersion, 3);
 assert.deepStrictEqual(metadata.usesContext, ['postId', 'postType', 'queryId']);
 assert.deepStrictEqual(metadata.attributes.heading_level.enum, ['h2', 'h3', 'h4', 'h5', 'h6']);
+assert.deepStrictEqual(metadata.attributes.mode.enum, ['next', 'first', 'last', 'all']);
 assert.deepStrictEqual(metadata.attributes.scope.enum, ['all', 'upcoming', 'past']);
+assert.deepStrictEqual(metadata.attributes.format.enum, ['long', 'short']);
 assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes, 'eventId'));
 assert.deepStrictEqual(builtMetadata, metadata);
 
 const defaults = {
   title: 'Dates',
   heading_level: 'h2',
+  mode: 'all',
   scope: 'all',
   show_cancelled: true,
   show_times: true,
   show_calendar_links: true,
+  format: 'long',
 };
 
 Object.entries(defaults).forEach(([name, value]) => {
@@ -63,8 +67,25 @@ assert.strictEqual((source.match(/registerBlockType\s*\(/g) || []).length, 1);
 assert.ok(source.includes('save: () => null'));
 assert.ok(source.includes('InspectorControls'));
 assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 1);
-assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 2);
+assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 3);
 assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 3);
+[
+  'Dates affichées',
+  'Prochaine date',
+  'Première date',
+  'Dernière date',
+  'Toutes les prochaines dates',
+  'Toutes les dates passées',
+  'Toutes les dates',
+].forEach((label) => assert.ok(source.includes(label), `Missing explicit date label: ${label}`));
+[
+  "return { mode: 'next', scope: 'upcoming', show_cancelled: false }",
+  "return { mode: 'all', scope: 'upcoming' }",
+  "return { mode: 'all', scope: 'past' }",
+  "return { mode: 'all', scope: 'all' }",
+  "return { mode: value, scope: 'all' }",
+].forEach((mapping) => assert.ok(source.includes(mapping), `Missing display mapping: ${mapping}`));
+assert.ok(!source.includes('SCOPE_OPTIONS'));
 [
   'apiFetch',
   "method: 'POST'",
@@ -103,7 +124,9 @@ assert.strictEqual(
 [
   'wp_seed_events_gutenberg_event_dates_render',
   'wp_seed_events_public_heading_level_option',
+  'wp_seed_events_public_date_mode_option',
   'wp_seed_events_public_date_scope_option',
+  'wp_seed_events_public_date_format_option',
   "array_key_exists( 'postId', $context )",
   "array_key_exists( 'postType', $context )",
   'if ( $has_explicit_post_context )',

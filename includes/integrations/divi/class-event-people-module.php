@@ -89,26 +89,46 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 	}
 
 	private static function normalize_options( $values ) {
-		$values   = is_array( $values ) ? $values : array();
-		$defaults = array(
-			'title'         => 'Contacts et intervenants',
-			'heading_level' => 'h2',
-			'role'          => 'all',
-			'show_roles'    => 'on',
-			'show_email'    => 'on',
-			'show_phone'    => 'on',
-			'show_link'     => 'on',
-			'layout'        => 'list',
+		$values = is_array( $values ) ? $values : array();
+		$role_toggles = array(
+			'role_organizer'            => 'organizer',
+			'role_speaker'              => 'speaker',
+			'role_registration_contact' => 'registration_contact',
+			'role_information_contact'  => 'information_contact',
 		);
-		$options  = array();
+		$has_role_toggles = false;
+		$roles            = array();
 
-		foreach ( $defaults as $key => $default ) {
-			$options[ $key ] = array_key_exists( $key, $values ) && is_scalar( $values[ $key ] )
-				? (string) $values[ $key ]
-				: $default;
+		foreach ( $role_toggles as $field => $role ) {
+			if ( array_key_exists( $field, $values ) ) {
+				$has_role_toggles = true;
+			}
+
+			if ( wp_seed_events_public_boolean_option( $values[ $field ] ?? false, false ) ) {
+				$roles[] = $role;
+			}
 		}
 
-		return $options;
+		$legacy_role = wp_seed_events_public_people_role_option( $values['role'] ?? 'all' );
+		if ( ! $has_role_toggles && 'all' !== $legacy_role ) {
+			$roles = array( $legacy_role );
+		}
+
+		return array(
+			'title'         => array_key_exists( 'title', $values ) && is_scalar( $values['title'] ) ? (string) $values['title'] : 'Contacts et intervenants',
+			'heading_level' => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
+			'roles'         => $roles,
+			'role'          => $legacy_role,
+			'show_name'     => wp_seed_events_public_boolean_option( $values['show_name'] ?? true, true ),
+			'show_roles'    => wp_seed_events_public_boolean_option( $values['show_roles'] ?? true, true ),
+			'show_email'    => wp_seed_events_public_boolean_option( $values['show_email'] ?? true, true ),
+			'show_phone'    => wp_seed_events_public_boolean_option( $values['show_phone'] ?? true, true ),
+			'show_link'     => wp_seed_events_public_boolean_option( $values['show_link'] ?? true, true ),
+			'link_phone'    => wp_seed_events_public_boolean_option( $values['link_phone'] ?? true, true ),
+			'link_email'    => wp_seed_events_public_boolean_option( $values['link_email'] ?? true, true ),
+			'link_url'      => wp_seed_events_public_boolean_option( $values['link_url'] ?? true, true ),
+			'layout'        => wp_seed_events_public_event_people_layout_option( $values['layout'] ?? 'list' ),
+		);
 	}
 
 

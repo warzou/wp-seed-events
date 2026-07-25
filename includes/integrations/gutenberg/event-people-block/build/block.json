@@ -40,6 +40,14 @@
         "information_contact"
       ]
     },
+    "roles": {
+      "type": "array",
+      "default": []
+    },
+    "show_name": {
+      "type": "boolean",
+      "default": true
+    },
     "show_roles": {
       "type": "boolean",
       "default": true
@@ -53,6 +61,18 @@
       "default": true
     },
     "show_link": {
+      "type": "boolean",
+      "default": true
+    },
+    "link_phone": {
+      "type": "boolean",
+      "default": true
+    },
+    "link_email": {
+      "type": "boolean",
+      "default": true
+    },
+    "link_url": {
       "type": "boolean",
       "default": true
     },

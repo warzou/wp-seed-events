@@ -80,7 +80,6 @@ check( 'card composition remains editable blocks', () => {
   [
     'wp:post-template',
     'wp:post-title',
-    'wp:post-excerpt',
     'wp:wp-seed-events/event-dates-block',
     'wp:wp-seed-events/event-visuals-block',
     'wp:wp-seed-events/event-people-block',
@@ -89,15 +88,53 @@ check( 'card composition remains editable blocks', () => {
 
 check( 'dynamic fields use the existing binding source', () => {
   assert.ok( patterns.includes( '"source":"wp-seed-events/event-field"' ) );
-  [ 'type', 'status', 'place' ].forEach( ( field ) =>
+  [ 'types', 'status', 'place', 'excerpt', 'url' ].forEach( ( field ) =>
     assert.ok( patterns.includes( `"field":"${ field }"` ) ),
   );
+} );
+
+check( 'compact pattern uses the real Dates block in next mode', () => {
+  const compact = patterns.slice(
+    patterns.indexOf( 'function wp_seed_events_event_collection_compact_pattern_content' ),
+    patterns.indexOf( 'function wp_seed_events_event_collection_detailed_pattern_content' ),
+  );
+
+  assert.equal( ( compact.match( /event-dates-block/g ) || [] ).length, 1 );
+  assert.ok( compact.includes( '"mode":"next"' ) );
+  assert.ok( compact.includes( '"show_times":false' ) );
+  assert.ok( compact.includes( '"show_calendar_links":false' ) );
+  assert.ok( ! compact.includes( '"field":"display_date"' ) );
+} );
+
+check( 'detailed pattern keeps the full Dates block and bound excerpt', () => {
+  const detailed = patterns.slice( patterns.indexOf( 'function wp_seed_events_event_collection_detailed_pattern_content' ) );
+
+  assert.ok( detailed.includes( 'event-dates-block' ) );
+  assert.ok( detailed.includes( '"mode":"all"' ) );
+  assert.ok( detailed.includes( '"scope":"upcoming"' ) );
+  assert.ok( detailed.includes( '"show_times":true' ) );
+  assert.ok( detailed.includes( '"field":"excerpt"' ) );
+  assert.ok( ! detailed.includes( 'wp:post-excerpt' ) );
+} );
+
+check( 'editor binding preview uses the official client source API', () => {
+  assert.ok( source.includes( 'registerBlockBindingsSource' ) );
+  assert.ok( source.includes( 'name: BINDING_SOURCE' ) );
+  assert.ok( source.includes( 'getValues( { bindings, context, select } )' ) );
+  assert.ok( source.includes( 'select( coreDataStore ).getEntityRecord(' ) );
+  assert.ok( source.includes( "{ context: 'edit' }" ) );
+  assert.ok( source.includes( "postType !== 'wp_seed_event'" ) );
+} );
+
+check( 'editor help points to the native design chooser', () => {
+  assert.ok( source.includes( 'Modifier le design' ) );
+  assert.ok( ! source.includes( 'ToolbarButton' ) );
 } );
 
 check( 'bound Core blocks use canonical non-self-closing serialization', () => {
   assert.ok( ! /<!-- wp:paragraph .*\/-->/.test( patterns ) );
   assert.ok( ! patterns.includes( 'wp:read-more' ) );
-  assert.equal( ( patterns.match( /<p><\/p>/g ) || [] ).length, 4 );
+  assert.equal( ( patterns.match( /<p><\/p>/g ) || [] ).length, 5 );
   assert.equal( ( patterns.match( /<p>Aucun événement à afficher\.<\/p>/g ) || [] ).length, 2 );
   assert.equal( ( patterns.match( /wp:button \{"metadata":\{"bindings":\{"url"/g ) || [] ).length, 2 );
   assert.equal( ( patterns.match( /wp-block-button__link wp-element-button/g ) || [] ).length, 2 );

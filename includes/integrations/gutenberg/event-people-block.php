@@ -70,14 +70,26 @@ function wp_seed_events_gutenberg_event_people_options( $attributes = array() ) 
 		? $attributes['title']
 		: 'Contacts et intervenants';
 
+	$role  = wp_seed_events_public_people_role_option( $attributes['role'] ?? 'all' );
+	$roles = wp_seed_events_public_people_roles_option( $attributes['roles'] ?? array() );
+
+	if ( array() === $roles && 'all' !== $role ) {
+		$roles = array( $role );
+	}
+
 	return array(
 		'title'         => $title,
 		'heading_level' => wp_seed_events_public_heading_level_option( $attributes['heading_level'] ?? 'h2' ),
-		'role'          => wp_seed_events_public_people_role_option( $attributes['role'] ?? 'all' ),
+		'roles'         => $roles,
+		'role'          => $role,
+		'show_name'     => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_name'] ?? true ),
 		'show_roles'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_roles'] ?? true ),
 		'show_email'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_email'] ?? true ),
 		'show_phone'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_phone'] ?? true ),
 		'show_link'     => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_link'] ?? true ),
+		'link_phone'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_phone'] ?? true ),
+		'link_email'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_email'] ?? true ),
+		'link_url'      => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_url'] ?? true ),
 		'layout'        => wp_seed_events_public_event_people_layout_option( $attributes['layout'] ?? 'list' ),
 	);
 }

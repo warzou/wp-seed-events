@@ -77,19 +77,21 @@ foreach ( $patterns as $slug => $pattern ) {
 $compact  = $patterns['wp-seed-events/event-collection-compact']['content'];
 $detailed = $patterns['wp-seed-events/event-collection-detailed']['content'];
 
-foreach ( array( 'event-visuals-block', 'post-title', 'event-dates-block', '"field":"place"', 'wp:button', '"field":"url"' ) as $token ) {
+foreach ( array( 'event-visuals-block', 'post-title', 'event-dates-block', '"mode":"next"', '"show_times":false', '"show_calendar_links":false', '"field":"place"', 'wp:button', '"field":"url"' ) as $token ) {
 	patterns_assert( false !== strpos( $compact, $token ), 'Compact pattern misses ' . $token . '.' );
 }
+patterns_assert( 1 === substr_count( $compact, 'event-dates-block' ), 'Compact pattern must contain one Dates block.' );
+patterns_assert( false === strpos( $compact, '"field":"display_date"' ), 'Compact pattern must not use the provisional synthetic date paragraph.' );
 patterns_assert( false === strpos( $compact, 'post-excerpt' ), 'Compact pattern must remain compact.' );
 patterns_assert( false === strpos( $compact, 'event-people-block' ), 'Compact pattern must not include People.' );
-patterns_assert( false !== strpos( $compact, '"show_times":false' ), 'Compact pattern must hide times.' );
 patterns_assert( false === strpos( $compact, 'wp:read-more' ), 'Compact pattern must use canonical Core button markup.' );
 
-foreach ( array( 'event-visuals-block', 'post-title', 'post-excerpt', 'event-dates-block', '"show_times":true', '"field":"place"', 'event-people-block', 'wp:button', '"field":"url"' ) as $token ) {
+foreach ( array( 'event-visuals-block', 'post-title', '"field":"types"', '"field":"status"', '"field":"excerpt"', 'event-dates-block', '"mode":"all"', '"scope":"upcoming"', '"show_times":true', '"field":"place"', 'event-people-block', '"roles":["organizer","speaker"]', '"show_name":true', 'wp:button', '"field":"url"' ) as $token ) {
 	patterns_assert( false !== strpos( $detailed, $token ), 'Detailed pattern misses ' . $token . '.' );
 }
+patterns_assert( false === strpos( $detailed, 'post-excerpt' ), 'Detailed pattern must use the public Event Data excerpt.' );
 patterns_assert( false === strpos( $detailed, 'wp:read-more' ), 'Detailed pattern must use canonical Core button markup.' );
-patterns_assert( 4 === substr_count( $compact . $detailed, '<p></p>' ), 'Bound paragraphs must use canonical Core markup.' );
+patterns_assert( 5 === substr_count( $compact . $detailed, '<p></p>' ), 'Bound paragraphs must use canonical Core markup.' );
 patterns_assert( 2 === substr_count( $compact . $detailed, '<p>Aucun événement à afficher.</p>' ), 'No-results paragraphs must use canonical Core markup.' );
 patterns_assert( 0 === preg_match_all( '/<!-- wp:paragraph .*\\/-->/', $compact . $detailed ), 'Core paragraphs must never be self-closing.' );
 

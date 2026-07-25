@@ -26,10 +26,26 @@ const HEADING_LEVEL_OPTIONS = [
   { label: 'h6', value: 'h6' },
 ];
 
-const SCOPE_OPTIONS = [
+const MODE_VALUES = [ 'next', 'first', 'last', 'all' ];
+
+const DISPLAY_OPTIONS = [
+  { label: __( 'Prochaine date', 'wp-seed-events' ), value: 'next' },
+  { label: __( 'Première date', 'wp-seed-events' ), value: 'first' },
+  { label: __( 'Dernière date', 'wp-seed-events' ), value: 'last' },
+  {
+    label: __( 'Toutes les prochaines dates', 'wp-seed-events' ),
+    value: 'all_upcoming',
+  },
+  {
+    label: __( 'Toutes les dates passées', 'wp-seed-events' ),
+    value: 'all_past',
+  },
   { label: __( 'Toutes les dates', 'wp-seed-events' ), value: 'all' },
-  { label: __( 'À venir', 'wp-seed-events' ), value: 'upcoming' },
-  { label: __( 'Passées', 'wp-seed-events' ), value: 'past' },
+];
+
+const FORMAT_OPTIONS = [
+  { label: __( 'Format long', 'wp-seed-events' ), value: 'long' },
+  { label: __( 'Format court', 'wp-seed-events' ), value: 'short' },
 ];
 
 function validOption( options, value, fallback ) {
@@ -38,6 +54,42 @@ function validOption( options, value, fallback ) {
 
 function booleanOption( value ) {
   return typeof value === 'boolean' ? value : true;
+}
+
+function displayOption( mode, scope ) {
+  if ( mode === 'next' || mode === 'first' || mode === 'last' ) {
+    return mode;
+  }
+
+  if ( scope === 'upcoming' ) {
+    return 'all_upcoming';
+  }
+
+  if ( scope === 'past' ) {
+    return 'all_past';
+  }
+
+  return 'all';
+}
+
+function displayAttributes( value ) {
+  if ( value === 'next' ) {
+    return { mode: 'next', scope: 'upcoming', show_cancelled: false };
+  }
+
+  if ( value === 'first' || value === 'last' ) {
+    return { mode: value, scope: 'all' };
+  }
+
+  if ( value === 'all_upcoming' ) {
+    return { mode: 'all', scope: 'upcoming' };
+  }
+
+  if ( value === 'all_past' ) {
+    return { mode: 'all', scope: 'past' };
+  }
+
+  return { mode: 'all', scope: 'all' };
 }
 
 function previewContext( context ) {
@@ -105,10 +157,13 @@ function Edit( { attributes, setAttributes, context = {} } ) {
     attributes.heading_level,
     'h2',
   );
-  const scope = validOption( SCOPE_OPTIONS, attributes.scope, 'all' );
+  const scope = [ 'all', 'upcoming', 'past' ].includes( attributes.scope ) ? attributes.scope : 'all';
+  const mode = MODE_VALUES.includes( attributes.mode ) ? attributes.mode : 'all';
+  const displayedDates = displayOption( mode, scope );
   const showCancelled = booleanOption( attributes.show_cancelled );
   const showTimes = booleanOption( attributes.show_times );
   const showCalendarLinks = booleanOption( attributes.show_calendar_links );
+  const format = validOption( FORMAT_OPTIONS, attributes.format, 'long' );
   const [ preview, setPreview ] = useState( {
     status: 'loading',
     html: '',
@@ -140,10 +195,12 @@ function Edit( { attributes, setAttributes, context = {} } ) {
           attributes: {
             title,
             heading_level: headingLevel,
+            mode,
             scope,
             show_cancelled: showCancelled,
             show_times: showTimes,
             show_calendar_links: showCalendarLinks,
+            format,
           },
           context: previewContext( {
             postId: contextPostId,
@@ -196,10 +253,12 @@ function Edit( { attributes, setAttributes, context = {} } ) {
   }, [
     title,
     headingLevel,
+    mode,
     scope,
     showCancelled,
     showTimes,
     showCalendarLinks,
+    format,
     contextPostId,
     contextPostType,
     contextQueryId,
@@ -221,20 +280,27 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             onChange={ ( value ) => setAttributes( { heading_level: value } ) }
           />
           <SelectControl
-            label={ __( 'Portée', 'wp-seed-events' ) }
-            value={ scope }
-            options={ SCOPE_OPTIONS }
-            onChange={ ( value ) => setAttributes( { scope: value } ) }
+            label={ __( 'Dates affichées', 'wp-seed-events' ) }
+            value={ displayedDates }
+            options={ DISPLAY_OPTIONS }
+            onChange={ ( value ) => setAttributes( displayAttributes( value ) ) }
           />
           <ToggleControl
             label={ __( 'Afficher les occurrences annulées', 'wp-seed-events' ) }
-            checked={ showCancelled }
+            checked={ mode === 'next' ? false : showCancelled }
+            disabled={ mode === 'next' }
             onChange={ ( value ) => setAttributes( { show_cancelled: value } ) }
           />
           <ToggleControl
             label={ __( 'Afficher les horaires', 'wp-seed-events' ) }
             checked={ showTimes }
             onChange={ ( value ) => setAttributes( { show_times: value } ) }
+          />
+          <SelectControl
+            label={ __( 'Format des dates', 'wp-seed-events' ) }
+            value={ format }
+            options={ FORMAT_OPTIONS }
+            onChange={ ( value ) => setAttributes( { format: value } ) }
           />
           <ToggleControl
             label={ __( 'Afficher les liens calendrier', 'wp-seed-events' ) }

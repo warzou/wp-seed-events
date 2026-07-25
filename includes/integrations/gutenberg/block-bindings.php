@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'init', 'wp_seed_events_register_gutenberg_block_bindings_source' );
+add_action( 'rest_api_init', 'wp_seed_events_register_gutenberg_block_bindings_rest_field' );
 
 function wp_seed_events_register_gutenberg_block_bindings_source() {
 	if ( ! function_exists( 'register_block_bindings_source' ) ) {
@@ -19,11 +20,71 @@ function wp_seed_events_register_gutenberg_block_bindings_source() {
 		array(
 			'label'              => 'WP Seed Events',
 			'get_value_callback' => 'wp_seed_events_gutenberg_block_binding_value',
-			'uses_context'       => array( 'postId', 'postType' ),
+			'uses_context'       => array( 'postId', 'postType', 'queryId' ),
 		)
 	);
 }
 
+function wp_seed_events_gutenberg_block_binding_preview_fields() {
+	return array( 'types', 'status', 'display_date', 'place', 'excerpt', 'url' );
+}
+
+function wp_seed_events_register_gutenberg_block_bindings_rest_field() {
+	if ( ! function_exists( 'register_rest_field' ) ) {
+		return;
+	}
+
+	$properties = array();
+
+	foreach ( wp_seed_events_gutenberg_block_binding_preview_fields() as $field ) {
+		$properties[ $field ] = array(
+			'type'     => 'string',
+			'readonly' => true,
+		);
+	}
+
+	register_rest_field(
+		'wp_seed_event',
+		'wp_seed_events_public_fields',
+		array(
+			'get_callback' => 'wp_seed_events_gutenberg_block_bindings_rest_values',
+			'schema'       => array(
+				'description' => 'Public WP Seed Events values used by the block editor preview.',
+				'type'        => 'object',
+				'context'     => array( 'edit' ),
+				'readonly'    => true,
+				'properties'  => $properties,
+			),
+		)
+	);
+}
+
+function wp_seed_events_gutenberg_block_bindings_rest_values( $prepared, $field_name, $request ) {
+	$prepared_id = is_array( $prepared )
+		? ( $prepared['id'] ?? 0 )
+		: ( is_object( $prepared ) ? ( $prepared->ID ?? 0 ) : 0 );
+	$event_id = absint( $prepared_id );
+	$context  = is_object( $request ) && method_exists( $request, 'get_param' )
+		? sanitize_key( (string) $request->get_param( 'context' ) )
+		: '';
+
+	if (
+		0 === $event_id
+		|| 'edit' !== $context
+		|| ! current_user_can( 'edit_post', $event_id )
+	) {
+		return null;
+	}
+
+	$values = array();
+
+	foreach ( wp_seed_events_gutenberg_block_binding_preview_fields() as $field ) {
+		$value = wp_seed_events_dynamic_data_get_value( $field, $event_id );
+		$values[ $field ] = is_string( $value ) ? $value : '';
+	}
+
+	return $values;
+}
 function wp_seed_events_gutenberg_block_binding_value( $source_args, $block_instance, $attribute_name ) {
 	$field = isset( $source_args['field'] ) ? sanitize_key( (string) $source_args['field'] ) : '';
 

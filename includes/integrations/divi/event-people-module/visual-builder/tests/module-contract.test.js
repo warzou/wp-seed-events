@@ -31,18 +31,22 @@ test('French label and shared folder are configured', () => {
   assert.strictEqual((source.match(/registerFolder\(\{/g) || []).length, 1);
 });
 test('exact content fields are exposed', () => {
-  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'role', 'show_email', 'show_link', 'show_phone', 'show_roles', 'title']);
+  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'link_email', 'link_phone', 'link_url', 'role_information_contact', 'role_organizer', 'role_registration_contact', 'role_speaker', 'show_email', 'show_link', 'show_name', 'show_phone', 'show_roles', 'title']);
 });
 test('renderer defaults are preserved', () => {
   assert.deepStrictEqual(defaults, {
-    title: 'Contacts et intervenants', heading_level: 'h2', role: 'all', show_roles: 'on',
-    show_email: 'on', show_phone: 'on', show_link: 'on', layout: 'list',
+    title: 'Contacts et intervenants', heading_level: 'h2', role: 'all', show_name: 'on', show_roles: 'on',
+    show_email: 'on', show_phone: 'on', show_link: 'on', link_phone: 'on', link_email: 'on', link_url: 'on', layout: 'list',
   });
 });
-test('role options are canonical and complete', () => {
-  assert.deepStrictEqual(Object.keys(items.role.component.props.options), [
-    'all', 'organizer', 'speaker', 'registration_contact', 'information_contact',
-  ]);
+test('role toggles expose the four canonical roles with OR semantics', () => {
+  assert.deepStrictEqual(
+    ['roleOrganizer', 'roleSpeaker', 'roleRegistrationContact', 'roleInformationContact'].map((key) => items[key].subName),
+    ['role_organizer', 'role_speaker', 'role_registration_contact', 'role_information_contact'],
+  );
+  assert.ok(phpModule.includes('$has_role_toggles'));
+  assert.ok(phpModule.includes("'roles'         => $roles"));
+  assert.ok(defaults.role === 'all');
 });
 test('layout options are list and grid only', () => {
   assert.deepStrictEqual(Object.keys(items.layout.component.props.options), ['list', 'grid']);
@@ -113,7 +117,7 @@ test('stable design selectors use renderer classes', () => {
   ['wp-seed-event-people-section', 'wp-seed-event-people__title', 'wp-seed-event-people__list',
     'wp-seed-event-people__item', 'wp-seed-event-people__name', 'wp-seed-event-people__roles',
     'wp-seed-event-people__role', 'wp-seed-event-people__contacts', 'wp-seed-event-people__email-link',
-    'wp-seed-event-people__phone-link', 'wp-seed-event-people__link-anchor'].forEach((selector) => {
+    'wp-seed-event-people__phone-link', 'wp-seed-event-people__link-anchor', 'wp-seed-event-people__email-text', 'wp-seed-event-people__phone-text', 'wp-seed-event-people__link-text'].forEach((selector) => {
     assert.ok(JSON.stringify(metadata).includes(selector), `Missing selector: ${selector}`);
   });
 });
@@ -140,7 +144,7 @@ test('packaging includes runtime and excludes sources', () => {
   assert.ok(buildScript.includes("'/tests/*'"));
 });
 test('Dates bundle matches the validated Loop Builder context build', () => {
-  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), 'D22280E8346F324AB7568816EB02B357A192DD1032AA17771EDBFAD5D3F917D6');
+  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), 'F8E1DA0A85A16776A20FA7AB19C28468993561E57DAB17A3F5B64DC71A2BC37D');
 });
 test('Visuals bundle matches the validated Loop Builder context build', () => {
   assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js')), 'C82A7AB7A185D8373C35225390C4DA97956F7B414FD6D35CA2A9F558F1355F5F');

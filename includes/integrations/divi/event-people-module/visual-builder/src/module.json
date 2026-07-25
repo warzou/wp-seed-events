@@ -33,10 +33,14 @@
               "title": "Contacts et intervenants",
               "heading_level": "h2",
               "role": "all",
+              "show_name": "on",
               "show_roles": "on",
               "show_email": "on",
               "show_phone": "on",
               "show_link": "on",
+              "link_phone": "on",
+              "link_email": "on",
+              "link_url": "on",
               "layout": "list"
             }
           }
@@ -61,17 +65,35 @@
                 "h5": {"label": "H5"}, "h6": {"label": "H6"}
               }}}
             },
-            "role": {
-              "groupSlug": "contentPeople", "priority": 30, "render": true, "subName": "role",
-              "label": "Rôle affiché",
+            "roleOrganizer": {
+              "groupSlug": "contentPeople", "priority": 30, "render": true, "subName": "role_organizer",
+              "label": "Organisateurs", "description": "Activez un ou plusieurs r\u00f4les. Sans s\u00e9lection, tous les r\u00f4les sont affich\u00e9s.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/select", "type": "field", "props": {"options": {
-                "all": {"label": "Tous les rôles"},
-                "organizer": {"label": "Organisateur"},
-                "speaker": {"label": "Intervenant"},
-                "registration_contact": {"label": "Contact inscription"},
-                "information_contact": {"label": "Contact information"}
-              }}}
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "roleSpeaker": {
+              "groupSlug": "contentPeople", "priority": 31, "render": true, "subName": "role_speaker",
+              "label": "Intervenants",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "roleRegistrationContact": {
+              "groupSlug": "contentPeople", "priority": 32, "render": true, "subName": "role_registration_contact",
+              "label": "Contacts inscription",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "roleInformationContact": {
+              "groupSlug": "contentPeople", "priority": 33, "render": true, "subName": "role_information_contact",
+              "label": "Contacts information",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "showName": {
+              "groupSlug": "contentPeople", "priority": 35, "render": true, "subName": "show_name",
+              "label": "Afficher le nom",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
             },
             "showRoles": {
               "groupSlug": "contentPeople", "priority": 40, "render": true, "subName": "show_roles",
@@ -99,6 +121,24 @@
               "description": "Une coordonnée non autorisée dans l’événement ne peut jamais être rendue publique par Divi.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}
+            },
+            "linkPhone": {
+              "groupSlug": "contentPeople", "priority": 65, "render": true, "subName": "link_phone",
+              "label": "T\u00e9l\u00e9phone cliquable",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "linkEmail": {
+              "groupSlug": "contentPeople", "priority": 66, "render": true, "subName": "link_email",
+              "label": "Email cliquable",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "linkUrl": {
+              "groupSlug": "contentPeople", "priority": 75, "render": true, "subName": "link_url",
+              "label": "Lien cliquable",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
             },
             "layout": {
               "groupSlug": "contentPeople", "priority": 80, "render": true, "subName": "layout",
@@ -146,13 +186,13 @@
     "contactsStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__contacts", "settings": {"decoration": {
       "spacing": {"component": {"props": {"groupLabel": "Coordonnées publiques"}}}
     }}},
-    "emailLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__email-link", "settings": {"decoration": {
+    "emailLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__email-link, {{selector}} .wp-seed-event-people__email-text", "settings": {"decoration": {
       "font": {"component": {"props": {"groupLabel": "Email autorisé", "fieldLabel": "Email"}}}
     }}},
-    "phoneLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__phone-link", "settings": {"decoration": {
+    "phoneLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__phone-link, {{selector}} .wp-seed-event-people__phone-text", "settings": {"decoration": {
       "font": {"component": {"props": {"groupLabel": "Téléphone autorisé", "fieldLabel": "Téléphone"}}}
     }}},
-    "publicLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__link-anchor", "settings": {"decoration": {
+    "publicLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__link-anchor, {{selector}} .wp-seed-event-people__link-text", "settings": {"decoration": {
       "font": {"component": {"props": {"groupLabel": "Lien autorisé", "fieldLabel": "Lien"}}}
     }}}
   },

@@ -292,6 +292,18 @@ namespace {
 	p4_case( '49 no empty wrapper', fn() => p4_assert( '' === p4_render( 12 ), 'Empty wrapper returned.' ) );
 	p4_case( '50 no context is safe', function () { $GLOBALS['p4_queried_id'] = 0; $GLOBALS['p4_current_id'] = 0; p4_assert( 0 === wp_seed_events_divi_resolve_event_id(), 'No context resolved.' ); } );
 
+	p4_case( '51 role toggles use OR semantics', function () {
+		$options = p4_invoke( 'normalize_options', array( 'role_organizer' => 'on', 'role_speaker' => 'on' ) );
+		p4_assert( 4 === substr_count( p4_render( 10, $options ), 'wp-seed-event-people__item' ), 'Divi role toggles did not use OR.' );
+	} );
+	p4_case( '52 visibility and link toggles reach the renderer', function () {
+		$options = p4_invoke( 'normalize_options', array( 'show_name' => 'off', 'show_roles' => 'off', 'link_email' => 'off', 'link_phone' => 'off', 'link_url' => 'off' ) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( '__name screen-reader-text', $html ), 'Hidden name is not accessible.' );
+		p4_assert( ! p4_contains( 'mailto:', $html ) && ! p4_contains( 'tel:', $html ) && ! p4_contains( '__link-anchor', $html ), 'Divi link toggles were ignored.' );
+		p4_assert( ! p4_contains( 'secret@example.test', $html ), 'Private coordinate leaked.' );
+	} );
+
 	$benchmarks = array();
 	foreach ( array( 'zero' => 12, 'one' => 13, 'three' => 14 ) as $name => $id ) {
 		$start = hrtime( true );
@@ -302,7 +314,7 @@ namespace {
 	for ( $i = 0; $i < 100; $i++ ) { foreach ( array( 10, 12, 13, 14, 10, 13, 12 ) as $id ) { p4_render( $id ); } }
 	$benchmarks['seven_event_loop_700_ms'] = round( ( hrtime( true ) - $start ) / 1000000, 3 );
 
-	p4_assert( 50 === $GLOBALS['p4_cases'], 'Harness case count differs.' );
-	echo '[OK] Divi people module: 50/50 cases passed.' . PHP_EOL;
+	p4_assert( 52 === $GLOBALS['p4_cases'], 'Harness case count differs.' );
+	echo '[OK] Divi people module: 52/52 cases passed.' . PHP_EOL;
 	echo '[PERF] ' . json_encode( $benchmarks, JSON_UNESCAPED_SLASHES ) . PHP_EOL;
 }

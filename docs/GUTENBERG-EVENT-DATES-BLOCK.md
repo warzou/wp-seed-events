@@ -49,16 +49,18 @@ L'enregistrement PHP utilise `register_block_type_from_metadata()` une seule foi
 
 ## Attributs
 
-Le bloc expose exactement six attributs :
+Le bloc expose huit attributs :
 
 | Attribut | Type | Défaut | Valeurs |
 | --- | --- | --- | --- |
 | `title` | chaîne | `Dates` | chaîne libre, vide autorisé |
 | `heading_level` | chaîne | `h2` | `h2` à `h6` |
+| `mode` | chaîne | `all` | `next`, `first`, `last`, `all` |
 | `scope` | chaîne | `all` | `all`, `upcoming`, `past` |
 | `show_cancelled` | booléen | `true` | afficher ou masquer les occurrences annulées |
 | `show_times` | booléen | `true` | afficher ou masquer les horaires |
 | `show_calendar_links` | booléen | `true` | afficher ou masquer les actions calendrier |
+| `format` | chaîne | `long` | `long`, `short` |
 
 Les valeurs invalides reviennent aux valeurs sûres du contrat : `h2`, `all` et options booléennes activées. Un titre vide supprime le heading sans produire de wrapper vide.
 
@@ -103,14 +105,16 @@ Aucun identifiant d'événement n'est ajouté aux attributs pour simuler ce comp
 
 ## Inspecteur et aperçu éditeur
 
-L'inspecteur propose six contrôles en français :
+L'inspecteur propose des choix explicites en français :
 
-- Titre ;
-- Niveau du titre ;
-- Portée ;
-- Afficher les occurrences annulées ;
-- Afficher les horaires ;
-- Afficher les liens calendrier.
+- `Prochaine date` : `mode=next`, `scope=upcoming` et occurrences annulées ignorées ;
+- `Première date` : `mode=first`, `scope=all` ;
+- `Dernière date` : `mode=last`, `scope=all` ;
+- `Toutes les prochaines dates` : `mode=all`, `scope=upcoming` ;
+- `Toutes les dates passées` : `mode=all`, `scope=past` ;
+- `Toutes les dates` : `mode=all`, `scope=all`.
+
+Aucun réglage de portée séparé n'est affiché : le choix principal détermine un résultat non ambigu. Les autres contrôles restent : titre, niveau du titre, occurrences annulées, horaires, format court ou long et liens calendrier. Les attributs persistants `mode` et `scope` restent inchangés.
 
 L'aperçu éditeur utilise le HTML réel du renderer serveur. Il présente des états distincts :
 

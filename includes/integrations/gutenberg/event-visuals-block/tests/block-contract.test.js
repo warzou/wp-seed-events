@@ -295,10 +295,10 @@ check('packaging includes runtime assets and excludes sources', () => {
   ].forEach((contract) => assert.ok(zipBuild.includes(contract), 'Missing ZIP contract: ' + contract));
 });
 
-check('Gutenberg Dates remains unchanged', () => {
+check('Gutenberg Dates matches the expanded controls build', () => {
   assert.strictEqual(
     hash(datesRoot, 'build', 'index.js'),
-    '5DB722D2D8E9EA3F4CDCB4488934DBF3FCEC064AFF6D89096D6FD2C791889B05',
+    'B9E80359E14085703F365FADBD11E60AC050226766A436917A68A1B24CB177BE',
   );
 });
 
@@ -314,7 +314,7 @@ check('Divi modules match the validated Loop Builder context builds', () => {
       'build',
       'wp-seed-events-event-dates.js',
     ),
-    'D22280E8346F324AB7568816EB02B357A192DD1032AA17771EDBFAD5D3F917D6',
+    'F8E1DA0A85A16776A20FA7AB19C28468993561E57DAB17A3F5B64DC71A2BC37D',
   );
   assert.strictEqual(
     hash(diviVisualsRoot, 'build', 'wp-seed-events-event-visuals.js'),

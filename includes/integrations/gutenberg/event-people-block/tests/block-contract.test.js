@@ -33,13 +33,18 @@ check('canonical block identity', () => {
   assert.strictEqual(metadata.icon, 'groups');
 });
 
-check('eight exact attributes', () => {
+check('thirteen exact attributes', () => {
   assert.deepStrictEqual(Object.keys(metadata.attributes).sort(), [
     'heading_level',
     'layout',
+    'link_email',
+    'link_phone',
+    'link_url',
     'role',
+    'roles',
     'show_email',
     'show_link',
+    'show_name',
     'show_phone',
     'show_roles',
     'title',
@@ -55,10 +60,15 @@ check('defaults match the people renderer', () => {
       title: 'Contacts et intervenants',
       heading_level: 'h2',
       role: 'all',
+      roles: [],
+      show_name: true,
       show_roles: true,
       show_email: true,
       show_phone: true,
       show_link: true,
+      link_phone: true,
+      link_email: true,
+      link_url: true,
       layout: 'list',
     },
   );
@@ -114,20 +124,28 @@ check('no business HTML is built in JavaScript', () => {
   ].forEach((value) => assert.ok(!source.includes(value), 'Forbidden JS markup: ' + value));
 });
 
-check('Inspector exposes the eight French controls', () => {
+check('Inspector exposes roles OR and fine-grained controls', () => {
   [
     'Titre',
     'Niveau du titre',
-    'Rôle affiché',
-    'Afficher les rôles',
-    'Afficher les emails autorisés',
-    'Afficher les téléphones autorisés',
-    'Afficher les liens autorisés',
+    'R\u00f4les affich\u00e9s',
+    'Tous les r\u00f4les',
+    'Afficher le nom',
+    'Afficher les r\u00f4les',
+    'Afficher les emails autoris\u00e9s',
+    'Rendre l\u2019email cliquable',
+    'Afficher les t\u00e9l\u00e9phones autoris\u00e9s',
+    'Rendre le t\u00e9l\u00e9phone cliquable',
+    'Afficher les liens autoris\u00e9s',
+    'Rendre le lien cliquable',
     'Mise en page',
   ].forEach((label) => assert.ok(source.includes(label), 'Missing label: ' + label));
+  assert.ok(source.includes("rawRoles.includes( 'all' )"));
+  assert.ok(source.includes("roles: uniqueRoles"));
   assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 1);
-  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 3);
-  assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 4);
+  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 2);
+  assert.strictEqual((source.match(/<CheckboxControl\b/g) || []).length, 2);
+  assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 8);
 });
 
 check('privacy help is explicit', () => {

@@ -264,5 +264,19 @@ p5_case( '50 no context is safe', function () {
 	$GLOBALS['p5_current_id'] = 0; $GLOBALS['wp_seed_events_public_event_id'] = 0; p5_assert( '' === p5_render(), 'No-context render was not empty.' );
 } );
 
-p5_assert( 50 === $GLOBALS['p5_cases'], 'Expected 50 cases.' );
-echo 'Gutenberg people block: 50/50 OK' . PHP_EOL;
+p5_case( '51 multiple roles use OR semantics', function () {
+	$html = p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ), array( 'roles' => array( 'organizer', 'speaker' ) ) );
+	p5_contains( 'Alice', $html, 'Organizer missing from OR filter.' );
+	p5_contains( 'Benoit', $html, 'Speaker missing from OR filter.' );
+	p5_not_contains( 'Claire', $html, 'Unselected role leaked.' );
+} );
+p5_case( '52 name and link controls preserve privacy', function () {
+	$html = p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ), array( 'roles' => array( 'organizer' ), 'show_name' => false, 'show_roles' => false, 'link_email' => false, 'link_phone' => false, 'link_url' => false ) );
+	p5_contains( '__name screen-reader-text', $html, 'Hidden name is not accessible.' );
+	p5_not_contains( 'mailto:', $html, 'Email link remained active.' );
+	p5_not_contains( 'tel:', $html, 'Phone link remained active.' );
+	p5_not_contains( 'secret', $html, 'Private coordinate leaked.' );
+} );
+
+p5_assert( 52 === $GLOBALS['p5_cases'], 'Expected 50 cases.' );
+echo 'Gutenberg people block: 52/52 OK' . PHP_EOL;

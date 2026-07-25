@@ -141,6 +141,16 @@ function wp_seed_events_public_date_scope_option( $value ) {
 	return in_array( $value, array( 'all', 'upcoming', 'past' ), true ) ? $value : 'all';
 }
 
+function wp_seed_events_public_date_mode_option( $value ) {
+	if ( ! is_scalar( $value ) ) {
+		return 'all';
+	}
+
+	$value = strtolower( trim( (string) $value ) );
+
+	return in_array( $value, array( 'next', 'first', 'last', 'all' ), true ) ? $value : 'all';
+}
+
 function wp_seed_events_public_heading_level_option( $value ) {
 	if ( ! is_scalar( $value ) ) {
 		return 'h2';
@@ -195,7 +205,7 @@ function wp_seed_events_public_visuals_image_size_option( $value ) {
 }
 
 function wp_seed_events_public_people_role_option( $value ) {
-	$value   = strtolower( trim( (string) $value ) );
+	$value   = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
 	$aliases = array(
 		'all'                 => 'all',
 		'organisateur'        => 'organizer',
@@ -209,6 +219,31 @@ function wp_seed_events_public_people_role_option( $value ) {
 	);
 
 	return $aliases[ $value ] ?? 'all';
+}
+
+function wp_seed_events_public_people_roles_option( $value ) {
+	$raw_roles = is_array( $value ) ? $value : ( is_scalar( $value ) ? explode( ',', (string) $value ) : array() );
+	$roles     = array();
+
+	foreach ( $raw_roles as $raw_role ) {
+		if ( ! is_scalar( $raw_role ) ) {
+			continue;
+		}
+
+		$raw_role = strtolower( trim( (string) $raw_role ) );
+
+		if ( 'all' === $raw_role ) {
+			return array();
+		}
+
+		$role = wp_seed_events_public_people_role_option( $raw_role );
+
+		if ( 'all' !== $role && ! in_array( $role, $roles, true ) ) {
+			$roles[] = $role;
+		}
+	}
+
+	return $roles;
 }
 
 function wp_seed_events_public_format_occurrence_date( $date, $format = 'long' ) {
@@ -640,6 +675,7 @@ function wp_seed_events_event_dates_shortcode( $atts ) {
 			'id'                  => 0,
 			'title'               => 'Dates',
 			'heading_level'       => 'h2',
+			'mode'                => 'all',
 			'scope'               => 'all',
 			'show_cancelled'      => 'yes',
 			'show_times'          => 'yes',
@@ -669,6 +705,7 @@ function wp_seed_events_event_dates_shortcode( $atts ) {
 		$event,
 		array(
 			'title'               => is_scalar( $atts['title'] ) ? (string) $atts['title'] : 'Dates',
+			'mode'                => wp_seed_events_public_date_mode_option( $atts['mode'] ),
 			'heading_level'       => wp_seed_events_public_heading_level_option( $atts['heading_level'] ),
 			'scope'               => wp_seed_events_public_date_scope_option( $atts['scope'] ),
 			'show_cancelled'      => wp_seed_events_public_yes_no_option( $atts['show_cancelled'], true ),
@@ -771,14 +808,19 @@ function wp_seed_events_event_people_shortcode( $atts ) {
 	$atts     = shortcode_atts(
 		array(
 			'id'            => 0,
+			'roles'         => '',
 			'role'          => 'all',
 			'details'       => 'yes',
 			'title'         => 'Contacts et intervenants',
 			'heading_level' => 'h2',
+			'show_name'     => 'yes',
 			'show_roles'    => 'yes',
 			'show_email'    => 'yes',
 			'show_phone'    => 'yes',
 			'show_link'     => 'yes',
+			'link_phone'    => 'yes',
+			'link_email'    => 'yes',
+			'link_url'      => 'yes',
 			'layout'        => 'list',
 		),
 		$raw_atts,
@@ -800,12 +842,14 @@ function wp_seed_events_event_people_shortcode( $atts ) {
 	$options = array(
 		'title'         => is_scalar( $atts['title'] ) ? (string) $atts['title'] : 'Contacts et intervenants',
 		'heading_level' => wp_seed_events_public_heading_level_option( $atts['heading_level'] ),
-		'role'          => wp_seed_events_public_people_role_option( $atts['role'] ),
+		'roles'         => array_key_exists( 'roles', $raw_atts )
+			? wp_seed_events_public_people_roles_option( $atts['roles'] )
+			: wp_seed_events_public_people_roles_option( $atts['role'] ),
 		'details'       => wp_seed_events_public_yes_no_option( $atts['details'], true ),
 		'layout'        => wp_seed_events_public_event_people_layout_option( $atts['layout'] ),
 	);
 
-	foreach ( array( 'show_roles', 'show_email', 'show_phone', 'show_link' ) as $option_key ) {
+	foreach ( array( 'show_name', 'show_roles', 'show_email', 'show_phone', 'show_link', 'link_phone', 'link_email', 'link_url' ) as $option_key ) {
 		if ( array_key_exists( $option_key, $raw_atts ) ) {
 			$options[ $option_key ] = wp_seed_events_public_yes_no_option( $atts[ $option_key ], true );
 		}
@@ -860,6 +904,7 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		array(
 			'title'               => 'Dates',
 			'heading_level'       => 'h2',
+			'mode'                => 'all',
 			'scope'               => 'all',
 			'show_cancelled'      => true,
 			'show_times'          => true,
@@ -868,18 +913,19 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		)
 	);
 
-	$title         = is_scalar( $options['title'] ) ? trim( (string) $options['title'] ) : '';
-	$heading_level = strtolower( trim( (string) $options['heading_level'] ) );
-	$scope         = strtolower( trim( (string) $options['scope'] ) );
+	$title                     = is_scalar( $options['title'] ) ? trim( (string) $options['title'] ) : '';
+	$heading_level             = wp_seed_events_public_heading_level_option( $options['heading_level'] );
+	$mode                      = wp_seed_events_public_date_mode_option( $options['mode'] );
+	$scope                     = wp_seed_events_public_date_scope_option( $options['scope'] );
+	$options['show_cancelled'] = wp_seed_events_public_boolean_option( $options['show_cancelled'], true );
+	$options['format']         = wp_seed_events_public_date_format_option( $options['format'] );
 
-	if ( ! in_array( $heading_level, array( 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ) {
-		$heading_level = 'h2';
+	if ( 'next' === $mode ) {
+		$scope                     = 'upcoming';
+		$options['show_cancelled'] = false;
 	}
 
-	if ( ! in_array( $scope, array( 'all', 'upcoming', 'past' ), true ) ) {
-		$scope = 'all';
-	}
-
+	$options['mode']  = $mode;
 	$options['scope'] = $scope;
 
 	$occurrences = array_values(
@@ -887,6 +933,10 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 			$event['occurrences'],
 			function ( $occurrence ) use ( $options ) {
 				if ( ! is_array( $occurrence ) || ! wp_seed_events_public_event_occurrence_has_valid_date( $occurrence ) ) {
+					return false;
+				}
+
+				if ( 'next' === $options['mode'] && empty( $occurrence['is_active'] ) ) {
 					return false;
 				}
 
@@ -911,7 +961,19 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		return '';
 	}
 
-	$all_dates_link = $options['show_calendar_links'] ? wp_seed_events_render_event_calendar_link( $event, $occurrences ) : '';
+	if ( 'next' === $mode || 'first' === $mode ) {
+		$occurrences = array( reset( $occurrences ) );
+	} elseif ( 'last' === $mode ) {
+		$occurrences = array( end( $occurrences ) );
+	}
+
+	$all_dates_link = (
+		'all' === $mode
+		&& count( $occurrences ) > 1
+		&& $options['show_calendar_links']
+	)
+		? wp_seed_events_render_event_calendar_link( $event, $occurrences )
+		: '';
 	$section_classes = array(
 		'wp-seed-event-section',
 		'wp-seed-event-section--dates',
@@ -1338,28 +1400,34 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		array(
 			'title'         => 'Personnes',
 			'heading_level' => 'h2',
+			'roles'         => array(),
 			'role'          => '',
+			'show_name'     => true,
 			'show_roles'    => true,
 			'show_email'    => true,
 			'show_phone'    => true,
 			'show_link'     => true,
+			'link_phone'    => true,
+			'link_email'    => true,
+			'link_url'      => true,
 			'layout'        => 'list',
 		)
 	);
 
 	$known_roles = array( 'organizer', 'speaker', 'registration_contact', 'information_contact' );
 	$title       = wp_seed_events_public_event_person_text( $options['title'] );
-	$role        = is_scalar( $options['role'] ) ? sanitize_key( (string) $options['role'] ) : '';
-
-	if ( 'all' === $role || ! in_array( $role, $known_roles, true ) ) {
-		$role = '';
-	}
+	$role_source = array_key_exists( 'roles', $options ) && array() !== $options['roles'] ? $options['roles'] : $options['role'];
+	$role_filters = wp_seed_events_public_people_roles_option( $role_source );
 
 	$heading_level = wp_seed_events_public_heading_level_option( $options['heading_level'] );
+	$show_name     = wp_seed_events_public_boolean_option( $options['show_name'], true );
 	$show_roles    = wp_seed_events_public_boolean_option( $options['show_roles'], true );
 	$show_email    = wp_seed_events_public_boolean_option( $options['show_email'], true );
 	$show_phone    = wp_seed_events_public_boolean_option( $options['show_phone'], true );
 	$show_link     = wp_seed_events_public_boolean_option( $options['show_link'], true );
+	$link_phone    = wp_seed_events_public_boolean_option( $options['link_phone'], true );
+	$link_email    = wp_seed_events_public_boolean_option( $options['link_email'], true );
+	$link_url      = wp_seed_events_public_boolean_option( $options['link_url'], true );
 	$layout        = wp_seed_events_public_event_people_layout_option( $options['layout'] );
 	$rendered      = array();
 	$quote         = chr( 34 );
@@ -1385,7 +1453,7 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 			}
 		}
 
-		if ( '' !== $role && ! in_array( $role, $role_keys, true ) ) {
+		if ( array() !== $role_filters && array() === array_intersect( $role_filters, $role_keys ) ) {
 			continue;
 		}
 
@@ -1410,9 +1478,13 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 
 			if ( '' !== $email ) {
 				$email_label = 'Envoyer un email à ' . $name;
-				$email_link  = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__email-link' ) . $quote
-					. ' href=' . $quote . esc_attr( 'mailto:' . $email ) . $quote
-					. ' aria-label=' . $quote . esc_attr( $email_label ) . $quote . '>' . esc_html( $email ) . '</a>';
+				if ( $link_email ) {
+					$email_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__email-link' ) . $quote
+						. ' href=' . $quote . esc_attr( 'mailto:' . $email ) . $quote
+						. ' aria-label=' . $quote . esc_attr( $email_label ) . $quote . '>' . esc_html( $email ) . '</a>';
+				} else {
+					$email_link = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__email-text' ) . $quote . '>' . esc_html( $email ) . '</span>';
+				}
 				$contacts[]  = '<li class=' . $quote . esc_attr( 'wp-seed-event-people__contact wp-seed-event-people__email' ) . $quote . '>' . $email_link . '</li>';
 			}
 		}
@@ -1425,9 +1497,13 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 
 			if ( '' !== $phone && '' !== $phone_href ) {
 				$phone_label = 'Appeler ' . $name;
-				$phone_link  = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__phone-link' ) . $quote
-					. ' href=' . $quote . esc_attr( $phone_href ) . $quote
-					. ' aria-label=' . $quote . esc_attr( $phone_label ) . $quote . '>' . esc_html( $phone ) . '</a>';
+				if ( $link_phone ) {
+					$phone_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__phone-link' ) . $quote
+						. ' href=' . $quote . esc_attr( $phone_href ) . $quote
+						. ' aria-label=' . $quote . esc_attr( $phone_label ) . $quote . '>' . esc_html( $phone ) . '</a>';
+				} else {
+					$phone_link = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__phone-text' ) . $quote . '>' . esc_html( $phone ) . '</span>';
+				}
 				$contacts[]  = '<li class=' . $quote . esc_attr( 'wp-seed-event-people__contact wp-seed-event-people__phone' ) . $quote . '>' . $phone_link . '</li>';
 			}
 		}
@@ -1439,14 +1515,27 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 
 			if ( '' !== $url ) {
 				$url_label  = 'Consulter le lien associé à ' . $name;
-				$url_link   = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__link-anchor' ) . $quote
-					. ' href=' . $quote . esc_url( $url ) . $quote . '>' . esc_html( $url_label ) . '</a>';
+				if ( $link_url ) {
+					$url_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__link-anchor' ) . $quote
+						. ' href=' . $quote . esc_url( $url ) . $quote . '>' . esc_html( $url_label ) . '</a>';
+				} else {
+					$url_link = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__link-text' ) . $quote . '>' . esc_html( $url ) . '</span>';
+				}
 				$contacts[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-people__contact wp-seed-event-people__link' ) . $quote . '>' . $url_link . '</li>';
 			}
 		}
 
+		if ( ! $show_name && array() === $roles && array() === $contacts ) {
+			continue;
+		}
+
+		$name_classes = array( 'wp-seed-event-people__name' );
+		if ( ! $show_name ) {
+			$name_classes[] = 'screen-reader-text';
+		}
+
 		$item = '<li class=' . $quote . esc_attr( 'wp-seed-event-person wp-seed-event-people__item' ) . $quote . '>';
-		$item .= '<strong class=' . $quote . esc_attr( 'wp-seed-event-people__name' ) . $quote . '>' . esc_html( $name ) . '</strong>';
+		$item .= '<strong class=' . $quote . esc_attr( implode( ' ', $name_classes ) ) . $quote . '>' . esc_html( $name ) . '</strong>';
 
 		if ( array() !== $roles ) {
 			$rendered_roles = array();

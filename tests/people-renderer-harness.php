@@ -481,6 +481,34 @@ p2_case( '50 output is deterministic and side-effect free', function () use ( $c
 	p2_assert( 0 === $GLOBALS['wp_seed_events_people_renderer_meta_calls'], 'Renderer read post meta.' );
 } );
 
+p2_case( '51 multiple roles use OR semantics', function () use ( $organizer, $speaker, $register ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer, $speaker, $register ) ), array( 'roles' => array( 'organizer', 'speaker' ) ) );
+	p2_assert( 2 === p2_count( 'wp-seed-event-people__item', $html ), 'Multiple roles did not use OR semantics.' );
+	p2_not_contains( 'Claire Petit', $html, 'Unselected role leaked.' );
+} );
+
+p2_case( '52 all role is exclusive', function () use ( $organizer, $speaker, $register ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer, $speaker, $register ) ), array( 'roles' => array( 'all', 'speaker' ) ) );
+	p2_assert( 3 === p2_count( 'wp-seed-event-people__item', $html ), 'All did not override specific roles.' );
+} );
+
+p2_case( '53 hidden name remains accessible with public contacts', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array( 'show_name' => false, 'show_roles' => false ) );
+	p2_contains( 'wp-seed-event-people__name screen-reader-text', $html, 'Hidden name lacks a screen-reader identity.' );
+	p2_contains( 'Émilie Test', $html, 'Accessible name is missing.' );
+} );
+
+p2_case( '54 link toggles keep public values without anchors', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array( 'link_email' => false, 'link_phone' => false, 'link_url' => false ) );
+	p2_contains( 'public@example.test', $html, 'Public email was hidden instead of unlinked.' );
+	p2_contains( '+32 470 11 22 33', $html, 'Public phone was hidden instead of unlinked.' );
+	p2_contains( 'https://example.test/profil', $html, 'Public URL was hidden instead of unlinked.' );
+	p2_not_contains( 'mailto:', $html, 'Email remained linked.' );
+	p2_not_contains( 'tel:', $html, 'Phone remained linked.' );
+	p2_not_contains( '__link-anchor', $html, 'URL remained linked.' );
+	p2_not_contains( 'private@example.test', $html, 'Private email leaked.' );
+} );
+
 $benchmark_events = array(
 	'zero'            => p2_event( array() ),
 	'one'             => p2_event( array( $organizer ) ),

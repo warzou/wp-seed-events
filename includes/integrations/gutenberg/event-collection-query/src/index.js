@@ -1,13 +1,53 @@
 import { InspectorControls } from '@wordpress/block-editor';
-import { registerBlockVariation } from '@wordpress/blocks';
+import { registerBlockBindingsSource, registerBlockVariation } from '@wordpress/blocks';
 import { PanelBody, RangeControl, SelectControl } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { store as coreDataStore } from '@wordpress/core-data';
 import { Fragment } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 
 const NAMESPACE = 'wp-seed-events/event-collection';
 const BUSINESS_ORDER = 'business_date';
+const BINDING_SOURCE = 'wp-seed-events/event-field';
+const REST_FIELD = 'wp_seed_events_public_fields';
+
+registerBlockBindingsSource( {
+  name: BINDING_SOURCE,
+  getValues( { bindings, context, select } ) {
+    const postId = Number.parseInt( context.postId, 10 );
+    const postType = typeof context.postType === 'string' ? context.postType : '';
+    const values = {};
+
+    for ( const attributeName of Object.keys( bindings ) ) {
+      values[ attributeName ] = '';
+    }
+
+    if ( postType !== 'wp_seed_event' || ! Number.isInteger( postId ) || postId <= 0 ) {
+      return values;
+    }
+
+    const record = select( coreDataStore ).getEntityRecord(
+      'postType',
+      postType,
+      postId,
+      { context: 'edit' },
+    );
+    const publicFields = record && record[ REST_FIELD ];
+
+    if ( ! publicFields || typeof publicFields !== 'object' ) {
+      return values;
+    }
+
+    for ( const [ attributeName, binding ] of Object.entries( bindings ) ) {
+      const field = binding && binding.args ? binding.args.field : '';
+      const value = publicFields[ field ];
+      values[ attributeName ] = typeof value === 'string' ? value : '';
+    }
+
+    return values;
+  },
+} );
 
 const STATUS_OPTIONS = [
   { label: __( 'À venir', 'wp-seed-events' ), value: 'upcoming' },
@@ -156,6 +196,11 @@ const withEventCollectionControls = createHigherOrderComponent(
             />
             <p>
               <strong>{ __( 'Présentation de la carte', 'wp-seed-events' ) }</strong>
+              <br />
+              { __(
+                'Pour changer la présentation, sélectionnez la collection puis utilisez « Modifier le design ».',
+                'wp-seed-events',
+              ) }
               <br />
               { __(
                 'La carte compacte ou détaillée est un point de départ modifiable librement. Pour réutiliser la même structure, enregistrez la collection comme composition WordPress. Utilisez une composition synchronisée seulement si sa structure et ses réglages doivent rester identiques.',

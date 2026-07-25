@@ -22,10 +22,14 @@ structure deja chargee ne declenche aucune nouvelle resolution.
 
 - `title` : titre facultatif, `Dates` par defaut ;
 - `heading_level` : `h2` a `h6`, `h2` par defaut ;
+- `mode` : `next`, `first`, `last` ou `all`, `all` par defaut ;
 - `scope` : `all`, `upcoming` ou `past`, `all` par defaut ;
 - `show_cancelled` : affiche les occurrences annulees, `true` par defaut ;
 - `show_times` : affiche les horaires, `true` par defaut ;
 - `show_calendar_links` : affiche les actions calendrier, `true` par defaut.
+- `format` : `long` ou `short`, `long` par defaut.
+
+Les builders présentent ces combinaisons sous des libellés explicites : `next+upcoming` correspond à Prochaine date, `all+upcoming` à Toutes les prochaines dates, `all+past` à Toutes les dates passées et `all+all` à Toutes les dates. Dans les builders, Première date et Dernière date utilisent `scope=all` pour éviter un second contrôle ambigu. Les shortcodes conservent la combinaison avancée `mode` + `scope`. Le contrat PHP reste fondé sur `mode` et `scope`.
 
 Une valeur `heading_level` invalide revient a `h2`. Une valeur `scope`
 invalide revient a `all`.
@@ -122,6 +126,7 @@ Les attributs V1 sont :
 - `id` : identifiant d'evenement facultatif ;
 - `title` : `Dates` par defaut, chaine vide autorisee ;
 - `heading_level` : `h2` a `h6`, `h2` par defaut ;
+- `mode` : `next`, `first`, `last` ou `all`, `all` par defaut ;
 - `scope` : `all`, `upcoming` ou `past`, `all` par defaut ;
 - `show_cancelled` : `yes` ou `no`, `yes` par defaut ;
 - `show_times` : `yes` ou `no`, `yes` par defaut ;

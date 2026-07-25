@@ -52,9 +52,11 @@
             "value": {
               "title": "Dates",
               "heading_level": "h2",
+              "mode": "all",
               "scope": "all",
               "show_cancelled": "on",
               "show_times": "on",
+              "format": "long",
               "show_calendar_links": "on"
             }
           }
@@ -95,21 +97,25 @@
                 }
               }
             },
-            "scope": {
+            "dateSelection": {
               "groupSlug": "contentDates",
-              "priority": 30,
+              "priority": 25,
               "render": true,
-              "subName": "scope",
-              "label": "Portée",
+              "subName": "date_selection",
+              "label": "Dates affich\u00e9es",
+              "description": "Choisissez directement les dates \u00e0 afficher. Premi\u00e8re date et Derni\u00e8re date portent sur toutes les dates de l\u2019\u00e9v\u00e9nement.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {
                 "name": "divi/select",
                 "type": "field",
                 "props": {
                   "options": {
-                    "all": {"label": "Toutes les dates"},
-                    "upcoming": {"label": "À venir"},
-                    "past": {"label": "Passées"}
+                    "next": {"label": "Prochaine date"},
+                    "first": {"label": "Premi\u00e8re date"},
+                    "last": {"label": "Derni\u00e8re date"},
+                    "all_upcoming": {"label": "Toutes les prochaines dates"},
+                    "all_past": {"label": "Toutes les dates pass\u00e9es"},
+                    "all": {"label": "Toutes les dates"}
                   }
                 }
               }
@@ -138,6 +144,24 @@
                 "name": "divi/toggle",
                 "type": "field",
                 "props": {"options": {"off": "Masquer", "on": "Afficher"}}
+              }
+            },
+            "format": {
+              "groupSlug": "contentDates",
+              "priority": 55,
+              "render": true,
+              "subName": "format",
+              "label": "Format des dates",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {
+                "name": "divi/select",
+                "type": "field",
+                "props": {
+                  "options": {
+                    "long": {"label": "Format long"},
+                    "short": {"label": "Format court"}
+                  }
+                }
               }
             },
             "showCalendarLinks": {

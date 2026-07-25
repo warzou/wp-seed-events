@@ -23,14 +23,41 @@ const getContentValues = (attrs) => attrs?.content?.innerContent?.desktop?.value
 const normalizeOptions = (attrs) => {
   const values = getContentValues(attrs);
   const headingLevels = ['h2', 'h3', 'h4', 'h5', 'h6'];
+  const modes = ['next', 'first', 'last', 'all'];
   const scopes = ['all', 'upcoming', 'past'];
+  const selections = ['next', 'first', 'last', 'all_upcoming', 'all_past', 'all'];
+  const formats = ['long', 'short'];
+  const legacyMode = modes.includes(values.mode) ? values.mode : 'all';
+  const legacyScope = scopes.includes(values.scope) ? values.scope : 'all';
+  const selection = selections.includes(values.date_selection) ? values.date_selection : '';
+  let mode = legacyMode;
+  let scope = legacyScope;
+
+  if (selection === 'next') {
+    mode = 'next';
+    scope = 'upcoming';
+  } else if (selection === 'first' || selection === 'last') {
+    mode = selection;
+    scope = 'all';
+  } else if (selection === 'all_upcoming') {
+    mode = 'all';
+    scope = 'upcoming';
+  } else if (selection === 'all_past') {
+    mode = 'all';
+    scope = 'past';
+  } else if (selection === 'all') {
+    mode = 'all';
+    scope = 'all';
+  }
 
   return {
     title: typeof values.title === 'string' ? values.title : 'Dates',
     heading_level: headingLevels.includes(values.heading_level) ? values.heading_level : 'h2',
-    scope: scopes.includes(values.scope) ? values.scope : 'all',
+    mode,
+    scope,
     show_cancelled: values.show_cancelled === 'off' ? 'off' : 'on',
     show_times: values.show_times === 'off' ? 'off' : 'on',
+    format: formats.includes(values.format) ? values.format : 'long',
     show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on',
   };
 };
@@ -154,9 +181,12 @@ const eventDatesModule = {
           value: {
             title: 'Dates',
             heading_level: 'h2',
+            mode: 'all',
             scope: 'all',
+            date_selection: 'all',
             show_cancelled: 'on',
             show_times: 'on',
+            format: 'long',
             show_calendar_links: 'on',
           },
         },

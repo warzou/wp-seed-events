@@ -28,12 +28,17 @@ Le module ne lit aucune meta privée, n'exécute aucune requête SQL, ne persist
 
 Les valeurs sont stockées dans `content.innerContent.desktop.value` :
 
+- `date_selection` : preset d'interface explicite (`next`, `first`, `last`, `all_upcoming`, `all_past`, `all`) ;
 - `title` : texte, `Dates` par défaut, vide autorisé ;
 - `heading_level` : `h2`, `h3`, `h4`, `h5` ou `h6` ;
-- `scope` : `all`, `upcoming` ou `past` ;
+- `mode` : contrat historique `next`, `first`, `last` ou `all`, conservé pour compatibilité ;
+- `scope` : valeur interne historique `all`, `upcoming` ou `past`, conservée pour compatibilité mais non exposée comme contrôle séparé ;
 - `show_cancelled` : `on` ou `off` ;
 - `show_times` : `on` ou `off` ;
 - `show_calendar_links` : `on` ou `off`.
+- `format` : `long` ou `short`.
+
+Le choix visible `Dates affichées` traduit le preset en `mode` et `scope` avant le renderer : Prochaine date, Première date, Dernière date, Toutes les prochaines dates, Toutes les dates passées ou Toutes les dates. Première date et Dernière date portent sur toutes les dates de l'événement. Aucun réglage de portée séparé n'est affiché. Un module historique sans `date_selection` continue d'utiliser directement ses valeurs `mode` et `scope`.
 
 Les valeurs invalides reviennent aux valeurs sûres : `h2`, `all` et options activées. Le niveau de titre ne modifie que le heading facultatif ; la structure métier reste `section`, heading éventuel, `ul`, `li`, `time`, `span` et `a`.
 

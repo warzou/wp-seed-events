@@ -51,10 +51,12 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'args'                => array(
 					'post_id'             => array( 'sanitize_callback' => 'absint' ),
 					'loop_id'             => array( 'sanitize_callback' => 'absint' ),
+					'mode'                => array( 'sanitize_callback' => 'sanitize_key' ),
 					'title'               => array( 'sanitize_callback' => 'sanitize_text_field' ),
 					'heading_level'       => array( 'sanitize_callback' => 'sanitize_key' ),
 					'scope'               => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_cancelled'      => array( 'sanitize_callback' => 'sanitize_key' ),
+					'format'              => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_times'          => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_calendar_links' => array( 'sanitize_callback' => 'sanitize_key' ),
 				),
@@ -84,9 +86,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			array(
 				'title'               => $request->get_param( 'title' ),
 				'heading_level'       => $request->get_param( 'heading_level' ),
+				'mode'                => $request->get_param( 'mode' ),
 				'scope'               => $request->get_param( 'scope' ),
 				'show_cancelled'      => $request->get_param( 'show_cancelled' ),
 				'show_times'          => $request->get_param( 'show_times' ),
+				'format'              => $request->get_param( 'format' ),
 				'show_calendar_links' => $request->get_param( 'show_calendar_links' ),
 			)
 		);
@@ -180,24 +184,37 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		$title  = array_key_exists( 'title', $values ) && null !== $values['title']
 			? (string) $values['title']
 			: 'Dates';
+		$mode   = wp_seed_events_public_date_mode_option( $values['mode'] ?? 'all' );
+		$scope  = wp_seed_events_public_date_scope_option( $values['scope'] ?? 'all' );
+		$choice = is_scalar( $values['date_selection'] ?? null )
+			? sanitize_key( (string) $values['date_selection'] )
+			: '';
 
-		$heading_level = sanitize_key( (string) ( $values['heading_level'] ?? 'h2' ) );
-		$scope         = sanitize_key( (string) ( $values['scope'] ?? 'all' ) );
-
-		if ( ! in_array( $heading_level, array( 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ) {
-			$heading_level = 'h2';
-		}
-
-		if ( ! in_array( $scope, array( 'all', 'upcoming', 'past' ), true ) ) {
+		if ( 'next' === $choice ) {
+			$mode  = 'next';
+			$scope = 'upcoming';
+		} elseif ( in_array( $choice, array( 'first', 'last' ), true ) ) {
+			$mode  = $choice;
+			$scope = 'all';
+		} elseif ( 'all_upcoming' === $choice ) {
+			$mode  = 'all';
+			$scope = 'upcoming';
+		} elseif ( 'all_past' === $choice ) {
+			$mode  = 'all';
+			$scope = 'past';
+		} elseif ( 'all' === $choice ) {
+			$mode  = 'all';
 			$scope = 'all';
 		}
 
 		return array(
 			'title'               => $title,
-			'heading_level'       => $heading_level,
+			'heading_level'       => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
+			'mode'                => $mode,
 			'scope'               => $scope,
 			'show_cancelled'      => self::is_enabled( $values['show_cancelled'] ?? 'on' ),
 			'show_times'          => self::is_enabled( $values['show_times'] ?? 'on' ),
+			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
 			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
 		);
 	}

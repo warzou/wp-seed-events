@@ -38,6 +38,16 @@
         "past"
       ]
     },
+    "mode": {
+      "type": "string",
+      "default": "all",
+      "enum": [
+        "next",
+        "first",
+        "last",
+        "all"
+      ]
+    },
     "show_cancelled": {
       "type": "boolean",
       "default": true
@@ -49,6 +59,14 @@
     "show_calendar_links": {
       "type": "boolean",
       "default": true
+    },
+    "format": {
+      "type": "string",
+      "default": "long",
+      "enum": [
+        "long",
+        "short"
+      ]
     }
   },
   "usesContext": [

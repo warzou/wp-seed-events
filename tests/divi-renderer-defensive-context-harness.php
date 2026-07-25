@@ -127,6 +127,46 @@ namespace {
 		return $GLOBALS['defensive_current_id'];
 	}
 
+	function wp_seed_events_public_heading_level_option( $value ) {
+		return in_array( $value, array( 'h2', 'h3', 'h4', 'h5', 'h6' ), true ) ? $value : 'h2';
+	}
+
+	function wp_seed_events_public_date_mode_option( $value ) {
+		return in_array( $value, array( 'next', 'first', 'last', 'all' ), true ) ? $value : 'all';
+	}
+
+	function wp_seed_events_public_date_scope_option( $value ) {
+		return in_array( $value, array( 'all', 'upcoming', 'past' ), true ) ? $value : 'all';
+	}
+
+	function wp_seed_events_public_date_format_option( $value ) {
+		return in_array( $value, array( 'long', 'short' ), true ) ? $value : 'long';
+	}
+
+	function wp_seed_events_public_boolean_option( $value, $default = false ) {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+		if ( ! is_scalar( $value ) ) {
+			return $default;
+		}
+		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'true', 'yes' ), true );
+	}
+
+	function wp_seed_events_public_people_role_option( $value ) {
+		return in_array( $value, array( 'organizer', 'speaker', 'registration_contact', 'information_contact' ), true ) ? $value : 'all';
+	}
+
+	function wp_seed_events_public_people_roles_option( $value ) {
+		$roles = is_array( $value ) ? $value : explode( ',', (string) $value );
+		$roles = array_values( array_intersect( $roles, array( 'organizer', 'speaker', 'registration_contact', 'information_contact' ) ) );
+		return array_values( array_unique( $roles ) );
+	}
+
+	function wp_seed_events_public_event_people_layout_option( $value ) {
+		return 'grid' === $value ? 'grid' : 'list';
+	}
+
 	function wp_seed_events_get_event_data( $event_id ) {
 		return 10 === (int) $event_id ? array( 'id' => 10 ) : array();
 	}
@@ -285,6 +325,29 @@ namespace {
 			defensive_assert( false !== strpos( $result['html'], 'data-event="10"' ), 'Ancestor loop event did not render.' );
 		} );
 	}
+
+	$dates_normalize = new ReflectionMethod( WP_Seed_Events_Divi_Event_Dates_Module::class, 'normalize_options' );
+	$dates_normalize->setAccessible( true );
+	$date_selections = array(
+		'next'         => array( 'next', 'upcoming' ),
+		'first'        => array( 'first', 'all' ),
+		'last'         => array( 'last', 'all' ),
+		'all_upcoming' => array( 'all', 'upcoming' ),
+		'all_past'     => array( 'all', 'past' ),
+		'all'          => array( 'all', 'all' ),
+	);
+	foreach ( $date_selections as $selection => $expected ) {
+		defensive_case( 'dates maps explicit selection ' . $selection, function () use ( $dates_normalize, $selection, $expected ) {
+			$options = $dates_normalize->invoke( null, array( 'date_selection' => $selection, 'mode' => 'last', 'scope' => 'past' ) );
+			defensive_assert( $expected[0] === $options['mode'], 'Mapped mode differs.' );
+			defensive_assert( $expected[1] === $options['scope'], 'Mapped scope differs.' );
+		} );
+	}
+	defensive_case( 'dates keeps legacy mode and scope without explicit selection', function () use ( $dates_normalize ) {
+		$options = $dates_normalize->invoke( null, array( 'mode' => 'first', 'scope' => 'past' ) );
+		defensive_assert( 'first' === $options['mode'], 'Legacy mode changed.' );
+		defensive_assert( 'past' === $options['scope'], 'Legacy scope changed.' );
+	} );
 
 	defensive_case( 'strict incompatible context never falls back', function () {
 		$GLOBALS['wp_seed_events_public_event_id'] = 10;

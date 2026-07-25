@@ -1160,14 +1160,14 @@ function wp_seed_events_render_display_page() {
 		array(
 			'name'        => 'Dates',
 			'description' => 'Affiche les dates de l’événement courant avec le renderer public partagé.',
-			'example'     => '[wp_seed_event_dates scope="upcoming"]',
-			'options'     => 'title : Dates par défaut, chaîne vide autorisée. heading_level : h2 à h6. scope : all, upcoming ou past. show_cancelled, show_times et show_calendar_links : yes ou no. Compatibilité : format long/short et show_time yes/no.',
+			'example'     => '[wp_seed_event_dates mode="next"]',
+			'options'     => 'title : Dates par défaut, chaîne vide autorisée. heading_level : h2 à h6. mode/scope : next+upcoming = Prochaine date ; first ou last avec la période choisie ; all+upcoming = Toutes les prochaines dates ; all+past = Toutes les dates passées ; all+all = Toutes les dates. format : long ou short. show_cancelled, show_times et show_calendar_links : yes ou no. Compatibilité : show_time yes/no.',
 		),
 		array(
 			'name'        => 'Personnes',
 			'description' => 'Affiche les personnes liées à l’événement courant.',
-			'example'     => '[wp_seed_event_people role="intervenant" details="no"]',
-			'options'     => 'role : all, organisateur, intervenant, contact_inscription ou contact_information. details : yes ou no.',
+			'example'     => '[wp_seed_event_people roles="organizer,speaker"]',
+			'options'     => 'roles : all ou liste séparée par des virgules parmi organizer, speaker, registration_contact et information_contact. role reste compatible. show_name, show_roles, show_phone, show_email, show_link, link_phone, link_email et link_url : yes ou no. details : yes ou no. layout : list ou grid.',
 		),
 		array(
 			'name'        => 'Lieu',

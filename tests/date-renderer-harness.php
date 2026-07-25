@@ -582,4 +582,44 @@ wp_seed_events_harness_case(
 	}
 );
 
+wp_seed_events_harness_case(
+	'mode next forces upcoming, excludes cancelled and renders one occurrence',
+	function () use ( $past, $future, $future_two, $cancelled_up ) {
+		$inactive               = wp_seed_events_harness_occurrence( 'inactive-future', '2026-07-20', 'future' );
+		$inactive['is_active']  = false;
+		$inactive['is_future']  = false;
+		$html = wp_seed_events_render_public_event_dates_section( wp_seed_events_harness_event( array( $past, $inactive, $future, $future_two, $cancelled_up ) ), array( 'mode' => 'next', 'scope' => 'past', 'show_cancelled' => true ) );
+		wp_seed_events_harness_contains( '2026-07-31', $html, 'Next active future occurrence is missing.' );
+		wp_seed_events_harness_not_contains( '2026-01-05', $html, 'Past scope was not overridden by mode next.' );
+		wp_seed_events_harness_not_contains( '2026-07-20', $html, 'Inactive future occurrence leaked into mode next.' );
+		wp_seed_events_harness_not_contains( '2026-08-13', $html, 'Mode next rendered more than one occurrence.' );
+		wp_seed_events_harness_not_contains( '2026-09-10', $html, 'Cancelled occurrence leaked into mode next.' );
+		wp_seed_events_harness_not_contains( 'wp-seed-event-calendar-link--all', $html, 'Unique mode rendered a global calendar link.' );
+		wp_seed_events_harness_assert( 1 === substr_count( $html, 'occurrence_uid=' ), 'Unique mode must render only its occurrence calendar link.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'modes first and last select after scope and cancellation filters',
+	function () use ( $past, $future, $future_two, $cancelled_up ) {
+		$event = wp_seed_events_harness_event( array( $past, $future, $future_two, $cancelled_up ) );
+		$first = wp_seed_events_render_public_event_dates_section( $event, array( 'mode' => 'first', 'scope' => 'upcoming', 'show_cancelled' => false ) );
+		$last  = wp_seed_events_render_public_event_dates_section( $event, array( 'mode' => 'last', 'scope' => 'upcoming', 'show_cancelled' => false ) );
+		wp_seed_events_harness_contains( '2026-07-31', $first, 'First filtered occurrence differs.' );
+		wp_seed_events_harness_not_contains( '2026-08-13', $first, 'First mode rendered an extra occurrence.' );
+		wp_seed_events_harness_contains( '2026-08-13', $last, 'Last filtered occurrence differs.' );
+		wp_seed_events_harness_not_contains( '2026-09-10', $last, 'Cancelled last occurrence was not filtered first.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'shortcode exposes mode and format without duplicating the renderer',
+	function () use ( $future, $future_two ) {
+		$GLOBALS['wp_seed_events_harness_event_data'][42] = wp_seed_events_harness_event( array( $future, $future_two ) );
+		$html = wp_seed_events_event_dates_shortcode( array( 'id' => 42, 'mode' => 'last', 'format' => 'short' ) );
+		wp_seed_events_harness_contains( '13/08/2026', $html, 'Short date format was not forwarded.' );
+		wp_seed_events_harness_not_contains( '2026-07-31', $html, 'Shortcode mode was not forwarded.' );
+	}
+);
+
 echo sprintf( '%d test groups passed.%s', $GLOBALS['wp_seed_events_harness_case_count'], PHP_EOL );
