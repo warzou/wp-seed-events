@@ -18,7 +18,7 @@ if ( ! defined( 'WP_SEED_EVENTS_LIFECYCLE_INDEX_LOCK_TTL' ) ) {
 add_action( 'admin_post_wp_seed_events_run_lifecycle_index_backfill', 'wp_seed_events_handle_lifecycle_index_backfill' );
 
 function wp_seed_events_lifecycle_index_expected_version() {
-	return 1;
+	return 2;
 }
 
 function wp_seed_events_lifecycle_index_version_option_name() {
@@ -391,7 +391,7 @@ function wp_seed_events_render_lifecycle_index_backfill_panel() {
 	?>
 	<hr />
 	<h2>Index des dates</h2>
-	<p>Cette opération prépare progressivement les événements existants pour le futur filtre de dates. Elle traite au maximum <?php echo esc_html( (string) wp_seed_events_lifecycle_index_batch_size() ); ?> événements par action.</p>
+	<p>Cette opération reconstruit progressivement l’index des dates, du lifecycle, des types et du tri des collections. Elle traite au maximum <?php echo esc_html( (string) wp_seed_events_lifecycle_index_batch_size() ); ?> événements par action.</p>
 
 	<?php if ( 'complete' === $message ) : ?>
 		<div class="notice notice-success inline"><p>Index historique terminé.</p></div>

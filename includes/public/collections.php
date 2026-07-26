@@ -18,6 +18,19 @@ defined( 'ABSPATH' ) || exit;
  * @return array
  */
 function wp_seed_events_query_event_collection( $args = array() ) {
+	if ( wp_seed_events_public_collection_index_is_ready() ) {
+		$selection = wp_seed_events_query_indexed_event_collection( $args, true );
+
+		if ( ! is_wp_error( $selection ) ) {
+			return $selection;
+		}
+	}
+
+	return wp_seed_events_query_legacy_event_collection( $args );
+}
+
+/** Historical PHP selector retained while the versioned index is unavailable. */
+function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 	$args = wp_parse_args(
 		$args,
 		array(
@@ -134,6 +147,214 @@ function wp_seed_events_query_event_collection( $args = array() ) {
 	);
 }
 
+/** Whether the versioned lifecycle projections are safe for public selection. */
+function wp_seed_events_public_collection_index_is_ready() {
+	return function_exists( 'wp_seed_events_is_lifecycle_index_ready' )
+		&& wp_seed_events_is_lifecycle_index_ready();
+}
+
+/**
+ * Resolve a public type slug to the stored canonical type keys.
+ *
+ * @param string $type Public slug or sanitized historical key.
+ * @return array|false Empty means no filter; false means unknown.
+ */
+function wp_seed_events_public_collection_type_keys( $type ) {
+	$type = sanitize_title( (string) $type );
+
+	if ( '' === $type ) {
+		return array();
+	}
+
+	$matches = array();
+
+	foreach ( wp_seed_events_event_type_options() as $type_key => $type_label ) {
+		$type_key = sanitize_key( $type_key );
+
+		if ( $type === sanitize_title( $type_key ) || $type === sanitize_title( $type_label ) ) {
+			$matches[] = $type_key;
+		}
+	}
+
+	$matches = array_values( array_unique( array_filter( $matches ) ) );
+
+	return array() === $matches ? false : $matches;
+}
+
+/** Return the normalized canonical arguments used by the indexed selector. */
+function wp_seed_events_public_collection_normalize_args( $args = array() ) {
+	$args = wp_parse_args(
+		$args,
+		array(
+			'limit'    => 6,
+			'per_page' => null,
+			'page'     => 1,
+			'status'   => 'upcoming',
+			'type'     => '',
+			'pinned'   => 'all',
+			'order'    => '',
+		)
+	);
+
+	$args['status']   = wp_seed_events_public_collection_status( $args['status'] );
+	$args['pinned']   = wp_seed_events_public_collection_pinned( $args['pinned'] );
+	$args['type']     = sanitize_title( (string) $args['type'] );
+	$args['order']    = wp_seed_events_public_collection_order( $args['order'], $args['status'] );
+	$args['page']     = max( 1, absint( $args['page'] ) );
+	$args['per_page'] = null === $args['per_page'] ? max( 1, absint( $args['limit'] ) ) : (int) $args['per_page'];
+
+	return $args;
+}
+
+/** Return a canonical empty collection result. */
+function wp_seed_events_public_collection_empty_result( $args ) {
+	return array(
+		'events'      => array(),
+		'ids'         => array(),
+		'total'       => 0,
+		'total_pages' => 1,
+		'page'        => $args['page'],
+		'per_page'    => $args['per_page'],
+		'args'        => array(
+			'type'   => $args['type'],
+			'status' => $args['status'],
+			'pinned' => $args['pinned'],
+			'order'  => $args['order'],
+		),
+	);
+}
+
+/**
+ * Select ordered event IDs from the versioned lightweight projections.
+ *
+ * @param array $raw_args Collection arguments.
+ * @param bool  $hydrate  Whether Event Data is required for the selected IDs.
+ * @return array|WP_Error
+ */
+function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = true ) {
+	global $wpdb;
+
+	$args = wp_seed_events_public_collection_normalize_args( $raw_args );
+
+	if ( ! isset( $wpdb->posts, $wpdb->postmeta ) ) {
+		return new WP_Error( 'event_collection_index_unavailable', 'The event collection index is unavailable.' );
+	}
+
+	$type_keys = wp_seed_events_public_collection_type_keys( $args['type'] );
+
+	if ( false === $type_keys ) {
+		return wp_seed_events_public_collection_empty_result( $args );
+	}
+
+	$today_sql     = "'" . esc_sql( current_time( 'Y-m-d' ) . ' 00:00' ) . "'";
+	$next_sort     = "MIN(CASE WHEN occurrence_meta.meta_value >= {$today_sql} THEN occurrence_meta.meta_value ELSE NULL END)";
+	$last_sort     = "MAX(CASE WHEN occurrence_meta.meta_value < {$today_sql} THEN occurrence_meta.meta_value ELSE NULL END)";
+	$business_sort = "COALESCE({$next_sort}, {$last_sort})";
+	$joins         = "
+		LEFT JOIN {$wpdb->postmeta} occurrence_meta
+			ON occurrence_meta.post_id = event_posts.ID
+			AND occurrence_meta.meta_key = '_wp_seed_event_collection_occurrence_sort'
+		LEFT JOIN {$wpdb->postmeta} pinned_meta
+			ON pinned_meta.post_id = event_posts.ID
+			AND pinned_meta.meta_key = '_wp_seed_event_pinned'
+			AND pinned_meta.meta_value = '1'";
+	$where         = "event_posts.post_type = 'wp_seed_event' AND event_posts.post_status = 'publish'";
+
+	if ( array() !== $type_keys ) {
+		$quoted_types = array_map(
+			static function ( $type_key ) {
+				return "'" . esc_sql( $type_key ) . "'";
+			},
+			$type_keys
+		);
+		$joins       .= "
+		INNER JOIN {$wpdb->postmeta} type_meta
+			ON type_meta.post_id = event_posts.ID
+			AND type_meta.meta_key = '_wp_seed_event_collection_type'
+			AND type_meta.meta_value IN (" . implode( ', ', $quoted_types ) . ')';
+	}
+
+	if ( 'only' === $args['pinned'] ) {
+		$where .= ' AND pinned_meta.post_id IS NOT NULL';
+	}
+
+	$having = '';
+
+	if ( 'upcoming' === $args['status'] ) {
+		$having = "HAVING {$next_sort} IS NOT NULL";
+	} elseif ( 'past' === $args['status'] ) {
+		$having = "HAVING {$next_sort} IS NULL AND {$last_sort} IS NOT NULL";
+	}
+
+	$from_sql = "
+		FROM {$wpdb->posts} event_posts
+		{$joins}
+		WHERE {$where}
+		GROUP BY event_posts.ID
+		{$having}";
+	$count_sql = "SELECT COUNT(*) FROM (SELECT event_posts.ID {$from_sql}) indexed_events";
+
+	$wpdb->last_error = '';
+	$total             = absint( $wpdb->get_var( $count_sql ) );
+
+	if ( '' !== $wpdb->last_error ) {
+		return new WP_Error( 'event_collection_index_query_failed', 'The indexed event collection count failed.' );
+	}
+
+	$order_sql  = 'DESC' === $args['order'] ? 'DESC' : 'ASC';
+	$select_sql = "
+		SELECT event_posts.ID
+		{$from_sql}
+		ORDER BY
+			MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC,
+			CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC,
+			{$business_sort} {$order_sql},
+			event_posts.ID ASC";
+
+	if ( $args['per_page'] > 0 ) {
+		$offset      = ( $args['page'] - 1 ) * $args['per_page'];
+		$select_sql .= ' LIMIT ' . absint( $args['per_page'] ) . ' OFFSET ' . absint( $offset );
+	}
+
+	$wpdb->last_error = '';
+	$ids               = $wpdb->get_col( $select_sql );
+
+	if ( '' !== $wpdb->last_error || ! is_array( $ids ) ) {
+		return new WP_Error( 'event_collection_index_query_failed', 'The indexed event collection selection failed.' );
+	}
+
+	$ids         = array_values( array_filter( array_map( 'absint', $ids ) ) );
+	$total_pages = $args['per_page'] > 0 ? max( 1, (int) ceil( $total / $args['per_page'] ) ) : 1;
+	$events      = array();
+
+	if ( $hydrate ) {
+		foreach ( $ids as $event_id ) {
+			$event = wp_seed_events_get_event_data( $event_id );
+
+			if ( array() === $event ) {
+				return new WP_Error( 'event_collection_hydration_failed', 'An indexed event could not be hydrated.' );
+			}
+
+			$events[] = $event;
+		}
+	}
+
+	return array(
+		'events'      => $events,
+		'ids'         => $ids,
+		'total'       => $total,
+		'total_pages' => $total_pages,
+		'page'        => $args['page'],
+		'per_page'    => $args['per_page'],
+		'args'        => array(
+			'type'   => $args['type'],
+			'status' => $args['status'],
+			'pinned' => $args['pinned'],
+			'order'  => $args['order'],
+		),
+	);
+}
+
 /**
  * Backward-compatible event collection accessor.
  *
@@ -164,7 +385,14 @@ function wp_seed_events_apply_collection_to_query_args( $query_args, $collection
 
 	$collection_args             = is_array( $collection_args ) ? $collection_args : array();
 	$collection_args['per_page'] = -1;
-	$result                       = wp_seed_events_query_event_collection( $collection_args );
+
+	if ( wp_seed_events_public_collection_index_is_ready() ) {
+		$result = wp_seed_events_query_indexed_event_collection( $collection_args, false );
+	}
+
+	if ( ! isset( $result ) || is_wp_error( $result ) ) {
+		$result = wp_seed_events_query_legacy_event_collection( $collection_args );
+	}
 	$event_ids                    = array_map( 'absint', $result['ids'] ?? array() );
 
 	if ( ! empty( $query_args['post__in'] ) ) {

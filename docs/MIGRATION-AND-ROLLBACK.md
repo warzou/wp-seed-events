@@ -139,3 +139,23 @@ Vérifier :
 
 Les sauvegardes autoritatives doivent rester hors du webroot et ne jamais être
 committées.
+
+## Preparation de beta.2 : index Collections v2
+
+La version 2 de l'index lifecycle ajoute deux projections internes pour selectionner et paginer les collections avant hydratation Event Data. Elle ne modifie ni les occurrences, ni les types, ni les contenus metier.
+
+Apres installation d'un runtime qui attend l'index v2 :
+
+1. ouvrir le panneau lifecycle de WP Seed Events ;
+2. lancer ou reprendre la reconstruction par lots ;
+3. conserver `ready=false` jusqu'a la fin ;
+4. verifier la version attendue et l'absence d'IDs en erreur ;
+5. recetter `upcoming`, `past`, `all`, les types, les epingles et plusieurs pages.
+
+La reconstruction est versionnee, bornee, idempotente et reprenable. Tant qu'elle n'est pas complete, les collections utilisent explicitement le selecteur PHP historique afin de conserver des resultats exacts. Une restauration d'un ancien runtime peut ignorer les nouvelles projections ; elles ne contiennent aucune donnee source et peuvent etre reconstruites.
+
+## Mises a jour manuelles GitHub
+
+Le canal stable reste actif par defaut et les prereleases restent desactivees. Une release installable doit fournir le ZIP officiel et son asset `.sha256`. L'installation est refusee avant remplacement si le checksum, la racine, les chemins ou la version interne divergent.
+
+L'updater n'ajoute aucun rollback automatique. La sauvegarde exacte du dossier actif et de la base reste obligatoire. Voir [Mises a jour officielles depuis GitHub](GITHUB-UPDATES.md).

@@ -201,9 +201,10 @@ check( 'frontend and editor share one adapter', () => {
   );
 } );
 
-check( 'adapter delegates selection to the canonical bridge', () => {
+check( 'adapter delegates selection to the indexed bridge with a legacy fallback', () => {
   assert.ok( bootstrap.includes( 'wp_seed_events_apply_collection_to_query_args' ) );
-  assert.ok( collections.includes( 'wp_seed_events_query_event_collection( $collection_args )' ) );
+  assert.ok( collections.includes( 'wp_seed_events_query_indexed_event_collection( $collection_args, false )' ) );
+  assert.ok( collections.includes( 'wp_seed_events_query_legacy_event_collection( $collection_args )' ) );
 } );
 
 check( 'builder keeps pagination ownership', () => {

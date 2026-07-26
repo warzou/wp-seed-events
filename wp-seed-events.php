@@ -4,6 +4,7 @@
  * Description: Autonomous event publishing foundation for WordPress.
  * Version: 0.2.0-beta.1
  * Author: WP Seed
+ * Update URI: https://github.com/warzou/wp-seed-events
  * Text Domain: wp-seed-events
  *
  * @package WPSeedEvents
@@ -41,6 +42,7 @@ require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
+require_once __DIR__ . '/includes/admin/github-updater.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/people.php';
@@ -1621,6 +1623,8 @@ function wp_seed_events_reclassify_event_type_to_default( $type_key ) {
 		}
 
 		delete_post_meta( $event_id, '_wp_seed_event_type' );
+
+		wp_seed_events_update_lifecycle_index( $event_id );
 	}
 }
 function wp_seed_events_remap_event_type_key( $from_type_key, $to_type_key ) {
@@ -1666,6 +1670,8 @@ function wp_seed_events_remap_event_type_key( $from_type_key, $to_type_key ) {
 		if ( $from_type_key === get_post_meta( $event_id, '_wp_seed_event_type', true ) ) {
 			update_post_meta( $event_id, '_wp_seed_event_type', $to_type_key );
 		}
+
+		wp_seed_events_update_lifecycle_index( $event_id );
 	}
 }
 

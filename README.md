@@ -21,7 +21,7 @@ WP Seed Events est un plugin WordPress autonome pour administrer, publier et com
 
 ## Statut beta
 
-Cette version est destinee a la stabilisation avant 1.0. Une sauvegarde des fichiers et de la base WordPress reste recommandee avant installation. Aucun auto-update n'est active.
+Cette version est destinee a la stabilisation avant 1.0. Une sauvegarde des fichiers et de la base WordPress reste recommandee avant installation. Les mises a jour officielles peuvent etre detectees depuis GitHub, mais aucune mise a jour automatique en arriere-plan n'est activee.
 
 ## Prerequis et surfaces supportees
 
@@ -73,17 +73,26 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 ## Documentation beta
 
-- `docs/USER-GUIDE-BETA.md` : parcours utilisateur complet ;
-- `docs/MIGRATION-AND-ROLLBACK.md` : installation, mise a jour et restauration ;
-- `docs/KNOWN-LIMITATIONS-BETA.md` : limites classees par jalon.
+- [Guide utilisateur beta](docs/USER-GUIDE-BETA.md) : parcours utilisateur complet ;
+- [Migration et rollback](docs/MIGRATION-AND-ROLLBACK.md) : installation, mise a jour et restauration ;
+- [Limites connues](docs/KNOWN-LIMITATIONS-BETA.md) : limites classees par jalon ;
+- [Mises a jour GitHub](docs/GITHUB-UPDATES.md) : canal, integrite, cache et rollback.
 
 ## Limites connues
 
 - les patterns Gutenberg sont non synchronises par defaut ;
 - certains apercus Divi restent neutres hors contexte evenement ;
-- la performance des collections doit etre surveillee autour de 250 evenements et optimisee avant de recommander un gros catalogue ;
+- l'index lifecycle v2 doit etre reconstruit avant d'activer la selection optimisee des gros catalogues ;
 - Spectra n'est ni requis ni recete sur le site de reference ;
 - la boite native Image mise en avant est masquee pour les evenements ; le premier visuel reste synchronise techniquement ;
 - placement du partage dependant du theme en page modele complete.
 
-Voir `docs/RELEASE-0.2.0-beta.1.md` et `CHANGELOG.md` pour les details de release.
+## Developpeurs
+
+- [Event Data API](docs/EVENT-DATA-API.md)
+- [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
+- [Collections publiques](docs/PUBLIC-COLLECTIONS.md)
+- [Dynamic Data](docs/PUBLIC-EVENT-DYNAMIC-DATA.md)
+- [Compatibilite et deprecations](docs/PUBLIC-API-COMPATIBILITY.md)
+
+Voir [la note de release beta.1](docs/RELEASE-0.2.0-beta.1.md) et [le changelog](CHANGELOG.md) pour les details de release.

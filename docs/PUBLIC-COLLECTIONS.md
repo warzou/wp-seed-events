@@ -196,3 +196,18 @@ La fonction `wp_seed_events_query_event_collection()` accepte publiquement :
 Elle retourne les Event Data selectionnees, les IDs ordonnes, le total et les informations de pagination. Les occurrences annulees ne definissent jamais la date active de classement. Les evenements sans date exploitable apparaissent en fin de collection avec `status=all` et sont exclus de `upcoming` et `past`.
 
 Le shortcode, Divi et Gutenberg consomment ce contrat. Aucun builder ne recalcule le lifecycle ou le tri par occurrence.
+
+## Selection indexee et fallback
+
+Lorsque l'index lifecycle attendu est complet, la collection utilise une selection en deux etapes :
+
+1. deux requetes SQL bornees calculent le total puis les IDs de la page demandee a partir des projections actives de dates et de types ;
+2. Event Data hydrate uniquement les IDs effectivement rendus.
+
+L'ordre reste strictement : epingles d'abord, presence d'une date, date metier selon `order`, puis ID croissant pour departager les egalites. `upcoming` utilise la prochaine occurrence active aujourd'hui ou future. `past` exige l'absence de date future active et utilise la derniere date active passee. `all` utilise la prochaine date active, sinon la derniere date active ; les evenements sans date active restent a la fin.
+
+Les projections `_wp_seed_event_collection_occurrence_sort` et `_wp_seed_event_collection_type` sont internes. Elles sont reconstruites par l'index lifecycle versionne, mises a jour avec l'evenement et supprimees avec lui. Elles ne constituent pas une API publique.
+
+Si l'index n'est pas pret ou si la selection SQL echoue, `wp_seed_events_query_event_collection()` revient explicitement au selecteur PHP historique. Ce fallback privilegie la correction des resultats : il ne change jamais silencieusement le tri metier. L'administration conserve `ready=false` jusqu'a la fin d'une reconstruction complete et reprenable.
+
+Les builders recoivent uniquement les IDs ordonnes lorsqu'ils possedent la pagination et le rendu. Ils ne forcent plus l'hydratation Event Data du catalogue entier.

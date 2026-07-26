@@ -1,154 +1,82 @@
 # Event Data API
 
-## Decision
+## Statut du contrat
 
-WP Seed Events doit formaliser une API metier interne stable pour les donnees d'un evenement.
+`wp_seed_events_get_event_data( $event_id )` est l'API publique canonique qui expose les donnees publiques normalisees d'un evenement. Elle est independante des shortcodes, des builders et du rendu HTML.
 
-Cette API ne remplace pas les shortcodes, le registre Dynamic Data, Gutenberg, Divi, Spectra ou les futures boucles.
+```php
+$event = wp_seed_events_get_event_data( 123 );
+```
 
-Elle devient leur source commune.
+- `$event_id` accepte une valeur convertible en entier positif.
+- La fonction retourne un tableau associatif pour un `wp_seed_event` publie.
+- Elle retourne `array()` pour un ID nul, invalide, un autre type de contenu, un brouillon ou un evenement prive.
+- Elle ne retourne pas de `WP_Error` et n'ecrit aucune donnee.
+- `wp_seed_events_public_event_data( $event_id )` est un alias public compatible.
 
-## Pourquoi Dynamic Data est trop etroit
+## Schema retourne
 
-Dynamic Data repond a une question precise :
+| Cle | Type | Contrat |
+| --- | --- | --- |
+| `id` | `int` | ID WordPress de l'evenement. |
+| `title` | `string` | Titre public. |
+| `url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
+| `types` | `string[]` | Libelles publics des types associes. |
+| `occurrences` | `array[]` | Occurrences normalisees, annulees incluses. |
+| `active_occurrences` | `array[]` | Occurrences non annulees. |
+| `next_occurrence` | `array` | Premiere occurrence active aujourd'hui ou dans le futur, ou `array()`. |
+| `last_occurrence` | `array` | Derniere occurrence active chronologique, ou `array()`. |
+| `display_occurrence` | `array` | `next_occurrence`, sinon `last_occurrence`. |
+| `lifecycle` | `string` | `upcoming`, `past`, `undated` ou `cancelled_only`. |
+| `place` | `array` | `id`, `name`, `address`, `details`, `link`, ou `array()`. |
+| `place_address` | `string` | Projection texte de l'adresse. |
+| `place_url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
+| `people` | `array[]` | Personnes et coordonnees explicitement publiques seulement. |
+| `description` | `string` | Contenu WordPress stocke de l'evenement. Le consommateur choisit son rendu et son echappement. |
+| `excerpt` | `string` | Extrait public normalise. |
+| `practical_info` | `string` | Informations pratiques publiques. |
+| `event_document_filename` | `string` | Nom public sur du document PDF. |
+| `event_document_url` | `string` | URL HTTP(S) du PDF public, ou chaine vide. |
+| `featured_image` | `array|null` | Objet Media de l'image principale WordPress. |
+| `communication_visual` | `array|null` | Premier visuel de communication normalise. |
+| `communication_visuals` | `array[]` | Visuels de communication ordonnes. |
+| `other_visuals` | `array[]` | Visuels apres le recto. |
+| `event_document` | `array|null` | Objet Media du PDF public. |
 
-Comment un builder accede-t-il a une donnee du contexte courant ?
+Un objet Media expose : `id`, `url`, `mime_type`, `title`, `alt`, `caption`, `filename`, `width` et `height`. Aucune cle ne contient de chemin serveur.
 
-WP Seed Events a besoin d'un socle plus large :
+Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `public_phone` et `public_url`. Les alias `email`, `phone` et `link` reproduisent uniquement ces valeurs deja autorisees ; ils ne contournent jamais les permissions de publication.
 
-Comment le plugin expose-t-il proprement le modele metier d'un evenement a tous les consommateurs ?
+Le schema des occurrences est defini dans [Event Occurrences API](EVENT-OCCURRENCES-API.md).
 
-Les shortcodes, les templates publics, Gutenberg, Divi, Spectra, les futures boucles et une eventuelle REST API plus tard ne doivent pas chacun relire le stockage ou reconstruire la logique metier.
+## Alias medias historiques
 
-## Role de l'Event Data API
+Les identifiants suivants restent derives des objets Media normalises :
 
-L'Event Data API doit :
+- `primary_image_id` : ID de `communication_visual` ;
+- `featured_image_id` : ID de `featured_image` ;
+- `illustration_ids` : IDs de `communication_visuals` ;
+- `flyer_pdf_id` : ID de `event_document`.
 
-- recevoir un evenement ou un identifiant d'evenement ;
-- verifier que l'evenement est valide ;
-- lire les donnees WordPress et les donnees metier necessaires ;
-- normaliser les dates, lieu, personnes, types, medias et description ;
-- resoudre les valeurs calculees comme la prochaine occurrence ;
-- masquer les details de stockage ;
-- retourner une structure de donnees stable ;
-- rester independante du rendu, des builders et des shortcodes.
+Ils sont conserves pour compatibilite. Les nouveaux consommateurs utilisent les objets Media.
 
-## Contrat temporel
+## Donnees publiques et securite
 
-L'Event Data API conserve trois projections distinctes :
+L'API ne retourne que les evenements publies. Les coordonnees Personnes sont filtrees association par association avant d'entrer dans Event Data. Les URLs exposees sont absolues et limitees a HTTP(S). Les metas, options, verrous, curseurs, chemins serveur et autorisations internes ne font pas partie du resultat.
 
-- `next_occurrence` : premiere occurrence active aujourd'hui ou dans le futur ;
-- `last_occurrence` : derniere occurrence active dans l'ordre chronologique ;
-- `display_occurrence` : `next_occurrence` si elle existe, sinon `last_occurrence`.
+Le tableau reste une donnee : un consommateur HTML doit appliquer l'echappement ou les APIs WordPress adaptees a sa surface.
 
-Les adaptateurs derivent `next_date` et `next_time` de `next_occurrence`.
-Ils derivent `display_date` et `display_time` de `display_occurrence` pour les
-surfaces qui ont besoin d'une date de reference, notamment les cartes. Une
-occurrence annulee n'est jamais une occurrence active.
+## Compatibilite
 
-Chaque occurrence normalisee expose egalement deux projections temporelles
-neutres :
+Les cles documentees ici constituent le contrat public de la serie 1.x. Elles ne sont pas retirees ou renommees silencieusement. Les ajouts futurs doivent etre additifs. La politique complete est decrite dans [Compatibilite de l'API publique](PUBLIC-API-COMPATIBILITY.md).
 
-- `is_date_future` vaut `true` lorsque sa date de debut est aujourd'hui ou dans
-  le futur ;
-- `is_date_past` vaut `true` lorsque sa date de debut est strictement anterieure
-  a aujourd'hui.
-
-Ces deux projections sont independantes de `is_active` et `is_cancelled`. Elles
-permettent donc de situer chronologiquement une occurrence annulee sans la
-considerer comme active. Les contrats existants restent inchanges :
-
-- `is_future` designe une occurrence active aujourd'hui ou dans le futur ;
-- `is_past` designe une occurrence active passee.
-
-La comparaison utilise la date courante du fuseau WordPress, sans comparaison
-d'heure. Une occurrence datee aujourd'hui est donc `is_date_future=true` et
-`is_date_past=false` pendant toute la journee.
-
-## Consommateurs
-
-Les consommateurs de cette API sont :
-
-- les templates publics ;
-- les shortcodes ;
-- le renderer public partage des dates ;
-- le registre Dynamic Data ;
-- les providers Dynamic Content Divi 5 ;
-- la source Gutenberg Block Bindings ;
-- les blocs Gutenberg et les boucles Spectra ;
-- les futures boucles metier ;
-- une eventuelle REST API plus tard.
-
-Chaque consommateur adapte les donnees a son propre contexte.
-
-Le renderer public des dates utilise directement `occurrences`,
-`is_date_future`, `is_date_past`, `is_active` et `is_cancelled`. Il conserve
-l'ordre fourni par l'Event Occurrences API et ne relit ni le stockage ni le
-normaliseur. Son contrat de rendu est documente dans
-`docs/PUBLIC-DATE-RENDERER.md`.
-
-## Ce que l'API ne doit pas faire
-
-L'API ne doit pas :
-
-- produire du HTML par defaut ;
-- imposer un design ;
-- connaitre Divi, Gutenberg ou Spectra ;
-- remplacer les shortcodes ;
-- exposer les meta keys comme contrat public ;
-- exposer les options internes du plugin ;
-- gerer les reglages d'administration ;
-- choisir quels evenements afficher dans une liste ;
-- devenir un framework ;
-- introduire WP Seed Core.
-
-## Premier lot technique safe
-
-Le premier lot technique doit etre strictement conservateur.
-
-Objectif :
-
-Extraire et nommer la source de donnees deja existante sans changer le comportement.
-
-Plan minimal :
-
-1. Creer `includes/public/event-data.php`.
-2. Y definir la fonction canonique `wp_seed_events_get_event_data( $event_id )`.
-3. Deplacer la logique actuelle de `wp_seed_events_public_event_data( $post_id )` vers cette fonction canonique.
-4. Conserver `wp_seed_events_public_event_data( $post_id )` comme alias de compatibilite.
-5. Charger le nouveau fichier avant `includes/public/rendering.php`.
-6. Ne pas modifier les shortcodes.
-7. Ne pas modifier les templates publics.
-8. Ne pas modifier le registre Dynamic Data.
-9. Ne pas modifier le provider Gutenberg.
-10. Ne pas ajouter de nouveaux champs.
-
-Validation attendue :
-
-- aucun changement de rendu public ;
-- aucun changement de sortie shortcode ;
-- aucun changement Gutenberg ;
-- `git diff --check` ;
-- controle UTF-8 sans BOM ;
-- `php -l` sur les fichiers PHP modifies.
-
-## Principe durable
-
-Le modele cible est :
+## Architecture
 
 ```text
 Stockage WordPress
+  -> Event Occurrences / Media / People
   -> Event Data API
-  -> consommateurs
-       -> templates publics
-       -> shortcodes
-       -> Dynamic Data
-       -> providers
-       -> boucles
+  -> renderers, shortcodes, Dynamic Data, Divi, Gutenberg et collections
 ```
 
-WP Seed Events reste proprietaire du metier.
-
-Les consommateurs utilisent les donnees.
-
-Ils ne possedent pas le metier.
+Event Data ne produit pas de HTML, ne choisit pas une collection et ne depend d'aucun builder.
