@@ -71,13 +71,19 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - donner la priorite aux anomalies reproductibles ;
 - aucune nouvelle fonctionnalite n'est garantie pendant l'alpha.
 
+## Documentation beta
+
+- `docs/USER-GUIDE-BETA.md` : parcours utilisateur complet ;
+- `docs/MIGRATION-AND-ROLLBACK.md` : installation, mise a jour et restauration ;
+- `docs/KNOWN-LIMITATIONS-BETA.md` : limites classees par jalon.
+
 ## Limites connues
 
 - les patterns Gutenberg sont non synchronises par defaut ;
 - certains apercus Divi restent neutres hors contexte evenement ;
 - la performance des collections devra etre mesuree avant beta sur de tres gros catalogues ;
 - Spectra n'est ni requis ni recete sur le site de reference ;
-- coexistence avec la boite native Image mise en avant ;
+- la boite native Image mise en avant est masquee pour les evenements ; le premier visuel reste synchronise techniquement ;
 - placement du partage dependant du theme en page modele complete.
 
 Voir `docs/RELEASE-0.2.0-alpha.3.md` et `CHANGELOG.md` pour les details de release.

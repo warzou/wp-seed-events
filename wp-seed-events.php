@@ -71,6 +71,7 @@ add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_place_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_contacts_meta_box' );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_description_meta_box', 20 );
+add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_remove_native_featured_image_meta_box', 100 );
 add_action( 'add_meta_boxes_wp_seed_place', 'wp_seed_events_add_place_address_meta_box' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_occurrences' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_place' );
@@ -3875,6 +3876,10 @@ function wp_seed_events_add_media_meta_box() {
 	);
 }
 
+function wp_seed_events_remove_native_featured_image_meta_box() {
+	remove_meta_box( 'postimagediv', 'wp_seed_event', 'side' );
+}
+
 function wp_seed_events_render_media_visual_item( $visual, $featured_image_id ) {
 	if ( ! is_array( $visual ) ) {
 		return;
@@ -3924,7 +3929,7 @@ function wp_seed_events_render_media_meta_box( $post, $event_media = null ) {
 	<input type="hidden" name="wp_seed_event_illustrations[]" value="" data-wp-seed-illustrations-payload />
 	<input type="hidden" name="wp_seed_event_visuals_empty" value="<?php echo $communication_visual ? '0' : '1'; ?>" data-wp-seed-visuals-empty />
 	<h3>Flyer recto</h3>
-	<p class="description">Le visuel principal qui représente l’événement.</p>
+	<p class="description">Le premier visuel est utilisé comme image principale de l’événement.</p>
 	<input type="hidden" name="wp_seed_event_featured_image_id" value="<?php echo esc_attr( (string) $featured_image_id ); ?>" data-wp-seed-featured-image-input />
 	<div data-wp-seed-flyer-recto>
 		<?php if ( $communication_visual ) : ?>

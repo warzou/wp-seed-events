@@ -180,4 +180,4 @@ Le rendu public ne dépend ni d'iFolders, ni d'Instant Images, ni d'un builder. 
 - pas de migration ni de backfill ;
 - pas de détection au rendu d'un fichier physique manquant lorsque la pièce jointe et son URL existent ;
 - les textes alternatifs et légendes peuvent être vides ; aucun contenu éditorial n'est inventé ;
-- la boîte native Image mise en avant reste visible et peut encore concurrencer l'UX média en administration.
+- la boîte native Image mise en avant est masquée sur les événements ; le support `thumbnail` et la projection du premier visuel dans `_thumbnail_id` restent actifs.
