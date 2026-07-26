@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.2.0-beta.1 - 2026-07-26
+
+Cette premiere beta fige les contrats publics de la V1 et consolide les parcours valides pendant les alphas, sans migration automatique des donnees ou des anciens slugs.
+
+### Collections et builders
+
+- Collections metier composables dans Divi et Gutenberg.
+- Pagination et tri par `1re date de l'evenement`.
+- Patterns Gutenberg `Carte compacte` et `Carte detaillee`, non synchronises par defaut.
+- Six choix explicites de dates dans Gutenberg et Divi.
+- Controles avances des Personnes, sans possibilite d'exposer une coordonnee privee.
+
+### Medias et administration
+
+- Une seule interface media pour les evenements : le panneau Visuels de communication.
+- Premier visuel synchronise avec l'image principale WordPress via `_thumbnail_id`.
+- Support `thumbnail` conserve pour les APIs, builders, partage et frontend.
+- Slugs localises des nouveaux auto-brouillons correctement reconnus.
+
+### Documentation et compatibilite
+
+- Guide utilisateur beta, migration, rollback et limites connues documentes.
+- Contrats et shortcodes historiques preserves.
+- Divi et Gutenberg facultatifs ; aucune dependance a WP Seed Content Kit.
+- Spectra non requis et aucune compatibilite runtime avancee revendiquee.
+- Aucune migration automatique des anciens slugs `brouillon-auto-*`.
+
+### Limites connues
+
+- Performance des collections a surveiller autour de 250 evenements et a optimiser avant un gros catalogue.
+- Aucun mecanisme d'auto-update.
+- Patterns Gutenberg non synchronises par defaut.
+- Certains apercus Divi restent neutres hors contexte evenement.
+- Spectra non recete sur le site de reference.
+
 ## 0.2.0-alpha.3 - 2026-07-25
 
 Cette alpha corrige la generation du slug lors du premier enregistrement d'un nouvel evenement dans une interface WordPress localisee. Elle ne modifie ni les donnees existantes, ni les contrats metier, ni les integrations builders.

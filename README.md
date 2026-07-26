@@ -1,8 +1,8 @@
 # WP Seed Events
 
-Version actuelle : `0.2.0-alpha.3`
+Version actuelle : `0.2.0-beta.1`
 
-WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette version alpha corrige la generation initiale des slugs dans les interfaces WordPress localisees, sans migration des URL existantes.
+WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette premiere beta fige les contrats publics de la V1, simplifie la gestion de l'image principale et conserve les donnees et URL existantes.
 
 ## Fonctionnalites principales
 
@@ -19,9 +19,9 @@ WP Seed Events est un plugin WordPress autonome pour administrer, publier et com
 - filtres type, statut et epinglage, tri par `1re date de l'evenement` et pagination ;
 - patterns Gutenberg `Carte compacte` et `Carte detaillee` modifiables librement.
 
-## Statut alpha
+## Statut beta
 
-Cette version est destinee a la validation. Une sauvegarde des fichiers et de la base WordPress est recommandee avant installation. La compatibilite ascendante totale n'est pas garantie avant une version stable.
+Cette version est destinee a la stabilisation avant 1.0. Une sauvegarde des fichiers et de la base WordPress reste recommandee avant installation. Aucun auto-update n'est active.
 
 ## Prerequis et surfaces supportees
 
@@ -34,19 +34,19 @@ Surfaces validees :
 - Divi 5 et Loop Builder ;
 - shortcodes comme fallback universel.
 
-Astra et Spectra restent facultatifs. Spectra n'est pas installe sur le site de reference, aucun bloc Spectra n'est inclus dans les patterns officiels et aucune compatibilite runtime avancee Spectra n'est revendiquee par cette alpha.
+Astra et Spectra restent facultatifs. Spectra n'est pas installe sur le site de reference, aucun bloc Spectra n'est inclus dans les patterns officiels et aucune compatibilite runtime avancee Spectra n'est revendiquee par cette beta.
 
 ## Installation
 
 1. Sauvegarder les fichiers et la base WordPress.
-2. Installer `wp-seed-events-0.2.0-alpha.3.zip` depuis Extensions > Ajouter une extension.
+2. Installer `wp-seed-events-0.2.0-beta.1.zip` depuis Extensions > Ajouter une extension.
 3. Activer WP Seed Events.
 4. Ouvrir une fiche evenement puis verifier son rendu public.
 
-## Mise a jour depuis une alpha anterieure
+## Mise a jour depuis une alpha
 
 1. Conserver une copie exacte du dossier actif `wp-seed-events`.
-2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-alpha.3.zip`.
+2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-beta.1.zip`.
 3. Verifier la version active, une fiche evenement, les collections, les ICS et les builders utilises.
 
 Le changement de version ne declenche aucune migration, aucun backfill, aucune republication de coordonnee et aucune modification des slugs existants.
@@ -63,13 +63,13 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - verifier les modules ou blocs builders utilises ;
 - confirmer qu'aucune coordonnee Personnes non autorisee n'est visible.
 
-## Retours sur l'alpha
+## Retours sur la beta
 
 - creer une issue par symptome distinct et verifier les doublons avant creation ;
 - ne jamais publier de secret ni de donnee personnelle ;
 - indiquer la version testee dans le champ dedie ;
 - donner la priorite aux anomalies reproductibles ;
-- aucune nouvelle fonctionnalite n'est garantie pendant l'alpha.
+- aucune nouvelle fonctionnalite n'est garantie pendant la stabilisation beta.
 
 ## Documentation beta
 
@@ -81,9 +81,9 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 - les patterns Gutenberg sont non synchronises par defaut ;
 - certains apercus Divi restent neutres hors contexte evenement ;
-- la performance des collections devra etre mesuree avant beta sur de tres gros catalogues ;
+- la performance des collections doit etre surveillee autour de 250 evenements et optimisee avant de recommander un gros catalogue ;
 - Spectra n'est ni requis ni recete sur le site de reference ;
 - la boite native Image mise en avant est masquee pour les evenements ; le premier visuel reste synchronise techniquement ;
 - placement du partage dependant du theme en page modele complete.
 
-Voir `docs/RELEASE-0.2.0-alpha.3.md` et `CHANGELOG.md` pour les details de release.
+Voir `docs/RELEASE-0.2.0-beta.1.md` et `CHANGELOG.md` pour les details de release.

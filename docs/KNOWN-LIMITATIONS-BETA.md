@@ -18,6 +18,8 @@ avant 1.0 ou reportés après la version stable.
   reprenable.
 - Certains flyers peuvent avoir un texte alternatif vide uniquement lorsqu'ils
   sont décoratifs.
+- La performance des collections doit être surveillée autour de 250 événements.
+  Une optimisation est requise avant de recommander un gros catalogue.
 
 ## À traiter avant 1.0
 

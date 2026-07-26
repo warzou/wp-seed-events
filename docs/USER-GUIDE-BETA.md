@@ -5,6 +5,10 @@ Ce guide présente le parcours courant de WP Seed Events, de la création d'un
 autonome : Spectra n'est pas requis et WP Seed Content Kit n'est pas une
 dépendance.
 
+Ce guide accompagne `0.2.0-beta.1`. Les contrats Collections, Dates et
+Personnes sont figés pour cette phase de stabilisation. Les mises à jour restent
+manuelles : aucun mécanisme d'auto-update n'est activé.
+
 ## Installer et activer
 
 1. Sauvegardez les fichiers WordPress et la base de données.

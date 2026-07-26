@@ -16,7 +16,7 @@ sauvegarde vérifiée reste obligatoire avant tout remplacement du plugin.
 Le ZIP contient le code du plugin, jamais les événements, utilisateurs,
 médias, coordonnées ou options du site.
 
-## Mise à jour alpha.1 vers alpha.3
+## Mise à jour alpha.1 vers beta.1
 
 La mise à jour apporte les composants Dates, Visuels et Personnes, les
 collections builders, le contrat Dynamic Data et les corrections de slugs.
@@ -26,15 +26,15 @@ Les compositions Gutenberg créées avec des blocs plus récents ne sont pas
 garanties lorsqu'un ancien runtime est restauré. Leur contenu reste en base,
 mais l'éditeur peut signaler un bloc indisponible ou inattendu.
 
-## Mise à jour alpha.2 vers alpha.3
+## Mise à jour alpha.2 vers beta.1
 
-L'alpha.3 corrige la reconnaissance des slugs d'auto-brouillon localisés. La
-correction agit à la première sauvegarde d'un nouvel événement. Elle ne
+La beta conserve la correction alpha.3 des slugs d'auto-brouillon localisés,
+les collections builders et les contrôles avancés Dates et Personnes. Elle ne
 réécrit ni les URL publiées ni les anciens slugs `brouillon-auto-*`.
 
-## Passage alpha.3 vers beta.1
+## Mise à jour alpha.3 vers beta.1
 
-Le passage prévu vers beta.1 masque l'interface native **Image mise en avant**
+La beta.1 masque l'interface native **Image mise en avant**
 sur `wp_seed_event`, sans retirer le support `thumbnail`, `_thumbnail_id` ou
 la projection du premier visuel. Aucune migration de média ou de stockage
 n'est nécessaire.
