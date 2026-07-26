@@ -211,3 +211,7 @@ Les projections `_wp_seed_event_collection_occurrence_sort` et `_wp_seed_event_c
 Si l'index n'est pas pret ou si la selection SQL echoue, `wp_seed_events_query_event_collection()` revient explicitement au selecteur PHP historique. Ce fallback privilegie la correction des resultats : il ne change jamais silencieusement le tri metier. L'administration conserve `ready=false` jusqu'a la fin d'une reconstruction complete et reprenable.
 
 Les builders recoivent uniquement les IDs ordonnes lorsqu'ils possedent la pagination et le rendu. Ils ne forcent plus l'hydratation Event Data du catalogue entier.
+
+## Livraison beta.2
+
+Depuis `0.2.0-beta.2`, la selection indexee est le chemin nominal lorsque le lifecycle v2 est pret. La parite avec le selecteur historique couvre 96 scenarios ; le fallback reste actif jusqu'a `ready=true` ou en cas d'echec de la requete indexee.

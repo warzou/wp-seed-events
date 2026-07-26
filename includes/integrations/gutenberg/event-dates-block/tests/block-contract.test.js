@@ -38,6 +38,7 @@ const diviMetadata = JSON.parse(read(diviRoot, 'src', 'module.json'));
 assert.strictEqual(metadata.name, 'wp-seed-events/event-dates-block');
 assert.notStrictEqual(metadata.name, diviMetadata.name);
 assert.strictEqual(metadata.apiVersion, 3);
+assert.strictEqual(metadata.version, packageManifest.version);
 assert.deepStrictEqual(metadata.usesContext, ['postId', 'postType', 'queryId']);
 assert.deepStrictEqual(metadata.attributes.heading_level.enum, ['h2', 'h3', 'h4', 'h5', 'h6']);
 assert.deepStrictEqual(metadata.attributes.mode.enum, ['next', 'first', 'last', 'all']);

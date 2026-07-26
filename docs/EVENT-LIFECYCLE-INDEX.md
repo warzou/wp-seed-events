@@ -76,3 +76,7 @@ Une occurrence datee aujourd'hui reste `upcoming` pendant toute la journee WordP
 La reconstruction manuelle exige la capacite et le nonce admin appropries. Les rapports ne contiennent aucune donnee sensible. L'affichage public et la liste admin ne lancent jamais de reparation globale. Les options, metas, curseurs, verrous et details SQL restent internes.
 
 Voir [Event Occurrences API](EVENT-OCCURRENCES-API.md), [Collections publiques](PUBLIC-COLLECTIONS.md) et [Migration et rollback](MIGRATION-AND-ROLLBACK.md).
+
+## Livraison beta.2
+
+La version `0.2.0-beta.2` introduit officiellement l'index lifecycle version 2. Une mise a jour depuis beta.1 reconstruit uniquement les projections techniques ; elle ne modifie ni occurrences, ni types, ni contenus, ni dates de modification des evenements.

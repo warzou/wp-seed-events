@@ -61,6 +61,7 @@ check('block ID is distinct', () => {
 
 check('Block API v3', () => {
   assert.strictEqual(metadata.apiVersion, 3);
+  assert.strictEqual(metadata.version, packageManifest.version);
 });
 
 check('dynamic save is null', () => {
@@ -298,7 +299,7 @@ check('packaging includes runtime assets and excludes sources', () => {
 check('Gutenberg Dates matches the expanded controls build', () => {
   assert.strictEqual(
     hash(datesRoot, 'build', 'index.js'),
-    '3886DED9C3479606EFDD6A106150627C2383170B7F7560FC990413C622B3A6F0',
+    '725B2CC0CCF599A8FB6C236225CCF6DFF17D06D7CF6FF7BF0C42ABC3A96125C7',
   );
 });
 

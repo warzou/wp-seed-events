@@ -28,6 +28,7 @@ function check(name, callback) {
 check('canonical block identity', () => {
   assert.strictEqual(metadata.name, 'wp-seed-events/event-people-block');
   assert.strictEqual(metadata.apiVersion, 3);
+  assert.strictEqual(metadata.version, packageManifest.version);
   assert.strictEqual(metadata.title, 'WP Seed — Personnes de l’événement');
   assert.strictEqual(metadata.category, 'widgets');
   assert.strictEqual(metadata.icon, 'groups');

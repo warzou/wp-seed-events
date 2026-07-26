@@ -1,6 +1,6 @@
 {
   "name": "wp-seed-events-build",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "private": true,
   "engines": {
     "node": ">=18.12.0",

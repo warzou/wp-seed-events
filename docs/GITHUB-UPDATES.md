@@ -74,3 +74,7 @@ Avant toute mise a jour manuelle :
 5. recetter une fiche, une collection, un ICS et les builders utilises.
 
 L'updater ne promet pas de rollback proprietaire. En cas d'echec, restaurer atomiquement le ZIP ou le dossier exact de la version precedente, puis verifier l'index lifecycle. Les donnees metier restent dans la base et ne sont pas contenues dans le ZIP.
+
+## Disponibilite
+
+L'updater est livre a partir de `0.2.0-beta.2`. Cette prerelease n'est proposee qu'aux installations ayant explicitement active le canal de prerelease. Les releases stables restent le canal par defaut.

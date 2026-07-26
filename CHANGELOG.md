@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.2.0-beta.2 - 2026-07-26
+
+Cette beta optimise les collections sur les gros catalogues, ajoute un updater GitHub controle et formalise les contrats publics, sans modifier les resultats metier ni les donnees existantes.
+
+### Collections et lifecycle
+
+- Selection des IDs indexes avant pagination.
+- Hydratation Event Data limitee aux evenements de la page rendue.
+- Lifecycle index v2 reconstructible, reprenable et idempotent.
+- Projections internes de type et d'occurrences actives.
+- Fallback historique exact tant que l'index v2 n'est pas pret.
+- Resultats, ordre, total et pagination inchanges.
+
+### Mises a jour GitHub
+
+- Depot officiel `warzou/wp-seed-events` uniquement.
+- Canal stable par defaut et prereleases sur consentement explicite.
+- ZIP et fichier SHA-256 obligatoires et verifies avant installation.
+- Cache borne, erreurs reseau isolees et prise en charge multisite.
+- Aucune mise a jour automatique en arriere-plan.
+
+### Contrats publics
+
+- Event Data API et Event Occurrences API documentees.
+- Frontieres publiques et internes explicites.
+- Shortcodes, builders, renderers et alias historiques preserves.
+- Aucune migration metier et aucune dependance Content Kit ou Spectra.
+
 ## 0.2.0-beta.1 - 2026-07-26
 
 Cette premiere beta fige les contrats publics de la V1 et consolide les parcours valides pendant les alphas, sans migration automatique des donnees ou des anciens slugs.
