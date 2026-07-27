@@ -26,6 +26,7 @@ function public_docs_read( $path ) {
 }
 
 $event_data    = public_docs_read( $root . '/docs/EVENT-DATA-API.md' );
+$promotions    = public_docs_read( $root . '/docs/PROMOTION-DOMAIN-API.md' );
 $occurrences   = public_docs_read( $root . '/docs/EVENT-OCCURRENCES-API.md' );
 $compatibility = public_docs_read( $root . '/docs/PUBLIC-API-COMPATIBILITY.md' );
 $updates       = public_docs_read( $root . '/docs/GITHUB-UPDATES.md' );
@@ -38,7 +39,7 @@ public_docs_case( 'Event Data signature and empty result are definitive', functi
 } );
 
 public_docs_case( 'Event Data complete top-level keys are documented', function () use ( $event_data ) {
-	foreach ( array( 'active_occurrences', 'display_occurrence', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
+	foreach ( array( 'slug', 'active_occurrences', 'display_occurrence', 'promotions', 'parcours_years', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
 		public_docs_assert( false !== strpos( $event_data, '`' . $key . '`' ), 'Missing Event Data key: ' . $key );
 	}
 } );
@@ -47,6 +48,14 @@ public_docs_case( 'Occurrences arguments and normalized projections are document
 	foreach ( array( 'include_cancelled', 'only_active', 'status', 'derived_id', 'start_sort', 'is_date_future', 'is_cancelled', 'datetime_label' ) as $key ) {
 		public_docs_assert( false !== strpos( $occurrences, '`' . $key . '`' ), 'Missing occurrence contract: ' . $key );
 	}
+} );
+
+public_docs_case( 'Promotion domain, PHP and REST contracts are documented', function () use ( $promotions ) {
+	foreach ( array( 'wp_seed_promotion', 'wp_seed_events_get_promotion(', 'wp_seed_events_get_promotions(', 'promotion_id', 'parcours_year', '/wp-json/wp-seed-events/v1/promotions', '/events/<event_id>/occurrences', 'lifecycle v3' ) as $contract ) {
+		public_docs_assert( false !== strpos( $promotions, $contract ), 'Missing Promotion contract: ' . $contract );
+	}
+	public_docs_assert( false !== strpos( $promotions, 'Aucun backfill ni' ), 'No-migration guarantee is absent.' );
+	public_docs_assert( false !== strpos( $promotions, 'site consommateur de formation reste bloque' ), 'Consumer blocking state is absent.' );
 } );
 
 public_docs_case( 'Historical aliases and filtered contacts are explicit', function () use ( $compatibility ) {
@@ -75,7 +84,7 @@ public_docs_case( 'README developer links are clickable and complete', function 
 } );
 
 public_docs_case( 'Documentation files are UTF-8 without BOM', function () use ( $root ) {
-	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
+	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
 		$contents = public_docs_read( $root . '/' . $relative );
 		public_docs_assert( 0 !== strncmp( $contents, "\xEF\xBB\xBF", 3 ), 'BOM found: ' . $relative );
 		public_docs_assert( 1 === preg_match( '//u', $contents ), 'Invalid UTF-8: ' . $relative );

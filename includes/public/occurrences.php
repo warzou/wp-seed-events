@@ -92,6 +92,16 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 
 	$uid          = isset( $raw_occurrence['uid'] ) ? wp_seed_events_sanitize_occurrence_uid( $raw_occurrence['uid'] ) : '';
 	$derived_id   = wp_seed_events_occurrence_id( $raw_occurrence, $event_id, $index );
+	$promotion_id = absint( $raw_occurrence['promotion_id'] ?? 0 );
+	$parcours_year = wp_seed_events_normalize_parcours_year( $raw_occurrence['parcours_year'] ?? 0 );
+	$promotion     = 0 < $promotion_id ? wp_seed_events_get_promotion( $promotion_id ) : array();
+
+	if ( array() === $promotion || 0 === $parcours_year ) {
+		$promotion_id = 0;
+		$parcours_year = 0;
+		$promotion = array();
+	}
+
 	$all_day      = ! empty( $raw_occurrence['all_day'] );
 	$is_cancelled = ! empty( $raw_occurrence['cancelled'] );
 	$start_sort   = $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) );
@@ -108,6 +118,10 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 		'uid'            => $uid,
 		'derived_id'     => $derived_id,
 		'event_id'       => absint( $event_id ),
+		'promotion_id'   => $promotion_id,
+		'promotion'      => $promotion,
+		'parcours_year'  => $parcours_year,
+		'parcours_year_label' => wp_seed_events_parcours_year_label( $parcours_year ),
 		'start_date'     => $start_date,
 		'end_date'       => $end_date,
 		'start_time'     => $start_time,
@@ -130,6 +144,43 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 	$occurrence['datetime_label'] = trim( $occurrence['date_label'] . ( '' !== $occurrence['time_label'] ? ' ' . $occurrence['time_label'] : '' ) );
 
 	return $occurrence;
+}
+
+/**
+ * Validate a Promotion / parcours year pair before occurrence persistence.
+ *
+ * @param mixed $promotion_id Promotion ID.
+ * @param mixed $parcours_year Parcours year.
+ * @param bool  $allow_archived Whether an existing archived association may remain.
+ * @return true|WP_Error
+ */
+function wp_seed_events_validate_occurrence_parcours( $promotion_id, $parcours_year, $allow_archived = false ) {
+	$promotion_id = absint( $promotion_id );
+	$parcours_year = absint( $parcours_year );
+
+	if ( 0 === $promotion_id && 0 === $parcours_year ) {
+		return true;
+	}
+
+	if ( 0 === $promotion_id ) {
+		return new WP_Error( 'wp_seed_events_parcours_year_without_promotion', 'Choisissez une promotion avant l’année du parcours.' );
+	}
+
+	if ( 0 === wp_seed_events_normalize_parcours_year( $parcours_year ) ) {
+		return new WP_Error( 'wp_seed_events_promotion_without_parcours_year', 'Choisissez une année du parcours comprise entre 1 et 4.' );
+	}
+
+	$promotion = wp_seed_events_get_promotion( $promotion_id );
+
+	if ( array() === $promotion ) {
+		return new WP_Error( 'wp_seed_events_invalid_promotion', 'La promotion sélectionnée n’existe pas.' );
+	}
+
+	if ( 'archived' === $promotion['status'] && ! $allow_archived ) {
+		return new WP_Error( 'wp_seed_events_archived_promotion', 'Cette promotion est archivée et ne peut plus être attribuée.' );
+	}
+
+	return true;
 }
 
 function wp_seed_events_get_next_active_occurrence( $event_id ) {

@@ -47,6 +47,25 @@ function wp_seed_events_get_event_data( $event_id ) {
 	}
 
 	$occurrences        = wp_seed_events_get_event_occurrences( $event_id );
+	$promotions         = array();
+	$promotion_ids      = array();
+	$parcours_years     = array();
+
+	foreach ( $occurrences as $occurrence ) {
+		$promotion_id = absint( $occurrence['promotion_id'] ?? 0 );
+		$parcours_year = wp_seed_events_normalize_parcours_year( $occurrence['parcours_year'] ?? 0 );
+
+		if ( 0 < $promotion_id && ! isset( $promotion_ids[ $promotion_id ] ) && ! empty( $occurrence['promotion'] ) ) {
+			$promotion_ids[ $promotion_id ] = true;
+			$promotions[] = $occurrence['promotion'];
+		}
+
+		if ( 0 < $parcours_year ) {
+			$parcours_years[ $parcours_year ] = $parcours_year;
+		}
+	}
+
+	sort( $parcours_years, SORT_NUMERIC );
 	$active_occurrences = wp_seed_events_get_event_occurrences(
 		$event_id,
 		array(
@@ -88,10 +107,13 @@ function wp_seed_events_get_event_data( $event_id ) {
 
 	return array(
 		'id'                => $event_id,
+		'slug'              => (string) $post->post_name,
 		'title'             => get_the_title( $event_id ),
 		'url'               => $event_url,
 		'types'             => wp_seed_events_event_type_labels_for_event( $event_id ),
 		'occurrences'        => $occurrences,
+		'promotions'         => $promotions,
+		'parcours_years'     => array_values( $parcours_years ),
 		'active_occurrences' => $active_occurrences,
 		'next_occurrence'    => $next_occurrence,
 		'last_occurrence'    => $last_occurrence,

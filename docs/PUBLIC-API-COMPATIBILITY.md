@@ -16,6 +16,7 @@ Les surfaces suivantes sont publiques et reutilisables :
 
 - `wp_seed_events_get_event_data()` et son alias `wp_seed_events_public_event_data()` ;
 - `wp_seed_events_get_event_occurrences()`, `wp_seed_events_get_next_active_occurrence()`, `wp_seed_events_get_last_active_occurrence()` et `wp_seed_events_get_event_lifecycle()` ;
+- `wp_seed_events_get_promotion()` et `wp_seed_events_get_promotions()` ;
 - `wp_seed_events_query_event_collection()` ;
 - `wp_seed_events_get_event_collection()`, alias retournant uniquement les Event Data ;
 - les renderers documentes Dates, Visuels et Personnes ;
@@ -45,6 +46,7 @@ Aucun hook PHP propre au plugin n'est actuellement declare comme extension publi
 Sont publics :
 
 - les schemas documentes Event Data et Occurrences ;
+- le schema Promotion et les routes REST publiques en lecture seule documentees ;
 - le contrat Collections `type`, `status`, `pinned`, `order`, `page`, `per_page`, `limit` ;
 - les signatures et options des renderers documentes ;
 - les shortcodes ;
@@ -66,6 +68,7 @@ Un consommateur externe utilise les APIs publiques et ne lit pas les metas, opti
 
 - [Event Data API](EVENT-DATA-API.md)
 - [Event Occurrences API](EVENT-OCCURRENCES-API.md)
+- [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md)
 - [Collections publiques](PUBLIC-COLLECTIONS.md)
 - [Dynamic Data](PUBLIC-EVENT-DYNAMIC-DATA.md)
 - [Renderer Dates](PUBLIC-DATE-RENDERER.md)

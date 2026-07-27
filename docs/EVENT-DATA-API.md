@@ -20,9 +20,12 @@ $event = wp_seed_events_get_event_data( 123 );
 | --- | --- | --- |
 | `id` | `int` | ID WordPress de l'evenement. |
 | `title` | `string` | Titre public. |
+| `slug` | `string` | Slug public de l'evenement, utilise avec `id` et `title` comme identite du theme. |
 | `url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
 | `types` | `string[]` | Libelles publics des types associes. |
 | `occurrences` | `array[]` | Occurrences normalisees, annulees incluses. |
+| `promotions` | `array[]` | Promotions publiques distinctes des occurrences. |
+| `parcours_years` | `int[]` | Annees du parcours distinctes, triees de 1 a 4. |
 | `active_occurrences` | `array[]` | Occurrences non annulees. |
 | `next_occurrence` | `array` | Premiere occurrence active aujourd'hui ou dans le futur, ou `array()`. |
 | `last_occurrence` | `array` | Derniere occurrence active chronologique, ou `array()`. |
@@ -48,6 +51,8 @@ Un objet Media expose : `id`, `url`, `mime_type`, `title`, `alt`, `caption`, `fi
 Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `public_phone` et `public_url`. Les alias `email`, `phone` et `link` reproduisent uniquement ces valeurs deja autorisees ; ils ne contournent jamais les permissions de publication.
 
 Le schema des occurrences est defini dans [Event Occurrences API](EVENT-OCCURRENCES-API.md).
+Le schema Promotion et ses routes sont definis dans
+[Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
 
 ## Alias medias historiques
 

@@ -50,6 +50,27 @@ Un évènement peut avoir une seule occurrence ou plusieurs occurrences.
 L'occurrence ne remplace pas l'évènement. Elle précise quand l'évènement existe
 dans le temps.
 
+### Promotion et annee du parcours
+
+Une promotion represente une cohorte nommee, ordonnee et eventuellement
+archivee. Elle possede un nom, un slug unique, une annee de debut, un statut,
+un ordre et une description. Elle ne possede pas de page publique.
+
+Une occurrence peut etre rattachee a une promotion et a une annee du parcours
+de `1` a `4`. Les deux valeurs sont facultatives mais indissociables :
+
+- une promotion exige une annee du parcours ;
+- une annee du parcours exige une promotion ;
+- aucune annee n'est deduite automatiquement ;
+- une promotion archivee reste lisible dans l'historique ;
+- une nouvelle occurrence ne peut cibler qu'une promotion active.
+
+Le theme du seminaire reste l'evenement lui-meme, identifie par son ID, son
+titre et son slug. Il n'existe pas de taxonomie Theme parallele.
+
+Ce socle prepare le lifecycle v3 et les collections groupees par promotion,
+annee du parcours et theme. Ces usages restent hors du premier lot.
+
 ### Lieu
 
 Un lieu représente l'endroit associé à un évènement.

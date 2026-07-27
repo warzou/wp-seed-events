@@ -91,6 +91,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 - [Event Data API](docs/EVENT-DATA-API.md)
 - [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
+- [Promotions et annees du parcours](docs/PROMOTION-DOMAIN-API.md)
 - [Collections publiques](docs/PUBLIC-COLLECTIONS.md)
 - [Dynamic Data](docs/PUBLIC-EVENT-DYNAMIC-DATA.md)
 - [Compatibilite et deprecations](docs/PUBLIC-API-COMPATIBILITY.md)

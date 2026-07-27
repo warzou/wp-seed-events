@@ -39,6 +39,8 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 }
 
 require_once __DIR__ . '/includes/public/occurrences.php';
+require_once __DIR__ . '/includes/public/promotions.php';
+require_once __DIR__ . '/includes/admin/promotions.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
@@ -62,11 +64,14 @@ require_once __DIR__ . '/includes/integrations/divi/bootstrap.php';
 register_activation_hook( __FILE__, 'wp_seed_events_activate' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
+add_action( 'rest_api_init', 'wp_seed_events_register_promotion_rest_routes' );
 add_action( 'admin_init', 'wp_seed_events_register_permalink_settings' );
 add_action( 'admin_init', 'wp_seed_events_maybe_save_permalink_settings' );
 add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );
 add_action( 'admin_notices', 'wp_seed_events_render_title_required_notice' );
+add_action( 'admin_notices', 'wp_seed_events_promotion_admin_notice' );
 add_filter( 'wp_insert_post_data', 'wp_seed_events_prepare_event_title_and_slug', 10, 2 );
+add_filter( 'wp_insert_post_data', 'wp_seed_events_prepare_promotion_post_data', 10, 2 );
 add_filter( 'redirect_post_location', 'wp_seed_events_title_required_redirect', 10, 2 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_event_type_meta_box', 5 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_occurrences_meta_box' );
@@ -75,6 +80,7 @@ add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_contacts_meta_bo
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_add_description_meta_box', 20 );
 add_action( 'add_meta_boxes_wp_seed_event', 'wp_seed_events_remove_native_featured_image_meta_box', 100 );
 add_action( 'add_meta_boxes_wp_seed_place', 'wp_seed_events_add_place_address_meta_box' );
+add_action( 'add_meta_boxes_wp_seed_promotion', 'wp_seed_events_add_promotion_meta_box' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_occurrences' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_event_place' );
 add_action( 'save_post_wp_seed_event', 'wp_seed_events_save_contacts' );
@@ -91,11 +97,20 @@ add_action( 'admin_post_nopriv_wp_seed_events_download_event_ics', 'wp_seed_even
 add_action( 'wp_footer', 'wp_seed_events_render_public_share_script', 99 );
 add_action( 'enqueue_block_assets', 'wp_seed_events_enqueue_public_visuals_style' );
 add_action( 'save_post_wp_seed_place', 'wp_seed_events_save_place_address' );
+add_action( 'save_post_wp_seed_promotion', 'wp_seed_events_save_promotion' );
 add_action( 'admin_enqueue_scripts', 'wp_seed_events_enqueue_media_admin' );
 add_action( 'edit_form_after_title', 'wp_seed_events_render_media_before_description', 5 );
 add_filter( 'wp_editor_settings', 'wp_seed_events_disable_description_media_buttons', 10, 2 );
 add_filter( 'manage_wp_seed_event_posts_columns', 'wp_seed_events_event_admin_columns' );
 add_action( 'manage_wp_seed_event_posts_custom_column', 'wp_seed_events_render_event_admin_column', 10, 2 );
+add_filter( 'manage_wp_seed_promotion_posts_columns', 'wp_seed_events_promotion_admin_columns' );
+add_action( 'manage_wp_seed_promotion_posts_custom_column', 'wp_seed_events_render_promotion_admin_column', 10, 2 );
+add_filter( 'manage_edit-wp_seed_promotion_sortable_columns', 'wp_seed_events_promotion_sortable_columns' );
+add_action( 'pre_get_posts', 'wp_seed_events_apply_promotion_admin_order' );
+add_filter( 'post_row_actions', 'wp_seed_events_promotion_row_actions', 10, 2 );
+add_filter( 'pre_trash_post', 'wp_seed_events_prevent_referenced_promotion_deletion', 10, 2 );
+add_filter( 'pre_delete_post', 'wp_seed_events_prevent_referenced_promotion_deletion', 10, 2 );
+add_filter( 'redirect_post_location', 'wp_seed_events_promotion_delete_blocked_redirect' );
 add_action( 'admin_head-edit.php', 'wp_seed_events_event_admin_column_styles' );
 add_filter( 'the_title', 'wp_seed_events_prefix_pinned_event_admin_title', 10, 2 );
 add_filter( 'the_content', 'wp_seed_events_render_public_event_content' );
@@ -268,6 +283,7 @@ function wp_seed_events_register_event_post_type() {
 			'show_in_rest' => false,
 		)
 	);
+	wp_seed_events_register_promotion_post_type();
 	wp_seed_events_add_event_rewrite_rules();
 }
 
@@ -2331,6 +2347,7 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 	}
 
 	$display_occurrences     = wp_seed_events_sort_occurrences_for_display( $occurrences );
+	$promotions              = wp_seed_events_get_promotions( array( 'status' => 'all' ) );
 	$has_display_occurrences = false;
 
 	wp_nonce_field( 'wp_seed_events_save_occurrences', 'wp_seed_events_occurrences_nonce' );
@@ -2346,6 +2363,9 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 
 				$has_display_occurrences = true;
 				$is_cancelled            = ! empty( $occurrence['cancelled'] );
+				$promotion_id            = absint( $occurrence['promotion_id'] ?? 0 );
+				$promotion               = 0 < $promotion_id ? wp_seed_events_get_promotion( $promotion_id ) : array();
+				$parcours_year           = wp_seed_events_normalize_parcours_year( $occurrence['parcours_year'] ?? 0 );
 				?>
 				<div data-wp-seed-date-item data-wp-seed-date-sort="<?php echo esc_attr( wp_seed_events_occurrence_sort_value( $occurrence ) ); ?>" style="margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px solid #dcdcde;">
 					<input type="hidden" data-wp-seed-date-field="uid" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][uid]" value="<?php echo esc_attr( $occurrence['uid'] ?? '' ); ?>" />
@@ -2355,10 +2375,15 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 					<input type="hidden" data-wp-seed-date-field="end_time" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][end_time]" value="<?php echo esc_attr( $occurrence['end_time'] ?? '' ); ?>" />
 					<input type="hidden" data-wp-seed-date-field="all_day" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][all_day]" value="<?php echo ! empty( $occurrence['all_day'] ) ? '1' : ''; ?>" />
 					<input type="hidden" data-wp-seed-date-field="cancelled" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][cancelled]" value="<?php echo $is_cancelled ? '1' : ''; ?>" />
+					<input type="hidden" data-wp-seed-date-field="promotion_id" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][promotion_id]" value="<?php echo esc_attr( 0 < $promotion_id ? (string) $promotion_id : '' ); ?>" />
+					<input type="hidden" data-wp-seed-date-field="parcours_year" name="wp_seed_events_occurrences[<?php echo esc_attr( (string) $index ); ?>][parcours_year]" value="<?php echo esc_attr( 0 < $parcours_year ? (string) $parcours_year : '' ); ?>" />
 					<p style="margin: 0;">
 						<strong data-wp-seed-date-day><?php echo esc_html( wp_seed_events_format_occurrence_date_line( $occurrence ) ); ?></strong>
 						<span data-wp-seed-date-cancelled-label style="margin-left: 8px; color: #b32d2e; font-weight: 600;" <?php echo $is_cancelled ? '' : 'hidden'; ?>>ANNULÉE</span><br />
 						<span data-wp-seed-date-time><?php echo esc_html( wp_seed_events_format_occurrence_time_line( $occurrence ) ); ?></span><br />
+						<span data-wp-seed-date-parcours <?php echo array() === $promotion ? 'hidden' : ''; ?>>
+							<?php echo array() !== $promotion ? esc_html( $promotion['name'] . ' — ' . wp_seed_events_parcours_year_label( $parcours_year ) ) : ''; ?><br />
+						</span>
 						<span style="font-size: 12px;">
 							<button type="button" class="button-link" data-wp-seed-date-edit>Modifier</button>
 							<span aria-hidden="true"> · </span>
@@ -2406,6 +2431,39 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 					Journée entière
 				</label>
 			</p>
+			<fieldset style="margin: 16px 0; padding: 12px; border: 1px solid #dcdcde;">
+				<legend><strong>Parcours (facultatif)</strong></legend>
+				<p>
+					<label>
+						Promotion<br />
+						<select data-wp-seed-date-panel-field="promotion_id">
+							<option value="">Aucune promotion</option>
+							<?php foreach ( $promotions as $promotion ) : ?>
+								<option
+									value="<?php echo esc_attr( (string) $promotion['id'] ); ?>"
+									data-promotion-status="<?php echo esc_attr( $promotion['status'] ); ?>"
+									<?php disabled( 'archived', $promotion['status'] ); ?>
+								>
+									<?php echo esc_html( $promotion['name'] . ( 'archived' === $promotion['status'] ? ' (archivée)' : '' ) ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+				</p>
+				<p>
+					<label>
+						Année du parcours<br />
+						<select data-wp-seed-date-panel-field="parcours_year" disabled>
+							<option value="">Choisir une année</option>
+							<option value="1">1re année</option>
+							<option value="2">2e année</option>
+							<option value="3">3e année</option>
+							<option value="4">4e année</option>
+						</select>
+					</label>
+				</p>
+				<p class="description">La promotion et l’année sont toujours enregistrées ensemble. Aucune année n’est déduite automatiquement.</p>
+			</fieldset>
 			<p>
 				<button type="button" class="button button-primary" data-wp-seed-date-save>Enregistrer la date</button>
 				<button type="button" class="button" data-wp-seed-date-cancel>Annuler</button>
@@ -2437,12 +2495,35 @@ function wp_seed_events_save_occurrences( $post_id ) {
 		return;
 	}
 
+	$changed_is_present = isset( $_POST['wp_seed_event_occurrences_changed'] );
+	$changed            = $changed_is_present
+		? sanitize_text_field( wp_unslash( $_POST['wp_seed_event_occurrences_changed'] ) )
+		: '';
+
+	if ( ( $changed_is_present && '1' !== $changed ) || ( ! $changed_is_present && ! isset( $_POST['wp_seed_events_occurrences'] ) ) ) {
+		return;
+	}
+
+	$stored_occurrences = get_post_meta( $post_id, '_wp_seed_event_occurrences', true );
+	$stored_occurrences = is_array( $stored_occurrences ) ? $stored_occurrences : array();
+	$stored_by_uid      = array();
+
+	foreach ( $stored_occurrences as $stored_index => $stored_occurrence ) {
+		if ( ! is_array( $stored_occurrence ) ) {
+			continue;
+		}
+
+		$stored_uid = wp_seed_events_sanitize_occurrence_uid( $stored_occurrence['uid'] ?? '' );
+		$stored_by_uid[ '' !== $stored_uid ? $stored_uid : 'index:' . $stored_index ] = $stored_occurrence;
+	}
+
 	$raw_occurrences = isset( $_POST['wp_seed_events_occurrences'] ) && is_array( $_POST['wp_seed_events_occurrences'] ) ? wp_unslash( $_POST['wp_seed_events_occurrences'] ) : array();
 	$occurrences     = array();
 
-	foreach ( $raw_occurrences as $raw_occurrence ) {
+	foreach ( $raw_occurrences as $occurrence_index => $raw_occurrence ) {
 		if ( ! is_array( $raw_occurrence ) ) {
-			continue;
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			return;
 		}
 
 		$start_date = isset( $raw_occurrence['start_date'] ) ? sanitize_text_field( $raw_occurrence['start_date'] ) : '';
@@ -2451,13 +2532,17 @@ function wp_seed_events_save_occurrences( $post_id ) {
 		$end_time   = isset( $raw_occurrence['end_time'] ) ? sanitize_text_field( $raw_occurrence['end_time'] ) : '';
 		$cancelled  = ! empty( $raw_occurrence['cancelled'] ) ? '1' : '';
 		$uid        = isset( $raw_occurrence['uid'] ) ? wp_seed_events_sanitize_occurrence_uid( $raw_occurrence['uid'] ) : '';
+		$promotion_id = absint( $raw_occurrence['promotion_id'] ?? 0 );
+		$parcours_year = absint( $raw_occurrence['parcours_year'] ?? 0 );
 
 		if ( '' === $start_date ) {
-			continue;
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			return;
 		}
 
 		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $start_date ) ) {
-			continue;
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			return;
 		}
 
 		if ( '' !== $end_date && ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $end_date ) ) {
@@ -2476,6 +2561,20 @@ function wp_seed_events_save_occurrences( $post_id ) {
 			$uid = wp_seed_events_generate_occurrence_uid();
 		}
 
+		$existing_key        = isset( $stored_by_uid[ $uid ] ) ? $uid : 'index:' . $occurrence_index;
+		$existing_occurrence = $stored_by_uid[ $existing_key ] ?? array();
+		$allow_archived      = (
+			is_array( $existing_occurrence )
+			&& 0 < $promotion_id
+			&& $promotion_id === absint( $existing_occurrence['promotion_id'] ?? 0 )
+		);
+		$parcours_validation = wp_seed_events_validate_occurrence_parcours( $promotion_id, $parcours_year, $allow_archived );
+
+		if ( is_wp_error( $parcours_validation ) ) {
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			return;
+		}
+
 		$occurrences[] = array(
 			'uid'        => $uid,
 			'start_date' => $start_date,
@@ -2484,6 +2583,8 @@ function wp_seed_events_save_occurrences( $post_id ) {
 			'end_time'   => $end_time,
 			'all_day'    => ! empty( $raw_occurrence['all_day'] ) ? '1' : '',
 			'cancelled'  => $cancelled,
+			'promotion_id' => $promotion_id,
+			'parcours_year' => wp_seed_events_normalize_parcours_year( $parcours_year ),
 		);
 	}
 
@@ -5266,12 +5367,15 @@ jQuery(function($){
 			start_time:item.find('[data-wp-seed-date-field="start_time"]').val(),
 			end_time:item.find('[data-wp-seed-date-field="end_time"]').val(),
 			all_day:item.find('[data-wp-seed-date-field="all_day"]').val(),
-			cancelled:item.find('[data-wp-seed-date-field="cancelled"]').val()
+			cancelled:item.find('[data-wp-seed-date-field="cancelled"]').val(),
+			promotion_id:item.find('[data-wp-seed-date-field="promotion_id"]').val(),
+			parcours_year:item.find('[data-wp-seed-date-field="parcours_year"]').val(),
+			promotion_label:String(item.find('[data-wp-seed-date-parcours]').text()||'').split(' — ')[0].trim()
 		};
 	}
 
 	function wpSeedDateItemsEqual(first,second){
-		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled'];
+		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled','promotion_id','parcours_year'];
 
 		return fields.every(function(field){
 			return String(first[field]||'')===String(second[field]||'');
@@ -5286,16 +5390,24 @@ jQuery(function($){
 		item.find('[data-wp-seed-date-field="end_time"]').val(data.end_time);
 		item.find('[data-wp-seed-date-field="all_day"]').val(data.all_day);
 		item.find('[data-wp-seed-date-field="cancelled"]').val(data.cancelled);
+		item.find('[data-wp-seed-date-field="promotion_id"]').val(data.promotion_id||'');
+		item.find('[data-wp-seed-date-field="parcours_year"]').val(data.parcours_year||'');
 		item.attr('data-wp-seed-date-sort',wpSeedDateSortValue(data));
 		item.find('[data-wp-seed-date-day]').text(wpSeedDateDayLine(data));
 		item.find('[data-wp-seed-date-time]').text(wpSeedDateTimeLine(data));
 		item.find('[data-wp-seed-date-cancelled-label]').prop('hidden','1'!==data.cancelled);
 		item.find('[data-wp-seed-date-toggle]').text('1'===data.cancelled?'Réactiver':'Marquer comme annulée');
+		var parcours=item.find('[data-wp-seed-date-parcours]');
+		var yearLabel='1'===String(data.parcours_year)?'1re année':String(data.parcours_year||'')+'e année';
+		parcours.attr('data-promotion-label',data.promotion_label||'');
+		parcours.text(data.promotion_id&&data.parcours_year?(data.promotion_label+' — '+yearLabel):'');
+		parcours.append('<br />');
+		parcours.prop('hidden',!(data.promotion_id&&data.parcours_year));
 	}
 
 	function wpSeedDateCreateItem(index,data){
 		var item=$('<div data-wp-seed-date-item></div>').css({margin:'0 0 12px',padding:'0 0 12px',borderBottom:'1px solid #dcdcde'});
-		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled'];
+		var fields=['uid','start_date','end_date','start_time','end_time','all_day','cancelled','promotion_id','parcours_year'];
 		$.each(fields,function(_,field){
 			item.append($('<input type="hidden" />').attr('name','wp_seed_events_occurrences['+index+']['+field+']').attr('data-wp-seed-date-field',field));
 		});
@@ -5305,6 +5417,8 @@ jQuery(function($){
 				.append($('<span data-wp-seed-date-cancelled-label>ANNULÉE</span>').css({marginLeft:'8px',color:'#b32d2e',fontWeight:'600'}))
 				.append('<br />')
 				.append($('<span data-wp-seed-date-time></span>'))
+				.append('<br />')
+				.append($('<span data-wp-seed-date-parcours hidden></span>'))
 				.append('<br />')
 				.append(
 					$('<span></span>').css('fontSize','12px')
@@ -5321,7 +5435,7 @@ jQuery(function($){
 
 	function wpSeedDateOpenPanel(root,item){
 		var panel=wpSeedDatePanel(root);
-		var data=item?wpSeedDateReadItem(item):{start_date:'',end_date:'',start_time:'',end_time:'',all_day:'',cancelled:''};
+		var data=item?wpSeedDateReadItem(item):{start_date:'',end_date:'',start_time:'',end_time:'',all_day:'',cancelled:'',promotion_id:'',parcours_year:''};
 		panel.data('wpSeedDateItem',item||null);
 		panel.find('[data-wp-seed-date-panel-title]').text(item?'Modifier la date':'Ajouter une date');
 		wpSeedDateField(panel,'start_date').val(data.start_date);
@@ -5329,6 +5443,9 @@ jQuery(function($){
 		wpSeedDateField(panel,'start_time').val(data.start_time);
 		wpSeedDateField(panel,'end_time').val(data.end_time);
 		wpSeedDateField(panel,'all_day').prop('checked','1'===data.all_day);
+		wpSeedDateField(panel,'promotion_id').val(data.promotion_id||'');
+		wpSeedDateField(panel,'parcours_year').val(data.parcours_year||'');
+		wpSeedDateUpdateParcoursState(panel);
 		panel.prop('hidden',false);
 		wpSeedDateField(panel,'start_date').trigger('focus');
 	}
@@ -5348,8 +5465,13 @@ jQuery(function($){
 		e.preventDefault();
 		var root=wpSeedDateRoot(this);
 		var panel=wpSeedDatePanel(root);
-		var data={uid:'',start_date:wpSeedDateField(panel,'start_date').val(),end_date:wpSeedDateField(panel,'end_date').val(),start_time:wpSeedDateField(panel,'start_time').val(),end_time:wpSeedDateField(panel,'end_time').val(),all_day:wpSeedDateField(panel,'all_day').prop('checked')?'1':'',cancelled:''};
+		var promotionField=wpSeedDateField(panel,'promotion_id');
+		var data={uid:'',start_date:wpSeedDateField(panel,'start_date').val(),end_date:wpSeedDateField(panel,'end_date').val(),start_time:wpSeedDateField(panel,'start_time').val(),end_time:wpSeedDateField(panel,'end_time').val(),all_day:wpSeedDateField(panel,'all_day').prop('checked')?'1':'',cancelled:'',promotion_id:promotionField.val()||'',parcours_year:wpSeedDateField(panel,'parcours_year').val()||'',promotion_label:promotionField.find('option:selected').text().replace(/\s+\(archivée\)$/,'')};
 		var item=panel.data('wpSeedDateItem');
+		if((data.promotion_id&&!data.parcours_year)||(!data.promotion_id&&data.parcours_year)){
+			(data.promotion_id?wpSeedDateField(panel,'parcours_year'):promotionField).trigger('focus');
+			return;
+		}
 		if(!data.start_date){
 			wpSeedDateField(panel,'start_date').trigger('focus');
 			return;
@@ -5396,6 +5518,20 @@ jQuery(function($){
 		data.cancelled='1'===data.cancelled?'':'1';
 		wpSeedDateWriteItem(item,data);
 		wpSeedDateMarkChanged(wpSeedDateRoot(this));
+	});
+
+	function wpSeedDateUpdateParcoursState(panel){
+		var promotionField=wpSeedDateField(panel,'promotion_id');
+		var yearField=wpSeedDateField(panel,'parcours_year');
+		var hasPromotion=Boolean(promotionField.val());
+		if(!hasPromotion){
+			yearField.val('');
+		}
+		yearField.prop('disabled',!hasPromotion);
+	}
+
+	$(document).on('change','[data-wp-seed-date-panel-field="promotion_id"]',function(){
+		wpSeedDateUpdateParcoursState(wpSeedDatePanel(wpSeedDateRoot(this)));
 	});
 });
 JS

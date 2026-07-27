@@ -26,6 +26,10 @@ Cette fonction lit et normalise les occurrences d'un evenement. Elle retourne to
 | `uid` | `string` | UUID valide stocke, ou chaine vide. |
 | `derived_id` | `string` | Identifiant deterministe `occ-...` derive de l'evenement, de la position et des valeurs temporelles. |
 | `event_id` | `int` | ID de l'evenement. |
+| `promotion_id` | `int` | ID de la promotion valide, ou `0`. |
+| `promotion` | `array` | Objet Promotion public normalise, ou `array()`. |
+| `parcours_year` | `int` | Annee du parcours de 1 a 4, ou `0`. |
+| `parcours_year_label` | `string` | Libelle public de l'annee, ou chaine vide. |
 | `start_date` | `string` | Date `YYYY-MM-DD`, toujours presente. |
 | `end_date` | `string` | Date de fin valide ou chaine vide. |
 | `start_time` | `string` | Heure `HH:MM` valide ou chaine vide. |
@@ -64,3 +68,4 @@ Le schema ci-dessus est public. La meta source, les projections SQL des collecti
 Les identifiants derives restent deterministes pour une position et des valeurs identiques, mais un consommateur qui exige une identite durable doit privilegier un `uid` non vide.
 
 Voir aussi [Event Data API](EVENT-DATA-API.md) et [Collections publiques](PUBLIC-COLLECTIONS.md).
+Voir aussi [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
