@@ -44,3 +44,7 @@ build/
 !includes/integrations/gutenberg/event-collection-query/build/
 !includes/integrations/gutenberg/event-collection-query/build/index.js
 !includes/integrations/gutenberg/event-collection-query/build/index.asset.php
+!includes/integrations/gutenberg/occurrence-collection-block/build/
+!includes/integrations/gutenberg/occurrence-collection-block/build/block.json
+!includes/integrations/gutenberg/occurrence-collection-block/build/index.js
+!includes/integrations/gutenberg/occurrence-collection-block/build/index.asset.php

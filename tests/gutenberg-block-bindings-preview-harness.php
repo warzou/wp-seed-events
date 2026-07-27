@@ -8,7 +8,7 @@
 define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['preview_actions']       = array();
-$GLOBALS['preview_source']        = array();
+$GLOBALS['preview_sources']       = array();
 $GLOBALS['preview_rest_field']    = array();
 $GLOBALS['preview_can_edit']      = true;
 $GLOBALS['preview_values']        = array();
@@ -20,7 +20,7 @@ function add_action( $hook, $callback ) {
 }
 
 function register_block_bindings_source( $name, $properties ) {
-	$GLOBALS['preview_source'] = array( $name, $properties );
+	$GLOBALS['preview_sources'][] = array( $name, $properties );
 }
 
 function register_rest_field( $post_type, $field_name, $properties ) {
@@ -42,6 +42,14 @@ function current_user_can( $capability, $event_id ) {
 function wp_seed_events_dynamic_data_get_value( $field, $event_id ) {
 	$GLOBALS['preview_value_calls']++;
 	return $GLOBALS['preview_values'][ $event_id ][ $field ] ?? '';
+}
+
+function wp_seed_events_occurrence_dynamic_data_fields() {
+	return array( 'occurrence_uid' => 'Occurrence UID' );
+}
+
+function wp_seed_events_occurrence_context_value() {
+	return '';
 }
 
 function preview_assert( $condition, $message ) {
@@ -75,10 +83,20 @@ preview_assert(
 );
 
 wp_seed_events_register_gutenberg_block_bindings_source();
-preview_assert( 'wp-seed-events/event-field' === $GLOBALS['preview_source'][0], 'Binding source name differs.' );
+preview_assert( 2 === count( $GLOBALS['preview_sources'] ), 'Exactly two distinct binding sources are registered.' );
+preview_assert( 'wp-seed-events/event-field' === $GLOBALS['preview_sources'][0][0], 'Historical binding source name differs.' );
 preview_assert(
-	array( 'postId', 'postType', 'queryId' ) === $GLOBALS['preview_source'][1]['uses_context'],
-	'Binding source contexts differ.'
+	array( 'postId', 'postType', 'queryId' ) === $GLOBALS['preview_sources'][0][1]['uses_context'],
+	'Historical binding source contexts differ.'
+);
+preview_assert( 'wp-seed-events/occurrence-field' === $GLOBALS['preview_sources'][1][0], 'Occurrence binding source name differs.' );
+preview_assert(
+	array( 'wpSeedEvents/occurrence' ) === $GLOBALS['preview_sources'][1][1]['uses_context'],
+	'Occurrence binding source context differs.'
+);
+preview_assert(
+	'' === wp_seed_events_gutenberg_occurrence_block_binding_value( array( 'field' => 'occurrence_uid' ), new stdClass(), 'content' ),
+	'Occurrence binding must stay empty without WP_Block being loaded.'
 );
 
 wp_seed_events_register_gutenberg_block_bindings_rest_field();

@@ -151,11 +151,22 @@ ne contiennent ni shortcode, ni ID fixe, ni lecture de meta, ni HTML métier.
 
 ## Gutenberg et Spectra
 
-Gutenberg enregistre une seule source Block Bindings :
+Gutenberg conserve la source Block Bindings événement historique :
 
 ```text
 wp-seed-events/event-field
 ```
+
+Il ajoute une source strictement contextuelle pour les collections
+d’occurrences :
+
+```text
+wp-seed-events/occurrence-field
+```
+
+La seconde reste vide hors du contexte explicite fourni par le bloc Collection
+d’occurrences. Elle n’infère jamais une occurrence depuis le seul post
+événement.
 
 L'argument `field` sélectionne l'une des 17 clés du registre. Les usages validés
 sont :

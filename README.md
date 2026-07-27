@@ -93,6 +93,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - [Event Data API](docs/EVENT-DATA-API.md)
 - [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
 - [Occurrence Collections](docs/OCCURRENCE-COLLECTIONS.md)
+- [Gutenberg Occurrence Collections](docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md)
 - [Domain Model](DOMAIN-MODEL.md)
 - [Occurrence Projection and Lifecycle V3](docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md)
 - [Promotions et annees du parcours](docs/PROMOTION-DOMAIN-API.md)

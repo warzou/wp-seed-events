@@ -23,6 +23,15 @@ function wp_seed_events_register_gutenberg_block_bindings_source() {
 			'uses_context'       => array( 'postId', 'postType', 'queryId' ),
 		)
 	);
+
+	register_block_bindings_source(
+		'wp-seed-events/occurrence-field',
+		array(
+			'label'              => 'WP Seed Events — Occurrence',
+			'get_value_callback' => 'wp_seed_events_gutenberg_occurrence_block_binding_value',
+			'uses_context'       => array( 'wpSeedEvents/occurrence' ),
+		)
+	);
 }
 
 function wp_seed_events_gutenberg_block_binding_preview_fields() {
@@ -111,6 +120,37 @@ function wp_seed_events_gutenberg_block_binding_value( $source_args, $block_inst
 
 function wp_seed_events_gutenberg_block_binding_fields() {
 	return array_keys( wp_seed_events_dynamic_data_fields() );
+}
+
+/**
+ * Resolve a public occurrence field from an explicit block or request context.
+ *
+ * @param array    $source_args    Binding source arguments.
+ * @param WP_Block $block_instance Current block.
+ * @param string   $attribute_name Bound attribute.
+ * @return string
+ */
+function wp_seed_events_gutenberg_occurrence_block_binding_value( $source_args, $block_instance, $attribute_name ) {
+	unset( $attribute_name );
+
+	$field = isset( $source_args['field'] ) ? sanitize_key( (string) $source_args['field'] ) : '';
+
+	if ( ! array_key_exists( $field, wp_seed_events_occurrence_dynamic_data_fields() ) ) {
+		return '';
+	}
+
+	$context = array();
+
+	if (
+		class_exists( 'WP_Block' )
+		&& $block_instance instanceof WP_Block
+		&& isset( $block_instance->context['wpSeedEvents/occurrence'] )
+		&& is_array( $block_instance->context['wpSeedEvents/occurrence'] )
+	) {
+		$context = $block_instance->context['wpSeedEvents/occurrence'];
+	}
+
+	return wp_seed_events_occurrence_context_value( $field, array() !== $context ? $context : null );
 }
 
 function wp_seed_events_gutenberg_block_binding_event_id( $source_args, $block_instance ) {

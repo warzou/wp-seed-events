@@ -53,6 +53,7 @@ require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/sharing.php';
 require_once __DIR__ . '/includes/public/collections.php';
 require_once __DIR__ . '/includes/public/occurrence-collections.php';
+require_once __DIR__ . '/includes/public/occurrence-context.php';
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
@@ -61,6 +62,7 @@ require_once __DIR__ . '/includes/integrations/gutenberg/event-visuals-block.php
 require_once __DIR__ . '/includes/integrations/gutenberg/event-people-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-query.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-patterns.php';
+require_once __DIR__ . '/includes/integrations/gutenberg/occurrence-collection-block.php';
 require_once __DIR__ . '/includes/integrations/divi/bootstrap.php';
 
 register_activation_hook( __FILE__, 'wp_seed_events_activate' );

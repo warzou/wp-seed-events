@@ -411,3 +411,14 @@ des informations temporelles.
 Le domaine V1 doit rester volontairement simple. Il couvre le coeur évènementiel
 utile à la communication, sans prendre en charge la billetterie, les inscriptions,
 le paiement, les campagnes ou les outils relationnels.
+## Contexte builder d'une occurrence
+
+Les builders ne donnent pas une identité de post aux occurrences. Le bloc
+Gutenberg dédié consomme les collections publiques puis fournit temporairement
+un contexte composite `collection_instance_id + event_id + occurrence_uid +
+current_item_index` à son modèle enfant. La Query Loop native reste réservée aux
+événements. Aucun post technique d’occurrence n’est créé.
+
+Le mode groupé conserve la hiérarchie Promotion → année du parcours →
+événement/thème → occurrence. Le modèle éditable porte sur l’occurrence ; les
+niveaux de groupe sont une structure serveur minimale issue du contrat groupé.

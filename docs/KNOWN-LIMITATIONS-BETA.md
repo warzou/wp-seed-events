@@ -24,6 +24,10 @@ avant 1.0 ou reportés après la version stable.
   et groupees sont disponibles. La collection groupee V1 utilise une limite
   globale bornee plutot qu'une pagination imbriquee. Les adaptateurs builders
   finaux restent des jalons distincts.
+- Le bloc Gutenberg Collection d’occurrences répète complètement le modèle sur
+  le frontend. Dans l’éditeur, un seul modèle InnerBlocks reste éditable et
+  l’aperçu de données est borné à six occurrences, car Gutenberg ne matérialise
+  pas des copies indépendantes d’un même modèle enfant.
 
 ## À traiter avant 1.0
 

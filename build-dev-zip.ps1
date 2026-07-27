@@ -31,6 +31,10 @@ $gutenbergPeopleBlockAsset = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/
 $gutenbergCollectionRuntimeRoot = 'includes/integrations/gutenberg/event-collection-query'
 $gutenbergCollectionScript = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.js"
 $gutenbergCollectionAsset = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.asset.php"
+$gutenbergOccurrenceRuntimeRoot = 'includes/integrations/gutenberg/occurrence-collection-block'
+$gutenbergOccurrenceBlockJson = Join-Path $root "$gutenbergOccurrenceRuntimeRoot/build/block.json"
+$gutenbergOccurrenceScript = Join-Path $root "$gutenbergOccurrenceRuntimeRoot/build/index.js"
+$gutenbergOccurrenceAsset = Join-Path $root "$gutenbergOccurrenceRuntimeRoot/build/index.asset.php"
 $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/node_modules/*",
     "$moduleRuntimeRoot/package.json",
@@ -49,7 +53,10 @@ $excludedRuntimePatterns = @(
     "$gutenbergPeopleRuntimeRoot/src/*",
     "$gutenbergCollectionRuntimeRoot/node_modules/*",
     "$gutenbergCollectionRuntimeRoot/tests/*",
-    "$gutenbergCollectionRuntimeRoot/src/*"
+    "$gutenbergCollectionRuntimeRoot/src/*",
+    "$gutenbergOccurrenceRuntimeRoot/node_modules/*",
+    "$gutenbergOccurrenceRuntimeRoot/tests/*",
+    "$gutenbergOccurrenceRuntimeRoot/src/*"
 )
 
 $visualsModuleRuntimeRoot = 'includes/integrations/divi/event-visuals-module/visual-builder'
@@ -125,6 +132,12 @@ foreach ($gutenbergPeopleAsset in @($gutenbergPeopleBlockJson, $gutenbergPeopleB
 foreach ($gutenbergCollectionBuildAsset in @($gutenbergCollectionScript, $gutenbergCollectionAsset)) {
     if (-not (Test-Path -LiteralPath $gutenbergCollectionBuildAsset -PathType Leaf)) {
         throw "Missing Gutenberg event collection asset. Run npm run build:gutenberg first: $gutenbergCollectionBuildAsset"
+    }
+}
+
+foreach ($gutenbergOccurrenceBuildAsset in @($gutenbergOccurrenceBlockJson, $gutenbergOccurrenceScript, $gutenbergOccurrenceAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergOccurrenceBuildAsset -PathType Leaf)) {
+        throw "Missing Gutenberg occurrence collection asset. Run npm run build:gutenberg first: $gutenbergOccurrenceBuildAsset"
     }
 }
 $pluginVersion = $versionMatch.Groups['version'].Value.Trim()

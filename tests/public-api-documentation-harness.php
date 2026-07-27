@@ -33,6 +33,7 @@ $domain_model  = public_docs_read( $root . '/DOMAIN-MODEL.md' );
 $projection    = public_docs_read( $root . '/docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md' );
 $compatibility = public_docs_read( $root . '/docs/PUBLIC-API-COMPATIBILITY.md' );
 $updates       = public_docs_read( $root . '/docs/GITHUB-UPDATES.md' );
+$gutenberg_occurrence_collections = public_docs_read( $root . '/docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md' );
 $readme        = public_docs_read( $root . '/README.md' );
 
 public_docs_case( 'Event Data signature and empty result are definitive', function () use ( $event_data ) {
@@ -77,6 +78,12 @@ public_docs_case( 'Occurrence collections contract, REST and grouping are docume
 	public_docs_assert( false !== strpos( $domain_model, 'Promotion' ) && false !== strpos( $domain_model, 'theme/evenement' ), 'Domain path is absent.' );
 	public_docs_assert( false !== strpos( $compatibility, 'wp_seed_events_query_grouped_occurrence_collection()' ), 'Compatibility list omits grouped collections.' );
 } );
+public_docs_case( 'Gutenberg occurrence collection context and editor boundary are documented', function () use ( $gutenberg_occurrence_collections ) {
+	foreach ( array( 'wp-seed-events/occurrence-collection', 'wp-seed-events/occurrence-field', 'collection_instance_id', 'event_id', 'occurrence_uid', 'current_item_index', 'InnerBlocks', 'six occurrences', 'frontend', 'wp_seed_events_query_occurrence_collection()', 'wp_seed_events_query_grouped_occurrence_collection()' ) as $contract ) {
+		public_docs_assert( false !== strpos( $gutenberg_occurrence_collections, $contract ), 'Missing Gutenberg occurrence collection contract: ' . $contract );
+	}
+} );
+
 public_docs_case( 'Historical aliases and filtered contacts are explicit', function () use ( $compatibility ) {
 	foreach ( array( 'wp_seed_events_public_event_data()', 'wp_seed_events_get_event_collection()', '`role`', '`details`', '`show_time`', '`wp_seed_events_next_date`', '`illustration_ids`', '`email`, `phone`, `link`' ) as $alias ) {
 		public_docs_assert( false !== strpos( $compatibility, $alias ), 'Missing compatibility alias: ' . $alias );
@@ -97,13 +104,13 @@ public_docs_case( 'Updater contract requires exact package and checksum assets',
 } );
 
 public_docs_case( 'README developer links are clickable and complete', function () use ( $readme ) {
-	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
+	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
 		public_docs_assert( false !== strpos( $readme, '](' . $target . ')' ), 'README link is absent: ' . $target );
 	}
 } );
 
 public_docs_case( 'Documentation files are UTF-8 without BOM', function () use ( $root ) {
-	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
+	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
 		$contents = public_docs_read( $root . '/' . $relative );
 		public_docs_assert( 0 !== strncmp( $contents, "\xEF\xBB\xBF", 3 ), 'BOM found: ' . $relative );
 		public_docs_assert( 1 === preg_match( '//u', $contents ), 'Invalid UTF-8: ' . $relative );
