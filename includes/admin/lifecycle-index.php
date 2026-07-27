@@ -77,6 +77,28 @@ function wp_seed_events_replace_lifecycle_index_values( $event_id, $meta_key, $v
 	}
 }
 
+function wp_seed_events_record_occurrence_projection_failure( $event_id ) {
+	$event_id = absint( $event_id );
+
+	if ( function_exists( 'wp_seed_events_lifecycle_index_version_option_name' ) ) {
+		delete_option( wp_seed_events_lifecycle_index_version_option_name() );
+	}
+
+	if ( 0 === $event_id || ! function_exists( 'wp_seed_events_get_lifecycle_index_progress' ) ) {
+		return;
+	}
+
+	$progress                  = wp_seed_events_get_lifecycle_index_progress();
+	$error_ids                 = array_values( array_unique( array_merge( array( $event_id ), $progress['error_ids'] ) ) );
+	$progress['status']        = 'failed';
+	$progress['error_ids']     = array_slice( $error_ids, 0, wp_seed_events_lifecycle_index_batch_size() );
+	$progress['errors']        = count( $progress['error_ids'] );
+	$progress['last_error_id'] = $event_id;
+	$progress['updated_at']    = time();
+
+	update_option( wp_seed_events_lifecycle_index_progress_option_name(), $progress, false );
+}
+
 function wp_seed_events_update_lifecycle_index( $event_id ) {
 	$event_id = absint( $event_id );
 	$index    = wp_seed_events_calculate_lifecycle_index( $event_id );
@@ -109,6 +131,13 @@ function wp_seed_events_update_lifecycle_index( $event_id ) {
 		$index['type_keys'] ?? array()
 	);
 
+	$projection = wp_seed_events_sync_occurrence_projection( $event_id );
+
+	if ( is_wp_error( $projection ) ) {
+		wp_seed_events_record_occurrence_projection_failure( $event_id );
+		return false;
+	}
+
 	return $index;
 }
 function wp_seed_events_maybe_refresh_collection_index( $post_id, $post, $update ) {
@@ -124,18 +153,28 @@ function wp_seed_events_maybe_refresh_collection_index( $post_id, $post, $update
 		|| wp_is_post_revision( $post_id )
 		|| ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 		|| '1' === $occurrences_changed
-		|| ! wp_seed_events_is_lifecycle_index_ready()
 	) {
 		return;
 	}
 
-	wp_seed_events_update_lifecycle_index( $post_id );
+	if ( wp_seed_events_is_lifecycle_index_ready() ) {
+		wp_seed_events_update_lifecycle_index( $post_id );
+		return;
+	}
+
+	$projection = wp_seed_events_sync_occurrence_projection( $post_id );
+
+	if ( is_wp_error( $projection ) ) {
+		wp_seed_events_record_occurrence_projection_failure( $post_id );
+	}
 }
 
 function wp_seed_events_delete_lifecycle_index( $post_id, $post ) {
 	if ( ! $post instanceof WP_Post || 'wp_seed_event' !== $post->post_type ) {
 		return;
 	}
+
+	wp_seed_events_delete_occurrence_projection( $post_id );
 
 	foreach (
 		array(
@@ -189,6 +228,10 @@ function wp_seed_events_maybe_update_lifecycle_index( $post_id ) {
 	$post_id = absint( $post_id );
 
 	if ( 0 === $post_id ) {
+		return;
+	}
+
+	if ( ! empty( $GLOBALS['wp_seed_events_occurrences_validation_error'] ) ) {
 		return;
 	}
 

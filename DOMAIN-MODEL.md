@@ -68,8 +68,9 @@ de `1` a `4`. Les deux valeurs sont facultatives mais indissociables :
 Le theme du seminaire reste l'evenement lui-meme, identifie par son ID, son
 titre et son slug. Il n'existe pas de taxonomie Theme parallele.
 
-Ce socle prepare le lifecycle v3 et les collections groupees par promotion,
-annee du parcours et theme. Ces usages restent hors du premier lot.
+Le lifecycle v3 projette chaque occurrence de facon reconstruisible pour
+preparer les futures lectures indexees par promotion et annee du parcours.
+Les collections groupees restent hors de ce lot.
 
 ### Lieu
 

@@ -28,6 +28,7 @@ function public_docs_read( $path ) {
 $event_data    = public_docs_read( $root . '/docs/EVENT-DATA-API.md' );
 $promotions    = public_docs_read( $root . '/docs/PROMOTION-DOMAIN-API.md' );
 $occurrences   = public_docs_read( $root . '/docs/EVENT-OCCURRENCES-API.md' );
+$projection    = public_docs_read( $root . '/docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md' );
 $compatibility = public_docs_read( $root . '/docs/PUBLIC-API-COMPATIBILITY.md' );
 $updates       = public_docs_read( $root . '/docs/GITHUB-UPDATES.md' );
 $readme        = public_docs_read( $root . '/README.md' );
@@ -49,6 +50,14 @@ public_docs_case( 'Occurrences arguments and normalized projections are document
 		public_docs_assert( false !== strpos( $occurrences, '`' . $key . '`' ), 'Missing occurrence contract: ' . $key );
 	}
 } );
+public_docs_case( 'Lifecycle v3 projection remains internal and rebuildable', function () use ( $projection, $occurrences ) {
+	foreach ( array( '{$wpdb->prefix}wp_seed_event_occurrences', '_wp_seed_event_occurrences', '(event_id, occurrence_uid)', 'expiring atomic lock', 'idempotent retry', 'not a public API' ) as $contract ) {
+		public_docs_assert( false !== strpos( $projection, $contract ), 'Missing lifecycle v3 contract: ' . $contract );
+	}
+	public_docs_assert( false !== strpos( $occurrences, 'projection lifecycle v3' ), 'Occurrences API does not state the lifecycle v3 boundary.' );
+	public_docs_assert( false !== strpos( $projection, 'Grouped public collections' ), 'Out-of-scope grouped collections are not explicit.' );
+} );
+
 
 public_docs_case( 'Promotion domain, PHP and REST contracts are documented', function () use ( $promotions ) {
 	foreach ( array( 'wp_seed_promotion', 'wp_seed_events_get_promotion(', 'wp_seed_events_get_promotions(', 'promotion_id', 'parcours_year', '/wp-json/wp-seed-events/v1/promotions', '/events/<event_id>/occurrences', 'lifecycle v3' ) as $contract ) {
@@ -78,13 +87,13 @@ public_docs_case( 'Updater contract requires exact package and checksum assets',
 } );
 
 public_docs_case( 'README developer links are clickable and complete', function () use ( $readme ) {
-	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
+	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
 		public_docs_assert( false !== strpos( $readme, '](' . $target . ')' ), 'README link is absent: ' . $target );
 	}
 } );
 
 public_docs_case( 'Documentation files are UTF-8 without BOM', function () use ( $root ) {
-	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
+	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
 		$contents = public_docs_read( $root . '/' . $relative );
 		public_docs_assert( 0 !== strncmp( $contents, "\xEF\xBB\xBF", 3 ), 'BOM found: ' . $relative );
 		public_docs_assert( 1 === preg_match( '//u', $contents ), 'Invalid UTF-8: ' . $relative );

@@ -63,7 +63,9 @@ Le resultat est trie par `start_sort` croissant. Les occurrences annulees garden
 
 ## Garanties et elements internes
 
-Le schema ci-dessus est public. La meta source, les projections SQL des collections, les options de version d'index, les curseurs et les verrous de reconstruction sont internes. Les consommateurs ne doivent ni lire la meta d'occurrences directement ni reconstruire le lifecycle.
+Le schema ci-dessus est public. La meta source, la table de projection lifecycle v3, les projections SQL des collections, les options de version d'index, les curseurs et les verrous de reconstruction sont internes. Les consommateurs ne doivent ni lire la meta ou la table d'occurrences directement ni reconstruire le lifecycle.
+
+La table `{$wpdb->prefix}wp_seed_event_occurrences` est une projection reconstruisible, jamais une seconde source de verite. Tant que lifecycle v3 n'est pas pret, les lectures internes reviennent a cette API canonique. Voir [Occurrence Projection and Lifecycle V3](OCCURRENCE-PROJECTION-LIFECYCLE-V3.md).
 
 Les identifiants derives restent deterministes pour une position et des valeurs identiques, mais un consommateur qui exige une identite durable doit privilegier un `uid` non vide.
 

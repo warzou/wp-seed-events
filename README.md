@@ -82,7 +82,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 - les patterns Gutenberg sont non synchronises par defaut ;
 - certains apercus Divi restent neutres hors contexte evenement ;
-- l'index lifecycle v2 doit etre reconstruit avant d'activer la selection optimisee des gros catalogues ;
+- l'index lifecycle v3 doit etre reconstruit avant d'activer ses projections SQL optimisees ;
 - Spectra n'est ni requis ni recete sur le site de reference ;
 - la boite native Image mise en avant est masquee pour les evenements ; le premier visuel reste synchronise techniquement ;
 - placement du partage dependant du theme en page modele complete.
@@ -91,6 +91,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 - [Event Data API](docs/EVENT-DATA-API.md)
 - [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
+- [Occurrence Projection and Lifecycle V3](docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md)
 - [Promotions et annees du parcours](docs/PROMOTION-DOMAIN-API.md)
 - [Collections publiques](docs/PUBLIC-COLLECTIONS.md)
 - [Dynamic Data](docs/PUBLIC-EVENT-DYNAMIC-DATA.md)

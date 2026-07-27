@@ -18,7 +18,7 @@ if ( ! defined( 'WP_SEED_EVENTS_LIFECYCLE_INDEX_LOCK_TTL' ) ) {
 add_action( 'admin_post_wp_seed_events_run_lifecycle_index_backfill', 'wp_seed_events_handle_lifecycle_index_backfill' );
 
 function wp_seed_events_lifecycle_index_expected_version() {
-	return 2;
+	return 3;
 }
 
 function wp_seed_events_lifecycle_index_version_option_name() {
@@ -88,7 +88,8 @@ function wp_seed_events_is_lifecycle_index_ready() {
 	$stored_version   = absint( get_option( wp_seed_events_lifecycle_index_version_option_name(), 0 ) );
 	$progress         = wp_seed_events_get_lifecycle_index_progress();
 
-	return $expected_version === $stored_version
+	return wp_seed_events_occurrence_projection_table_exists()
+		&& $expected_version === $stored_version
 		&& $expected_version === $progress['version']
 		&& 'complete' === $progress['status']
 		&& 0 === $progress['errors'];
@@ -172,6 +173,10 @@ function wp_seed_events_reset_lifecycle_index_backfill() {
 	$progress['total']      = wp_seed_events_lifecycle_index_estimated_total();
 	$progress['updated_at'] = time();
 
+	if ( ! wp_seed_events_clear_occurrence_projection() ) {
+		return new WP_Error( 'occurrence_projection_reset_failed', 'Occurrence projection could not be reset.' );
+	}
+
 	delete_option( wp_seed_events_lifecycle_index_version_option_name() );
 	update_option( wp_seed_events_lifecycle_index_progress_option_name(), $progress, false );
 
@@ -189,6 +194,16 @@ function wp_seed_events_lifecycle_index_process_event( $event_id ) {
 }
 
 function wp_seed_events_run_lifecycle_index_backfill_batch( $restart = false ) {
+	$table_was_missing = ! wp_seed_events_occurrence_projection_table_exists();
+
+	if ( ! wp_seed_events_install_occurrence_projection_table() ) {
+		return new WP_Error( 'occurrence_projection_storage_unavailable', 'Occurrence projection storage is unavailable.' );
+	}
+
+	if ( $table_was_missing ) {
+		$restart = true;
+	}
+
 	$token = wp_seed_events_acquire_lifecycle_index_lock();
 
 	if ( is_wp_error( $token ) ) {
@@ -198,12 +213,20 @@ function wp_seed_events_run_lifecycle_index_backfill_batch( $restart = false ) {
 	try {
 		$progress = $restart ? wp_seed_events_reset_lifecycle_index_backfill() : wp_seed_events_get_lifecycle_index_progress();
 
+		if ( is_wp_error( $progress ) ) {
+			throw new RuntimeException( 'Lifecycle index reset failed.' );
+		}
+
 		if ( ! $restart && wp_seed_events_is_lifecycle_index_ready() ) {
 			return $progress;
 		}
 
 		if ( wp_seed_events_lifecycle_index_expected_version() !== $progress['version'] ) {
 			$progress = wp_seed_events_reset_lifecycle_index_backfill();
+
+			if ( is_wp_error( $progress ) ) {
+				throw new RuntimeException( 'Lifecycle index migration reset failed.' );
+			}
 		}
 
 		delete_option( wp_seed_events_lifecycle_index_version_option_name() );
@@ -289,7 +312,14 @@ function wp_seed_events_run_lifecycle_index_backfill_batch( $restart = false ) {
 		} elseif ( $has_more ) {
 			$progress['status'] = 'running';
 		} else {
-			$progress['status'] = 'complete';
+			$integrity = wp_seed_events_verify_occurrence_projection_integrity();
+
+			if ( is_wp_error( $integrity ) ) {
+				$progress['status'] = 'failed';
+				$progress['errors'] = 1;
+			} else {
+				$progress['status'] = 'complete';
+			}
 		}
 
 		update_option( wp_seed_events_lifecycle_index_progress_option_name(), $progress, false );
@@ -391,7 +421,7 @@ function wp_seed_events_render_lifecycle_index_backfill_panel() {
 	?>
 	<hr />
 	<h2>Index des dates</h2>
-	<p>Cette opération reconstruit progressivement l’index des dates, du lifecycle, des types et du tri des collections. Elle traite au maximum <?php echo esc_html( (string) wp_seed_events_lifecycle_index_batch_size() ); ?> événements par action.</p>
+	<p>Cette opération reconstruit progressivement l’index des dates, du lifecycle, des types et du tri des collections, ainsi que la projection des occurrences, promotions et années du parcours. Elle traite au maximum <?php echo esc_html( (string) wp_seed_events_lifecycle_index_batch_size() ); ?> événements par action.</p>
 
 	<?php if ( 'complete' === $message ) : ?>
 		<div class="notice notice-success inline"><p>Index historique terminé.</p></div>

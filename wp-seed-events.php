@@ -41,6 +41,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/public/promotions.php';
 require_once __DIR__ . '/includes/admin/promotions.php';
+require_once __DIR__ . '/includes/admin/occurrence-projection.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
@@ -131,6 +132,8 @@ add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_i
 
 function wp_seed_events_activate() {
 	wp_seed_events_register_event_post_type();
+	wp_seed_events_install_occurrence_projection_table();
+	wp_seed_events_run_lifecycle_index_backfill_batch( true );
 	flush_rewrite_rules();
 }
 
