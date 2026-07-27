@@ -215,3 +215,11 @@ Les builders recoivent uniquement les IDs ordonnes lorsqu'ils possedent la pagin
 ## Livraison beta.2
 
 Depuis `0.2.0-beta.2`, la selection indexee est le chemin nominal lorsque le lifecycle v2 est pret. La parite avec le selecteur historique couvre 96 scenarios ; le fallback reste actif jusqu'a `ready=true` ou en cas d'echec de la requete indexee.
+
+## Collections d'occurrences additives
+
+Les collections historiques ci-dessus restent des collections d'evenements : une entree par evenement, adaptee aux cartes ordinaires et aux boucles builders existantes.
+
+Le contrat additif `wp_seed_events_query_occurrence_collection()` retourne une entree par occurrence et permet de filtrer Promotion, annee du parcours, theme/evenement, type, statut, epinglage, annulation et bornes temporelles. `wp_seed_events_query_grouped_occurrence_collection()` organise le meme domaine selon Promotion -> annee -> theme -> occurrences.
+
+Ces fonctions ne remplacent ni `[wp_seed_events]`, ni `wp_seed_events_query_event_collection()`. Leurs routes REST sont `/wp-seed-events/v1/occurrences` et `/wp-seed-events/v1/occurrences/grouped`. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md) et [Domain Model](../DOMAIN-MODEL.md).

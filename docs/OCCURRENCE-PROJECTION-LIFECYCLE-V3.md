@@ -110,5 +110,13 @@ This projection is not a public API. Stable consumer contracts remain:
 - `wp_seed_events_get_event_data()`;
 - the documented Promotion APIs.
 
-Grouped public collections, Gutenberg, Divi, Spectra and Content Kit adapters
-are outside this foundation lot.
+Public occurrence collections consume this projection through their exact
+index/fallback boundary. Gutenberg, Divi, Spectra and Content Kit adapters remain
+separate integration lots.
+
+
+## Public occurrence collection consumer
+
+Lifecycle v3 alimente desormais les collections publiques d'occurrences quand son etat est `ready`. Le selecteur SQL applique filtres, total, ordre stable et pagination avant hydratation. Tant que l'index n'est pas pret, si la table manque ou si une requete echoue, la collection reconstruit exactement les lignes depuis le stockage canonique et applique les memes regles en PHP.
+
+Le choix du chemin reste interne. Ni les fonctions publiques ni REST n'exposent table, version, option, verrou, curseur ou horodatage de projection. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).

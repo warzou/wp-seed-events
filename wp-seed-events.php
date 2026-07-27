@@ -52,6 +52,7 @@ require_once __DIR__ . '/includes/public/people.php';
 require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/sharing.php';
 require_once __DIR__ . '/includes/public/collections.php';
+require_once __DIR__ . '/includes/public/occurrence-collections.php';
 require_once __DIR__ . '/includes/public/rendering.php';
 require_once __DIR__ . '/includes/public/data-registry.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
@@ -66,6 +67,7 @@ register_activation_hook( __FILE__, 'wp_seed_events_activate' );
 
 add_action( 'init', 'wp_seed_events_register_event_post_type' );
 add_action( 'rest_api_init', 'wp_seed_events_register_promotion_rest_routes' );
+add_action( 'rest_api_init', 'wp_seed_events_register_occurrence_collection_rest_routes' );
 add_action( 'admin_init', 'wp_seed_events_register_permalink_settings' );
 add_action( 'admin_init', 'wp_seed_events_maybe_save_permalink_settings' );
 add_action( 'admin_menu', 'wp_seed_events_register_plugin_admin_menu', 99 );

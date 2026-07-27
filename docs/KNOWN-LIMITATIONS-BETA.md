@@ -20,10 +20,10 @@ avant 1.0 ou reportés après la version stable.
   sont décoratifs.
 - Les performances des très gros catalogues doivent rester surveillées dans leur
   environnement réel, malgré l'indexation introduite en beta.2.
-- Le domaine Promotion et l'année du parcours sont disponibles, mais le
-  lifecycle v3, les collections groupees et les adaptateurs builder finaux ne
-  font pas partie de ce premier lot. Le site consommateur de formation reste
-  bloque jusqu'a leur livraison.
+- Le domaine Promotion, le lifecycle v3 et les collections d'occurrences plates
+  et groupees sont disponibles. La collection groupee V1 utilise une limite
+  globale bornee plutot qu'une pagination imbriquee. Les adaptateurs builders
+  finaux restent des jalons distincts.
 
 ## À traiter avant 1.0
 

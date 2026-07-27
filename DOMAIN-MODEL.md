@@ -68,9 +68,18 @@ de `1` a `4`. Les deux valeurs sont facultatives mais indissociables :
 Le theme du seminaire reste l'evenement lui-meme, identifie par son ID, son
 titre et son slug. Il n'existe pas de taxonomie Theme parallele.
 
-Le lifecycle v3 projette chaque occurrence de facon reconstruisible pour
-preparer les futures lectures indexees par promotion et annee du parcours.
-Les collections groupees restent hors de ce lot.
+Le lifecycle v3 projette chaque occurrence de facon reconstruisible pour les
+lectures indexees par promotion et annee du parcours. Cette projection reste
+technique et n'est jamais la source de verite.
+
+Le chemin canonique du parcours est :
+
+```text
+Promotion
+  -> annee du parcours
+    -> theme/evenement
+      -> occurrence
+```
 
 ### Lieu
 
@@ -189,6 +198,34 @@ Un évènement possède une page publique de référence.
 Le QR Code pointe vers la page publique de référence.
 
 L'invitation calendrier reprend les informations temporelles de l'évènement.
+
+## Sources de verite et collections publiques
+
+Les donnees metier de l'evenement et de ses occurrences restent dans le stockage
+WordPress etabli. Les contrats publics canoniques sont :
+
+- `wp_seed_events_get_event_occurrences()` pour normaliser les occurrences ;
+- `wp_seed_events_get_promotion()` pour normaliser une Promotion ;
+- Event Data pour l'objet evenement public ;
+- `wp_seed_events_query_event_collection()` pour une selection par evenement ;
+- `wp_seed_events_query_occurrence_collection()` pour une selection plate, une
+  entree par occurrence ;
+- `wp_seed_events_query_grouped_occurrence_collection()` pour le chemin
+  Promotion -> annee -> theme/evenement -> occurrences.
+
+La projection Lifecycle V3 est reconstruisible. Les collections sont des
+selecteurs publics et ne constituent ni un second stockage ni une seconde
+representation canonique des occurrences.
+
+Une occurrence sans Promotion reste valide hors parcours, mais elle est exclue
+des collections groupees par parcours. Une Promotion archivee reste lisible
+pour l'historique. Les occurrences annulees sont exclues des collections par
+defaut. Le meme theme/evenement peut apparaitre dans plusieurs Promotions ou
+annees sans deduplication globale.
+
+Les builders restent responsables de la composition visuelle. Ils doivent
+consommer les contrats publics plutot que les metas, la table de projection ou
+les options du lifecycle.
 
 ## Cycle de vie d'un évènement
 

@@ -71,3 +71,13 @@ Les identifiants derives restent deterministes pour une position et des valeurs 
 
 Voir aussi [Event Data API](EVENT-DATA-API.md) et [Collections publiques](PUBLIC-COLLECTIONS.md).
 Voir aussi [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
+
+
+## Collections multi-evenements
+
+`wp_seed_events_get_event_occurrences()` reste l'API canonique pour normaliser les occurrences d'un evenement. Les collections multi-evenements reutilisent les projections produites depuis ce contrat :
+
+- `wp_seed_events_query_occurrence_collection()` pour une liste plate paginee ;
+- `wp_seed_events_query_grouped_occurrence_collection()` pour le chemin Promotion -> annee -> theme -> occurrences.
+
+Elles ne modifient pas le schema normalise ci-dessus et ne creent aucune seconde source de verite. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).

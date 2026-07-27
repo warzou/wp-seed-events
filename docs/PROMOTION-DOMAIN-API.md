@@ -114,15 +114,21 @@ migration n'est execute.
 
 ## Compatibilite et prochaines etapes
 
-Le contrat est independant des builders et doit etre consomme par les futures
-collections groupees, le lifecycle v3 et les adaptateurs de presentation. Ces
-travaux restent separes.
+Le contrat est independant des builders. Lifecycle v3 et les collections
+publiques par Promotion / annee / theme sont livres comme fondations generiques.
+Les adaptateurs finaux de presentation restent des travaux separes.
 
-Le site consommateur de formation reste bloque tant que le lifecycle v3 et les
-collections par Promotion / annee du parcours / theme ne sont pas livres. Ce
-premier lot rend les donnees fiables et reutilisables, sans pretendre lever ce
-blocage a lui seul.
+Le site consommateur de formation reste bloque jusqu'a la livraison volontaire
+des adaptateurs dont il a besoin. Le contrat de donnees peut etre utilise sans
+attendre et sans dependance a un builder.
 
 Hors perimetre : tarifs, inscriptions, disponibilites, paiement, conditions
 speciales structurees, reservations, lieu ou personnes portes par occurrence,
 WP Seed Core et dependance a Content Kit.
+
+
+## Collections publiques par parcours
+
+Le domaine Promotion est consommable par les collections d'occurrences sans lecture directe des metas. La collection plate filtre par `promotion`, `promotion_id`, `promotion_slug` et `parcours_year`. La collection groupee ordonne les Promotions par ordre manuel, annee de debut, nom et ID, puis les annees de 1 a 4.
+
+Une Promotion archivee reste consultable pour l'historique. Une occurrence sans Promotion est valide hors parcours mais n'apparait pas dans la collection groupee. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).

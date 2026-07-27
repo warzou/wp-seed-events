@@ -18,6 +18,7 @@ Les surfaces suivantes sont publiques et reutilisables :
 - `wp_seed_events_get_event_occurrences()`, `wp_seed_events_get_next_active_occurrence()`, `wp_seed_events_get_last_active_occurrence()` et `wp_seed_events_get_event_lifecycle()` ;
 - `wp_seed_events_get_promotion()` et `wp_seed_events_get_promotions()` ;
 - `wp_seed_events_query_event_collection()` ;
+- `wp_seed_events_query_occurrence_collection()` et `wp_seed_events_query_grouped_occurrence_collection()` ;
 - `wp_seed_events_get_event_collection()`, alias retournant uniquement les Event Data ;
 - les renderers documentes Dates, Visuels et Personnes ;
 - les shortcodes documentes ;
@@ -47,7 +48,8 @@ Sont publics :
 
 - les schemas documentes Event Data et Occurrences ;
 - le schema Promotion et les routes REST publiques en lecture seule documentees ;
-- le contrat Collections `type`, `status`, `pinned`, `order`, `page`, `per_page`, `limit` ;
+- le contrat Collections d'evenements `type`, `status`, `pinned`, `order`, `page`, `per_page`, `limit` ;
+- les collections d'occurrences plates et groupees, leurs schemas et leurs routes REST en lecture seule ;
 - les signatures et options des renderers documentes ;
 - les shortcodes ;
 - les IDs de blocs Gutenberg, modules Divi et sources Dynamic Data documentes.
