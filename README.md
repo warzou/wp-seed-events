@@ -22,7 +22,7 @@ WP Seed Events est un plugin WordPress autonome pour administrer, publier et com
 
 ## Statut beta
 
-Cette version est destinee a la stabilisation avant 1.0. Une sauvegarde des fichiers et de la base WordPress reste recommandee avant installation. Les mises a jour officielles peuvent etre detectees depuis GitHub, mais aucune mise a jour automatique en arriere-plan n'est activee.
+Cette version est destinee a la stabilisation avant 1.0. Une sauvegarde des fichiers et de la base WordPress reste recommandee avant installation. Les mises a jour officielles peuvent etre detectees depuis GitHub. La ligne Extensions fournit les details et une verification manuelle ; WordPress propose la mise a jour en un clic lorsqu'une release admissible, son ZIP officiel et son SHA-256 sont disponibles. Aucune mise a jour automatique en arriere-plan n'est activee.
 
 ## Prerequis et surfaces supportees
 
@@ -77,7 +77,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - [Guide utilisateur beta](docs/USER-GUIDE-BETA.md) : parcours utilisateur complet ;
 - [Migration et rollback](docs/MIGRATION-AND-ROLLBACK.md) : installation, mise a jour et restauration ;
 - [Limites connues](docs/KNOWN-LIMITATIONS-BETA.md) : limites classees par jalon ;
-- [Mises a jour GitHub](docs/GITHUB-UPDATES.md) : canal, integrite, cache et rollback.
+- [Mises a jour GitHub](docs/GITHUB-UPDATES.md) : interface native, canaux, integrite, cache, erreurs et rollback.
 
 ## Limites connues
 

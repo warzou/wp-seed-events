@@ -1,5 +1,16 @@
 # Changelog
 
+## Non publie
+
+### Updater WordPress natif
+
+- Liens « Afficher les details » et « Verifier les mises a jour » dans la ligne Extensions.
+- Fiche native disponible meme lorsque GitHub est temporairement indisponible.
+- Continuite automatique du canal prerelease pour une installation alpha, beta ou RC.
+- Invalidation manuelle limitee au cache et a l'entree WordPress de WP Seed Events.
+- Metadonnees de compatibilite, messages de resultat et erreurs administrateur bornes.
+- Verification SHA-256, archive officielle et installation WordPress existantes conservees.
+
 ## 0.2.0-beta.2 - 2026-07-26
 
 Cette beta optimise les collections sur les gros catalogues, ajoute un updater GitHub controle et formalise les contrats publics, sans modifier les resultats metier ni les donnees existantes.

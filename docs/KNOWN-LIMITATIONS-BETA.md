@@ -13,7 +13,7 @@ avant 1.0 ou reportés après la version stable.
 - Le contraste final dépend du thème et des styles choisis dans le builder.
 - Spectra n'est ni requis ni recetté sur le site de référence.
 - Les anciens slugs `brouillon-auto-*` ne sont pas migrés automatiquement.
-- L'updater GitHub ne déclenche aucune mise à jour automatique en arrière-plan.
+- L'updater GitHub ne déclenche aucune mise à jour automatique en arrière-plan. La mise à jour native beta.2 vers beta.3 ne pourra être validée contre la source officielle qu'après publication volontaire des assets beta.3.
 - L'initialisation lifecycle reste une action administrative visible et
   reprenable.
 - Certains flyers peuvent avoir un texte alternatif vide uniquement lorsqu'ils

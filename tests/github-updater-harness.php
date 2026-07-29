@@ -14,6 +14,7 @@ $GLOBALS['updater_multisite']   = false;
 $GLOBALS['updater_http_calls']  = 0;
 $GLOBALS['updater_http']        = array( 'status' => 200, 'body' => '[]', 'headers' => array() );
 $GLOBALS['updater_cases']       = 0;
+$GLOBALS['updater_can_update']  = true;
 
 class WP_Error {
 	private $code;
@@ -41,6 +42,22 @@ function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 	add_filter( $hook, $callback, $priority, $accepted_args );
+}
+function remove_filter( $hook, $callback, $priority = 10 ) {
+	if ( empty( $GLOBALS['updater_hooks'][ $hook ] ) ) {
+		return false;
+	}
+
+	$before = count( $GLOBALS['updater_hooks'][ $hook ] );
+	$GLOBALS['updater_hooks'][ $hook ] = array_values(
+		array_filter(
+			$GLOBALS['updater_hooks'][ $hook ],
+			function ( $registered ) use ( $callback, $priority ) {
+				return $registered['callback'] !== $callback || $registered['priority'] !== $priority;
+			}
+		)
+	);
+	return $before !== count( $GLOBALS['updater_hooks'][ $hook ] );
 }
 
 function plugin_basename( $file ) {
@@ -110,6 +127,20 @@ function esc_html( $value ) {
 	return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' );
 }
 
+function esc_attr( $value ) { return esc_html( $value ); }
+function esc_url( $value ) { return (string) $value; }
+function __( $value, $domain = null ) { return (string) $value; }
+function esc_html__( $value, $domain = null ) { return esc_html( $value ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
+function wp_unslash( $value ) { return $value; }
+function current_user_can( $capability ) { return 'update_plugins' === $capability && ! empty( $GLOBALS['updater_can_update'] ); }
+function network_admin_url( $path = '' ) { return 'https://example.test/wp-admin/network/' . ltrim( $path, '/' ); }
+function untrailingslashit( $value ) { return rtrim( (string) $value, '/\\' ); }
+function trailingslashit( $value ) { return untrailingslashit( $value ) . '/'; }
+function self_admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . ltrim( $path, '/' ); }
+function add_query_arg( $args, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . http_build_query( $args ); }
+function wp_nonce_url( $url, $action ) { return add_query_arg( array( '_wpnonce' => 'nonce-' . $action ), $url ); }
+
 require dirname( __DIR__ ) . '/includes/admin/github-updater.php';
 
 function updater_assert( $condition, $message ) {
@@ -154,13 +185,20 @@ function updater_reset_cache( $releases = array() ) {
 }
 
 updater_case( 'hooks are isolated and registered once', function () {
-	foreach ( array( 'pre_set_site_transient_update_plugins', 'plugins_api', 'upgrader_pre_download', 'upgrader_source_selection', 'upgrader_process_complete' ) as $hook ) {
+	foreach ( array( 'pre_set_site_transient_update_plugins', 'plugins_api', 'plugin_row_meta', 'upgrader_pre_download', 'upgrader_source_selection', 'upgrader_process_complete', 'admin_init', 'all_admin_notices' ) as $hook ) {
 		updater_assert( 1 === count( $GLOBALS['updater_hooks'][ $hook ] ?? array() ), 'Hook differs: ' . $hook );
 	}
+	updater_assert( 999 === $GLOBALS['updater_hooks']['upgrader_process_complete'][0]['priority'], 'Process-complete cleanup priority differs.' );
 } );
 
-updater_case( 'prerelease channel is disabled by default', function () {
-	updater_assert( ! wp_seed_events_github_updater_prereleases_enabled(), 'Prereleases must default to disabled.' );
+updater_case( 'explicit prerelease opt-in is disabled by default', function () {
+	updater_assert( ! wp_seed_events_github_updater_prereleases_enabled(), 'Explicit prerelease opt-in must default to disabled.' );
+} );
+
+updater_case( 'an installed prerelease follows the prerelease channel', function () {
+	updater_assert( wp_seed_events_github_updater_allows_prereleases(), 'Installed beta did not enable prerelease continuity.' );
+	updater_assert( wp_seed_events_github_updater_is_prerelease_version( WP_SEED_EVENTS_VERSION ), 'Installed beta was not detected.' );
+	updater_assert( ! wp_seed_events_github_updater_is_prerelease_version( '1.0.0' ), 'Stable version was treated as prerelease.' );
 } );
 
 updater_case( 'same version produces no update', function () {
@@ -236,6 +274,45 @@ updater_case( 'selected update is added only for WP Seed Events', function () {
 updater_case( 'plugin information exposes selected release details', function () {
 	$result = wp_seed_events_github_updater_plugin_information( false, 'plugin_information', (object) array( 'slug' => 'wp-seed-events' ) );
 	updater_assert( is_object( $result ) && '0.2.0-beta.3' === $result->version, 'Plugin details differ.' );
+	updater_assert( '7.0.2' === $result->tested && '8.4' === $result->requires_php, 'Compatibility metadata differs.' );
+	updater_assert( false === strpos( $result->sections['changelog'], '<script' ), 'Remote changelog was not escaped.' );
+} );
+
+updater_case( 'plugin information falls back to local metadata when GitHub fails', function () {
+	$GLOBALS['updater_transients'] = array();
+	$GLOBALS['updater_http'] = new WP_Error( 'http_request_failed', 'Offline.' );
+	$result = wp_seed_events_github_updater_plugin_information( false, 'plugin_information', (object) array( 'slug' => 'wp-seed-events' ) );
+	updater_assert( is_object( $result ) && WP_SEED_EVENTS_VERSION === $result->version, 'Local details fallback differs.' );
+	updater_assert( '' === $result->download_link, 'Offline fallback exposed a package.' );
+	$GLOBALS['updater_http'] = array( 'status' => 200, 'body' => '[]', 'headers' => array() );
+} );
+
+updater_case( 'details metadata never presents an older release', function () {
+	updater_reset_cache( array( updater_release( '0.2.0-alpha.3', true ) ) );
+	$result = wp_seed_events_github_updater_plugin_information( false, 'plugin_information', (object) array( 'slug' => 'wp-seed-events' ) );
+	updater_assert( WP_SEED_EVENTS_VERSION === $result->version && '' === $result->download_link, 'Older release leaked into details.' );
+	updater_reset_cache( array( updater_release( '0.2.0-beta.3', true ) ) );
+} );
+
+updater_case( 'plugin row exposes native details and manual check links once', function () {
+	$GLOBALS['updater_can_update'] = true;
+	$links = wp_seed_events_github_updater_plugin_row_meta( array(), wp_seed_events_github_updater_plugin_basename(), array( 'Name' => 'WP Seed Events' ), 'active' );
+	updater_assert( 2 === count( $links ), 'Plugin row link count differs.' );
+	updater_assert( 1 === substr_count( implode( '', $links ), '>Afficher les détails</a>' ), 'Visible details link is absent or duplicated.' );
+	updater_assert( 1 === substr_count( implode( '', $links ), '>Vérifier les mises à jour</a>' ), 'Visible manual check link is absent or duplicated.' );
+	updater_assert( false !== strpos( $links['wp_seed_events_check_updates'], '_wpnonce=nonce-wp_seed_events_check_updates' ), 'Manual link nonce is absent.' );
+} );
+
+updater_case( 'manual check link requires update_plugins', function () {
+	$GLOBALS['updater_can_update'] = false;
+	$links = wp_seed_events_github_updater_plugin_row_meta( array(), wp_seed_events_github_updater_plugin_basename(), array(), 'active' );
+	updater_assert( isset( $links['wp_seed_events_details'] ) && ! isset( $links['wp_seed_events_check_updates'] ), 'Capability boundary differs.' );
+	$GLOBALS['updater_can_update'] = true;
+} );
+
+updater_case( 'another plugin row is untouched', function () {
+	$links = array( 'existing' => 'value' );
+	updater_assert( $links === wp_seed_events_github_updater_plugin_row_meta( $links, 'other/other.php', array(), 'active' ), 'Another plugin row changed.' );
 } );
 
 updater_case( 'release cache prevents repeated HTTP calls', function () {
@@ -276,12 +353,33 @@ updater_case( 'metadata fetch recovers after a network failure', function () {
 	updater_assert( is_array( $result ) && 1 === count( $result ), 'Metadata fetch did not recover.' );
 } );
 
-updater_case( 'manual cache purge clears metadata and WordPress update state', function () {
+updater_case( 'manual cache purge only clears Events state', function () {
+	$plugin = wp_seed_events_github_updater_plugin_basename();
 	$GLOBALS['updater_transients'][ wp_seed_events_github_updater_cache_key() ] = array( updater_release( '0.2.0-beta.3', true ) );
-	$GLOBALS['updater_transients']['update_plugins'] = (object) array();
+	$GLOBALS['updater_transients']['update_plugins'] = (object) array(
+		'response' => array( $plugin => (object) array(), 'other/other.php' => (object) array( 'new_version' => '2.0' ) ),
+		'no_update' => array( $plugin => (object) array(), 'third/third.php' => (object) array( 'new_version' => '1.0' ) ),
+	);
 	wp_seed_events_github_updater_clear_cache();
+	$state = $GLOBALS['updater_transients']['update_plugins'];
 	updater_assert( ! isset( $GLOBALS['updater_transients'][ wp_seed_events_github_updater_cache_key() ] ), 'Release cache survived purge.' );
-	updater_assert( ! isset( $GLOBALS['updater_transients']['update_plugins'] ), 'WordPress update cache survived purge.' );
+	updater_assert( ! isset( $state->response[ $plugin ], $state->no_update[ $plugin ] ), 'Events update state survived purge.' );
+	updater_assert( isset( $state->response['other/other.php'], $state->no_update['third/third.php'] ), 'Another plugin update state was purged.' );
+} );
+
+updater_case( 'same release populates only the Events no_update entry', function () {
+	$GLOBALS['updater_site_options'][ wp_seed_events_github_updater_prerelease_option_name() ] = '0';
+	updater_reset_cache( array( updater_release( WP_SEED_EVENTS_VERSION, true ) ) );
+	$plugin = wp_seed_events_github_updater_plugin_basename();
+	$state = wp_seed_events_github_updater_update_transient( (object) array( 'checked' => array( $plugin => WP_SEED_EVENTS_VERSION ), 'response' => array( 'other/other.php' => (object) array() ) ) );
+	updater_assert( isset( $state->no_update[ $plugin ] ) && WP_SEED_EVENTS_VERSION === $state->no_update[ $plugin ]->new_version, 'No-update metadata is absent.' );
+	updater_assert( isset( $state->response['other/other.php'] ), 'Another plugin response changed.' );
+} );
+
+updater_case( 'incomplete newer release is reported separately', function () {
+	$release = updater_release( '0.2.0-beta.3', true );
+	$release['assets'] = array( $release['assets'][0] );
+	updater_assert( wp_seed_events_github_updater_has_incomplete_newer_release( array( $release ) ), 'Incomplete newer release was not detected.' );
 } );
 
 updater_case( 'User-Agent identifies the plugin without exposing the site URL', function () {
@@ -350,6 +448,27 @@ updater_case( 'archive version mismatch is rejected', function () {
 	updater_assert( is_wp_error( $result ) && 'github_zip_version_mismatch' === $result->get_error_code(), 'Wrong internal version was accepted.' );
 } );
 
+updater_case( 'source selection preserves the directory separator required by WordPress', function () {
+	updater_reset_cache( array( updater_release( '0.2.0-beta.3', true ) ) );
+	$base = sys_get_temp_dir() . '/wp-seed-events-updater-' . uniqid( '', true );
+	$source = $base . '/wp-seed-events';
+	mkdir( $source, 0777, true );
+	file_put_contents( $source . '/wp-seed-events.php', "<?php\n * Version: 0.2.0-beta.3\n" );
+	try {
+		$result = wp_seed_events_github_updater_source_selection( $source . '/', '', null, array( 'plugin' => wp_seed_events_github_updater_plugin_basename() ) );
+		updater_assert( trailingslashit( $source ) === $result, 'Source directory separator was not preserved.' );
+	} finally {
+		unlink( $source . '/wp-seed-events.php' );
+		rmdir( $source );
+		rmdir( $base );
+	}
+} );
+updater_case( 'individual and bulk upgrader hooks identify only WP Seed Events', function () {
+	$plugin = wp_seed_events_github_updater_plugin_basename();
+	updater_assert( wp_seed_events_github_updater_is_our_upgrade( array( 'plugin' => $plugin ) ), 'Individual update hook was not recognized.' );
+	updater_assert( wp_seed_events_github_updater_is_our_upgrade( array( 'plugins' => array( 'other/other.php', $plugin ) ) ), 'Bulk update hook was not recognized.' );
+	updater_assert( ! wp_seed_events_github_updater_is_our_upgrade( array( 'plugins' => array( 'other/other.php' ) ) ), 'Foreign bulk update hook was accepted.' );
+} );
 updater_case( 'package interception refuses an unexpected URL', function () {
 	updater_reset_cache( array( updater_release( '0.2.0-beta.3', true ) ) );
 	$result = wp_seed_events_github_updater_pre_download( false, 'https://example.test/other.zip', null, array( 'plugin' => wp_seed_events_github_updater_plugin_basename() ) );
@@ -368,8 +487,10 @@ updater_case( 'settings capability follows single-site and network administratio
 	$GLOBALS['updater_multisite'] = false;
 } );
 
-updater_case( 'settings callbacks enforce capability and nonce boundaries', function () {
+updater_case( 'manual and settings callbacks enforce capability and nonce boundaries', function () {
 	$source = file_get_contents( dirname( __DIR__ ) . '/includes/admin/github-updater.php' );
+	updater_assert( false !== strpos( $source, "current_user_can( 'update_plugins' )" ), 'Manual check capability guard is absent.' );
+	updater_assert( false !== strpos( $source, "check_admin_referer( 'wp_seed_events_check_updates' )" ), 'Manual check nonce guard is absent.' );
 	updater_assert( false !== strpos( $source, "current_user_can( wp_seed_events_github_updater_settings_capability() )" ), 'Settings capability guard is absent.' );
 	updater_assert( false !== strpos( $source, "check_admin_referer( 'wp_seed_events_save_update_settings'" ), 'Settings nonce guard is absent.' );
 	updater_assert( false !== strpos( $source, 'update_site_option(' ), 'Network-scoped channel storage is absent.' );

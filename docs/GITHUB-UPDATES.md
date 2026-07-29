@@ -2,15 +2,29 @@
 
 ## Portee
 
-WP Seed Events integre un updater borne au depot officiel `warzou/wp-seed-events`. Il alimente l'ecran Extensions et le dialogue « Voir les details ». L'installation reste une action manuelle WordPress : le plugin n'active aucune mise a jour automatique en arriere-plan.
+WP Seed Events integre un updater borne au depot officiel `warzou/wp-seed-events`. Il alimente l'ecran Extensions, le dialogue natif « Afficher les details », le lien « Verifier les mises a jour » et l'action WordPress « Mettre a jour maintenant » lorsqu'une release admissible existe. Le plugin n'active aucune mise a jour automatique en arriere-plan.
 
 ## Canal
 
 - Les releases stables sont admissibles par defaut.
-- Les prereleases sont ignorees par defaut.
-- Un administrateur autorise peut activer le canal de prerelease dans **WP Seed Events > Mises a jour** ; en multisite, ce reglage appartient a l'administration reseau.
+- Une installation alpha, beta ou RC suit automatiquement les prereleases officielles plus recentes afin de pouvoir progresser dans le meme canal.
+- Une installation stable ignore les prereleases, sauf accord explicite dans **WP Seed Events > Mises a jour** ; en multisite, ce reglage appartient a l'administration reseau.
+- Les brouillons GitHub sont toujours ignores.
+- Les versions sont normalisees puis comparees avec `version_compare` ; l'ordre chronologique GitHub n'est jamais utilise comme ordre de version.
 - Seule une version strictement superieure a la version installee est proposee. Aucun downgrade n'est selectionne.
-- Changer le canal purge le cache des releases et le transient WordPress des mises a jour.
+- Changer le canal purge uniquement le cache Events et son entree dans l'etat WordPress des mises a jour.
+
+## Interface native WordPress
+
+La ligne **WP Seed Events** dans Extensions expose :
+
+- **Afficher les details**, qui ouvre la modale WordPress avec nom, version, auteur, compatibilite, description, changelog, date et lien de release ;
+- **Verifier les mises a jour**, visible uniquement avec la capacite `update_plugins` et protege par nonce ;
+- **Mettre a jour maintenant**, fourni par WordPress lorsqu'une version superieure admissible est injectee dans le transient standard.
+
+La verification manuelle invalide seulement le cache `wp_seed_events_github_releases` et les entrees `response`/`no_update` de `wp-seed-events/wp-seed-events.php`. Elle conserve l'etat des autres extensions et affiche un resultat distinct : a jour, mise a jour disponible, release incomplete ou verification impossible.
+
+La fiche de details reste disponible avec les metadonnees locales si GitHub est temporairement indisponible. Aucun paquet n'est alors propose.
 
 ## Contrat d'une release installable
 
@@ -44,7 +58,7 @@ L'extension PHP `ZipArchive` est requise pour cette validation. Si elle manque, 
 
 Les metadonnees GitHub sont demandees avec un timeout de 5 secondes, trois redirections maximum, un `User-Agent` identifiant le plugin sans URL du site, puis mises en cache six heures. Les telechargements utilisent un timeout de 30 secondes et un fichier temporaire supprime en cas d'echec.
 
-Les erreurs reseau, JSON invalide, 403, 404, 429, 500, asset absent ou invalide n'affectent ni le site ni les autres plugins : aucune mise a jour WP Seed Events n'est alors injectee. Un nouvel essai reste possible apres purge ou expiration du cache.
+Les erreurs reseau, JSON invalide, 403, 404, 429, 500, version invalide, asset absent, checksum absent ou divergent et archive invalide n'affectent ni le site ni les autres plugins. Aucune erreur n'est mise en cache durablement. Une verification manuelle ou l'expiration du cache permet un nouvel essai.
 
 ## Hooks WordPress
 
@@ -52,6 +66,8 @@ L'integration utilise uniquement les hooks publics suivants :
 
 - `pre_set_site_transient_update_plugins` ;
 - `plugins_api` ;
+- `plugin_row_meta` ;
+- `admin_init` et `all_admin_notices` pour la verification manuelle ;
 - `upgrader_pre_download` ;
 - `upgrader_source_selection` ;
 - `upgrader_process_complete` ;
@@ -61,7 +77,7 @@ Le header `Update URI` du plugin evite toute collision avec une extension homony
 
 ## Multisite et permissions
 
-L'option de canal est une option de site reseau. Sur une installation simple, elle exige `manage_options`. En multisite, sa modification exige `manage_network_plugins` et se fait dans l'administration reseau. L'updater ne modifie pas les politiques WordPress d'activation par site ou reseau et ne touche jamais au transient d'un autre plugin.
+L'option de canal est une option de site reseau. Sur une installation simple, elle exige `manage_options`. En multisite, sa modification exige `manage_network_plugins` et se fait dans l'administration reseau. La verification manuelle exige `update_plugins`. L'updater ne modifie pas les politiques WordPress d'activation par site ou reseau et ne touche jamais aux entrees de mise a jour d'un autre plugin.
 
 ## Sauvegarde et rollback
 
@@ -77,4 +93,4 @@ L'updater ne promet pas de rollback proprietaire. En cas d'echec, restaurer atom
 
 ## Disponibilite
 
-L'updater est livre a partir de `0.2.0-beta.2`. Cette prerelease n'est proposee qu'aux installations ayant explicitement active le canal de prerelease. Les releases stables restent le canal par defaut.
+L'updater securise est livre a partir de `0.2.0-beta.2`. Une installation en prerelease suit les prereleases officielles plus recentes ; une installation stable reste sur le canal stable sans opt-in. Une vraie mise a jour beta.2 vers beta.3 ne peut etre recetee qu'apres publication des assets officiels beta.3.

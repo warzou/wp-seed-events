@@ -98,10 +98,10 @@ public_docs_case( 'Public and internal boundaries are explicit', function () use
 	}
 } );
 
-public_docs_case( 'Updater contract requires exact package and checksum assets', function () use ( $updates ) {
-	public_docs_assert( false !== strpos( $updates, 'wp-seed-events-<version>.zip.sha256' ), 'Checksum asset contract is absent.' );
-	public_docs_assert( false !== strpos( $updates, 'aucune mise a jour automatique' ), 'Manual update boundary is absent.' );
-	public_docs_assert( false !== strpos( $updates, 'ZipArchive' ), 'ZIP validation requirement is absent.' );
+public_docs_case( 'Updater contract covers native UI, channels and integrity', function () use ( $updates ) {
+	foreach ( array( 'Afficher les details', 'Verifier les mises a jour', 'Mettre a jour maintenant', 'wp-seed-events-<version>.zip.sha256', 'version_compare', 'update_plugins', 'ZipArchive', 'aucune mise a jour automatique' ) as $contract ) {
+		public_docs_assert( false !== strpos( $updates, $contract ), 'Missing updater contract: ' . $contract );
+	}
 } );
 
 public_docs_case( 'Divi occurrence collection adapter boundary is documented', function () use ( $divi_occurrence_collections ) {
