@@ -34,6 +34,7 @@ $projection    = public_docs_read( $root . '/docs/OCCURRENCE-PROJECTION-LIFECYCL
 $compatibility = public_docs_read( $root . '/docs/PUBLIC-API-COMPATIBILITY.md' );
 $updates       = public_docs_read( $root . '/docs/GITHUB-UPDATES.md' );
 $gutenberg_occurrence_collections = public_docs_read( $root . '/docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md' );
+$divi_occurrence_collections = public_docs_read( $root . '/docs/DIVI-OCCURRENCE-COLLECTIONS.md' );
 $readme        = public_docs_read( $root . '/README.md' );
 
 public_docs_case( 'Event Data signature and empty result are definitive', function () use ( $event_data ) {
@@ -103,14 +104,20 @@ public_docs_case( 'Updater contract requires exact package and checksum assets',
 	public_docs_assert( false !== strpos( $updates, 'ZipArchive' ), 'ZIP validation requirement is absent.' );
 } );
 
+public_docs_case( 'Divi occurrence collection adapter boundary is documented', function () use ( $divi_occurrence_collections ) {
+	foreach ( array( 'wp-seed-events/divi-occurrence-collection', 'wp_seed_events_query_occurrence_collection()', 'wp_seed_events_query_grouped_occurrence_collection()', 'collection_instance_id', 'occurrence_uid', '500', 'Visual Builder', 'modules enfants', 'post technique' ) as $contract ) {
+		public_docs_assert( false !== strpos( $divi_occurrence_collections, $contract ), 'Missing Divi occurrence collection contract: ' . $contract );
+	}
+} );
+
 public_docs_case( 'README developer links are clickable and complete', function () use ( $readme ) {
-	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
+	foreach ( array( 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'docs/DIVI-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-COLLECTIONS.md', 'docs/PUBLIC-EVENT-DYNAMIC-DATA.md', 'docs/PUBLIC-API-COMPATIBILITY.md' ) as $target ) {
 		public_docs_assert( false !== strpos( $readme, '](' . $target . ')' ), 'README link is absent: ' . $target );
 	}
 } );
 
 public_docs_case( 'Documentation files are UTF-8 without BOM', function () use ( $root ) {
-	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
+	foreach ( array( 'README.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'docs/DIVI-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
 		$contents = public_docs_read( $root . '/' . $relative );
 		public_docs_assert( 0 !== strncmp( $contents, "\xEF\xBB\xBF", 3 ), 'BOM found: ' . $relative );
 		public_docs_assert( 1 === preg_match( '//u', $contents ), 'Invalid UTF-8: ' . $relative );

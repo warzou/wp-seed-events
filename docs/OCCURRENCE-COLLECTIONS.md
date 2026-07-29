@@ -133,6 +133,6 @@ $tree = wp_seed_events_query_grouped_occurrence_collection(
 
 ## Builder boundary
 
-This foundation is builder-independent. Future Divi, Gutenberg, Spectra or Content Kit adapters must consume these public functions instead of reading occurrence meta, projection tables or lifecycle options. This lot does not add a final builder adapter, HTML agenda, CSS or a competing template engine.
+This foundation is builder-independent. The Gutenberg and Divi adapters consume these public functions instead of reading occurrence meta, projection tables or lifecycle options. Future Spectra or Content Kit adapters must follow the same boundary. Neither adapter introduces a competing template engine.
 
 See also the canonical [Domain Model](../DOMAIN-MODEL.md).

@@ -13,7 +13,7 @@ WP Seed Events est un plugin WordPress autonome pour administrer, publier et com
 - coordonnees Personnes privees par defaut ;
 - templates et shortcodes de compatibilite ;
 - Dynamic Data public, incluant le statut de l'evenement ;
-- modules Divi 5 Dates, Visuels et Personnes ;
+- modules Divi 5 Dates, Visuels, Personnes et Collection d’occurrences ;
 - blocs Gutenberg Dates, Visuels et Personnes ;
 - collections metier dans le Loop Builder Divi et le Query Loop Gutenberg ;
 - collections publiques plates et groupees d'occurrences, avec filtres Promotion et annee du parcours ;
@@ -94,6 +94,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
 - [Occurrence Collections](docs/OCCURRENCE-COLLECTIONS.md)
 - [Gutenberg Occurrence Collections](docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md)
+- [Divi Occurrence Collections](docs/DIVI-OCCURRENCE-COLLECTIONS.md)
 - [Domain Model](DOMAIN-MODEL.md)
 - [Occurrence Projection and Lifecycle V3](docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md)
 - [Promotions et annees du parcours](docs/PROMOTION-DOMAIN-API.md)

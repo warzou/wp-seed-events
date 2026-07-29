@@ -1,0 +1,107 @@
+{
+  "name": "wp-seed-events/divi-occurrence-collection",
+  "d4Shortcode": "",
+  "title": "WP Seed Events — Collection d’occurrences",
+  "titles": "WP Seed Events — Collection d’occurrences",
+  "folder": "wp-seed-events",
+  "category": "module",
+  "moduleClassName": "wp_seed_events_divi_occurrence_collection",
+  "moduleOrderClassName": "wp_seed_events_divi_occurrence_collection",
+  "attributes": {
+    "module": {
+      "type": "object",
+      "selector": "{{selector}}",
+      "default": {"meta": {"adminLabel": {"desktop": {"value": "WP Seed Events — Collection d’occurrences"}}}},
+      "settings": {
+        "meta": {"adminLabel": {}},
+        "advanced": {"htmlAttributes": {}},
+        "decoration": {
+          "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {},
+          "filters": {}, "transform": {}, "animation": {}, "overflow": {}, "disabledOn": {},
+          "transition": {}, "position": {}, "zIndex": {}, "scroll": {}, "sticky": {}
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "default": {"innerContent": {"desktop": {"value": {
+        "mode": "flat", "promotion": "", "parcours_year": 0, "event_id": 0,
+        "type": "", "status": "upcoming", "pinned": "all", "include_cancelled": "off",
+        "from": "", "to": "", "order": "chronological", "page": 1, "per_page": 20,
+        "grouped_limit": 200, "collection_instance_id": "",
+        "show_event_title": "on", "show_event_type": "off", "show_event_status": "off",
+        "show_event_pinned": "off", "show_start_date": "on", "show_end_date": "off",
+        "show_start_time": "on", "show_end_time": "on", "show_cancelled": "on",
+        "show_promotion_name": "on", "show_promotion_year": "off",
+        "show_promotion_status": "off", "show_parcours_year": "off",
+        "show_parcours_label": "on", "show_labels": "on", "date_format": "long",
+        "time_format": "site", "field_separator": "", "date_separator": " – ",
+        "time_separator": " – ", "empty_message": "Aucune occurrence à afficher.",
+        "cancelled_text": "Annulée"
+      }}}},
+      "settings": {"innerContent": {"groupType": "group-items", "items": {
+        "mode": {"groupSlug": "collectionQuery", "priority": 10, "render": true, "subName": "mode", "label": "Mode", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"flat": {"label": "Collection plate"}, "grouped": {"label": "Collection groupée"}}}}},
+        "promotion": {"groupSlug": "collectionQuery", "priority": 20, "render": true, "subName": "promotion", "label": "Promotion", "description": "ID ou slug. Laissez vide pour toutes les Promotions.", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "parcoursYear": {"groupSlug": "collectionQuery", "priority": 30, "render": true, "subName": "parcours_year", "label": "Année du parcours", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"0": {"label": "Toutes"}, "1": {"label": "Année 1"}, "2": {"label": "Année 2"}, "3": {"label": "Année 3"}, "4": {"label": "Année 4"}}}}},
+        "eventId": {"groupSlug": "collectionQuery", "priority": 40, "render": true, "subName": "event_id", "label": "ID de l’événement", "description": "0 ou vide désactive ce filtre.", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "eventType": {"groupSlug": "collectionQuery", "priority": 50, "render": true, "subName": "type", "label": "Type d’événement", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "status": {"groupSlug": "collectionQuery", "priority": 60, "render": true, "subName": "status", "label": "Statut temporel", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"upcoming": {"label": "À venir"}, "past": {"label": "Passées"}, "all": {"label": "Toutes"}}}}},
+        "pinned": {"groupSlug": "collectionQuery", "priority": 70, "render": true, "subName": "pinned", "label": "Événements épinglés", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"all": {"label": "Tous"}, "only": {"label": "Uniquement les épinglés"}}}}},
+        "includeCancelled": {"groupSlug": "collectionQuery", "priority": 80, "render": true, "subName": "include_cancelled", "label": "Inclure les annulations", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "from": {"groupSlug": "collectionQuery", "priority": 90, "render": true, "subName": "from", "label": "À partir du", "description": "AAAA-MM-JJ", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "to": {"groupSlug": "collectionQuery", "priority": 100, "render": true, "subName": "to", "label": "Jusqu’au", "description": "AAAA-MM-JJ", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "order": {"groupSlug": "collectionQuery", "priority": 110, "render": true, "subName": "order", "label": "Ordre en mode plat", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"upcoming": {"label": "Prochaines d’abord"}, "chronological": {"label": "Chronologique"}, "chronological_desc": {"label": "Chronologique décroissant"}}}}},
+        "page": {"groupSlug": "collectionQuery", "priority": 120, "render": true, "subName": "page", "label": "Page initiale", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "perPage": {"groupSlug": "collectionQuery", "priority": 130, "render": true, "subName": "per_page", "label": "Éléments par page", "description": "De 1 à 100.", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "groupedLimit": {"groupSlug": "collectionQuery", "priority": 140, "render": true, "subName": "grouped_limit", "label": "Limite du mode groupé", "description": "200 par défaut, 500 maximum.", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "collectionInstance": {"groupSlug": "collectionQuery", "priority": 150, "render": true, "subName": "collection_instance_id", "label": "Identifiant d’instance", "description": "Facultatif. Isole la pagination.", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+
+        "showEventTitle": {"groupSlug": "eventFields", "priority": 10, "render": true, "subName": "show_event_title", "label": "Afficher le titre", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showEventType": {"groupSlug": "eventFields", "priority": 20, "render": true, "subName": "show_event_type", "label": "Afficher le type", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showEventStatus": {"groupSlug": "eventFields", "priority": 30, "render": true, "subName": "show_event_status", "label": "Afficher le statut", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showEventPinned": {"groupSlug": "eventFields", "priority": 40, "render": true, "subName": "show_event_pinned", "label": "Afficher l’épinglage", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+
+        "showStartDate": {"groupSlug": "occurrenceFields", "priority": 10, "render": true, "subName": "show_start_date", "label": "Afficher la date de début", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showEndDate": {"groupSlug": "occurrenceFields", "priority": 20, "render": true, "subName": "show_end_date", "label": "Afficher la date de fin", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showStartTime": {"groupSlug": "occurrenceFields", "priority": 30, "render": true, "subName": "show_start_time", "label": "Afficher l’heure de début", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showEndTime": {"groupSlug": "occurrenceFields", "priority": 40, "render": true, "subName": "show_end_time", "label": "Afficher l’heure de fin", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showCancelled": {"groupSlug": "occurrenceFields", "priority": 50, "render": true, "subName": "show_cancelled", "label": "Afficher l’état annulé", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "dateFormat": {"groupSlug": "occurrenceFields", "priority": 60, "render": true, "subName": "date_format", "label": "Format de date", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"long": {"label": "Long"}, "short": {"label": "Court"}}}}},
+        "timeFormat": {"groupSlug": "occurrenceFields", "priority": 70, "render": true, "subName": "time_format", "label": "Format horaire", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"site": {"label": "Réglage du site"}, "24h": {"label": "24 heures"}}}}},
+        "dateSeparator": {"groupSlug": "occurrenceFields", "priority": 80, "render": true, "subName": "date_separator", "label": "Séparateur de dates", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "timeSeparator": {"groupSlug": "occurrenceFields", "priority": 90, "render": true, "subName": "time_separator", "label": "Séparateur d’horaires", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "cancelledText": {"groupSlug": "occurrenceFields", "priority": 100, "render": true, "subName": "cancelled_text", "label": "Texte d’annulation", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+
+        "showPromotionName": {"groupSlug": "promotionFields", "priority": 10, "render": true, "subName": "show_promotion_name", "label": "Afficher la Promotion", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showPromotionYear": {"groupSlug": "promotionFields", "priority": 20, "render": true, "subName": "show_promotion_year", "label": "Afficher l’année de départ", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showPromotionStatus": {"groupSlug": "promotionFields", "priority": 30, "render": true, "subName": "show_promotion_status", "label": "Afficher le statut", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showParcoursYear": {"groupSlug": "promotionFields", "priority": 40, "render": true, "subName": "show_parcours_year", "label": "Afficher le numéro d’année", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "showParcoursLabel": {"groupSlug": "promotionFields", "priority": 50, "render": true, "subName": "show_parcours_label", "label": "Afficher le libellé d’année", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+
+        "showLabels": {"groupSlug": "displayOptions", "priority": 10, "render": true, "subName": "show_labels", "label": "Afficher les libellés", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}},
+        "fieldSeparator": {"groupSlug": "displayOptions", "priority": 20, "render": true, "subName": "field_separator", "label": "Séparateur entre champs", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}},
+        "emptyMessage": {"groupSlug": "displayOptions", "priority": 30, "render": true, "subName": "empty_message", "label": "Message vide", "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false}, "component": {"name": "divi/text", "type": "field"}}
+      }}}
+    },
+    "collectionStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection", "settings": {"decoration": {"background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}}}},
+    "promotionStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__promotion", "settings": {"decoration": {"background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}}}},
+    "yearStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__year", "settings": {"decoration": {"background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}}}},
+    "themeStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__theme", "settings": {"decoration": {"background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}}}},
+    "itemStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__item", "settings": {"decoration": {"background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}}}},
+    "titleStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__promotion-title, {{selector}} .wp-seed-events-divi-occurrence-collection__year-title, {{selector}} .wp-seed-events-divi-occurrence-collection__theme-title, {{selector}} .wp-seed-events-divi-occurrence-collection__event-title", "settings": {"decoration": {"font": {}, "spacing": {}}}},
+    "labelStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__label", "settings": {"decoration": {"font": {}, "spacing": {}}}},
+    "valueStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__value", "settings": {"decoration": {"font": {}, "spacing": {}}}},
+    "emptyStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__empty, {{selector}} .wp-seed-events-divi-occurrence-collection__error", "settings": {"decoration": {"font": {}, "background": {}, "spacing": {}, "border": {}}}},
+    "paginationStyle": {"type": "object", "selector": "{{selector}} .wp-seed-events-divi-occurrence-collection__pagination", "settings": {"decoration": {"font": {}, "spacing": {}}}}
+  },
+  "settings": {
+    "content": "auto", "design": "auto", "advanced": "auto",
+    "groups": {
+      "collectionQuery": {"panel": "content", "priority": 10, "groupName": "collectionQuery", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Collection"}}},
+      "eventFields": {"panel": "content", "priority": 20, "groupName": "eventFields", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Événement"}}},
+      "occurrenceFields": {"panel": "content", "priority": 30, "groupName": "occurrenceFields", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Occurrence"}}},
+      "promotionFields": {"panel": "content", "priority": 40, "groupName": "promotionFields", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Promotion et parcours"}}},
+      "displayOptions": {"panel": "content", "priority": 50, "groupName": "displayOptions", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Affichage"}}}
+    }
+  }
+}

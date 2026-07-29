@@ -248,3 +248,55 @@ function wp_seed_events_divi_enqueue_event_people_module_assets() {
 	);
 }
 add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_event_people_module_assets' );
+
+/**
+ * Register the dedicated Divi 5 occurrence collection module.
+ */
+function wp_seed_events_divi_register_occurrence_collection_module( $dependency_tree ) {
+	if (
+		! function_exists( 'et_builder_d5_enabled' )
+		|| ! et_builder_d5_enabled()
+		|| ! interface_exists( '\ET\Builder\Framework\DependencyManagement\Interfaces\DependencyInterface' )
+		|| ! class_exists( '\ET\Builder\Packages\ModuleLibrary\ModuleRegistration' )
+	) {
+		return;
+	}
+
+	require_once __DIR__ . '/class-occurrence-collection-module.php';
+
+	if ( ! class_exists( 'WP_Seed_Events_Divi_Occurrence_Collection_Module', false ) ) {
+		return;
+	}
+
+	$dependency_tree->add_dependency( new WP_Seed_Events_Divi_Occurrence_Collection_Module() );
+}
+add_action( 'divi_module_library_modules_dependency_tree', 'wp_seed_events_divi_register_occurrence_collection_module' );
+
+/**
+ * Enqueue the compiled occurrence collection module in the Divi app window.
+ */
+function wp_seed_events_divi_enqueue_occurrence_collection_module_assets() {
+	if (
+		! function_exists( 'et_core_is_fb_enabled' )
+		|| ! function_exists( 'et_builder_d5_enabled' )
+		|| ! et_core_is_fb_enabled()
+		|| ! et_builder_d5_enabled()
+		|| ! class_exists( '\ET\Builder\VisualBuilder\Assets\PackageBuildManager' )
+	) {
+		return;
+	}
+
+	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
+		array(
+			'name'    => 'wp-seed-events-occurrence-collection-module',
+			'version' => WP_SEED_EVENTS_VERSION,
+			'script'  => array(
+				'src'                => plugins_url( 'occurrence-collection-module/visual-builder/build/wp-seed-events-occurrence-collection.js', __FILE__ ),
+				'deps'               => array( 'divi-module-library', 'divi-vendor-wp-hooks', 'divi-rest' ),
+				'enqueue_top_window' => false,
+				'enqueue_app_window' => true,
+			),
+		)
+	);
+}
+add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_occurrence_collection_module_assets' );

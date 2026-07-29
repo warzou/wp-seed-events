@@ -94,6 +94,23 @@ foreach ($peopleModuleAsset in @($peopleModuleJson, $peopleModuleBundle)) {
         throw ('Missing Divi people module asset. Run npm run build first: ' + $peopleModuleAsset)
     }
 }
+$occurrenceModuleRuntimeRoot = 'includes/integrations/divi/occurrence-collection-module/visual-builder'
+$occurrenceModuleJson = Join-Path $root ($occurrenceModuleRuntimeRoot + '/src/module.json')
+$occurrenceModuleBundle = Join-Path $root ($occurrenceModuleRuntimeRoot + '/build/wp-seed-events-occurrence-collection.js')
+$excludedRuntimePatterns += @(
+    ($occurrenceModuleRuntimeRoot + '/node_modules/*'),
+    ($occurrenceModuleRuntimeRoot + '/package.json'),
+    ($occurrenceModuleRuntimeRoot + '/package-lock.json'),
+    ($occurrenceModuleRuntimeRoot + '/webpack.config.js'),
+    ($occurrenceModuleRuntimeRoot + '/tests/*'),
+    ($occurrenceModuleRuntimeRoot + '/src/index.jsx')
+)
+
+foreach ($occurrenceModuleAsset in @($occurrenceModuleJson, $occurrenceModuleBundle)) {
+    if (-not (Test-Path -LiteralPath $occurrenceModuleAsset -PathType Leaf)) {
+        throw ('Missing Divi occurrence collection module asset. Run npm run build first: ' + $occurrenceModuleAsset)
+    }
+}
 
 $pluginHeader = Get-Content -Path $pluginFile -Raw -Encoding UTF8
 $versionMatch = [regex]::Match($pluginHeader, '^\s*\*\s*Version:\s*(?<version>[^\r\n]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)

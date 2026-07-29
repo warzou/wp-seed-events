@@ -164,9 +164,10 @@ d’occurrences :
 wp-seed-events/occurrence-field
 ```
 
-La seconde reste vide hors du contexte explicite fourni par le bloc Collection
-d’occurrences. Elle n’infère jamais une occurrence depuis le seul post
-événement.
+La seconde reste vide hors du contexte explicite fourni par une Collection
+d’occurrences Gutenberg ou Divi. Les deux adaptateurs installent le même contexte
+canonique et le restaurent après chaque élément. La source n’infère jamais une
+occurrence depuis le seul post événement.
 
 L'argument `field` sélectionne l'une des 17 clés du registre. Les usages validés
 sont :

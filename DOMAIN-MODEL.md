@@ -414,10 +414,11 @@ le paiement, les campagnes ou les outils relationnels.
 ## Contexte builder d'une occurrence
 
 Les builders ne donnent pas une identité de post aux occurrences. Le bloc
-Gutenberg dédié consomme les collections publiques puis fournit temporairement
-un contexte composite `collection_instance_id + event_id + occurrence_uid +
-current_item_index` à son modèle enfant. La Query Loop native reste réservée aux
-événements. Aucun post technique d’occurrence n’est créé.
+Gutenberg dédié et le module Divi Collection d’occurrences consomment les
+collections publiques puis fournissent temporairement un contexte composite
+`collection_instance_id + event_id + occurrence_uid + current_item_index`. La
+Query Loop native et le Loop Builder restent réservés aux événements. Aucun post
+technique d’occurrence n’est créé.
 
 Le mode groupé conserve la hiérarchie Promotion → année du parcours →
 événement/thème → occurrence. Le modèle éditable porte sur l’occurrence ; les

@@ -28,6 +28,8 @@ build/
 !includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js
 !includes/integrations/divi/event-people-module/visual-builder/build/
 !includes/integrations/divi/event-people-module/visual-builder/build/wp-seed-events-event-people.js
+!includes/integrations/divi/occurrence-collection-module/visual-builder/build/
+!includes/integrations/divi/occurrence-collection-module/visual-builder/build/wp-seed-events-occurrence-collection.js
 !includes/integrations/gutenberg/event-dates-block/build/
 !includes/integrations/gutenberg/event-dates-block/build/block.json
 !includes/integrations/gutenberg/event-dates-block/build/index.js

@@ -22,8 +22,9 @@ avant 1.0 ou reportés après la version stable.
   environnement réel, malgré l'indexation introduite en beta.2.
 - Le domaine Promotion, le lifecycle v3 et les collections d'occurrences plates
   et groupees sont disponibles. La collection groupee V1 utilise une limite
-  globale bornee plutot qu'une pagination imbriquee. Les adaptateurs builders
-  finaux restent des jalons distincts.
+  globale bornee plutot qu'une pagination imbriquee. Le module Divi dédié expose
+  des champs explicites : l’API publique Divi ne permet pas de répéter
+  arbitrairement un arbre de modules enfants par occurrence.
 - Le bloc Gutenberg Collection d’occurrences répète complètement le modèle sur
   le frontend. Dans l’éditeur, un seul modèle InnerBlocks reste éditable et
   l’aperçu de données est borné à six occurrences, car Gutenberg ne matérialise
