@@ -53,3 +53,7 @@ Le bloc Gutenberg Collection d’occurrences et le module Divi consomment le mê
 contrat public et le même contexte canonique. Spectra et WP Seed Content Kit ne
 sont pas requis. Les routes d’aperçu builder sont internes et ne constituent pas
 une API publique parallèle.
+
+## Livraison beta.3
+
+Le module Divi Collection d'occurrences est livre dans 0.2.0-beta.3 apres recette des modes plat et groupe, de la persistance, de la duplication, des paginations independantes et des largeurs 1440, 820, 390 et 320 px. Les bornes A partir du et Jusqu'au conservent la valeur ISO transmise a l'API et affichent l'aide Format : AAAA-MM-JJ.

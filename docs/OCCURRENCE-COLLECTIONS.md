@@ -136,3 +136,7 @@ $tree = wp_seed_events_query_grouped_occurrence_collection(
 This foundation is builder-independent. The Gutenberg and Divi adapters consume these public functions instead of reading occurrence meta, projection tables or lifecycle options. Future Spectra or Content Kit adapters must follow the same boundary. Neither adapter introduces a competing template engine.
 
 See also the canonical [Domain Model](../DOMAIN-MODEL.md).
+
+## Livraison beta.3
+
+Les collections plates et groupees d'occurrences sont livrees dans 0.2.0-beta.3. Gutenberg et Divi consomment le meme contrat canonique, avec filtres, ordre, totaux et pagination calcules avant rendu. Les collections d'evenements historiques restent independantes et inchangees.

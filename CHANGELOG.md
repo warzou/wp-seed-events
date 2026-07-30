@@ -1,6 +1,22 @@
 # Changelog
 
-## Non publie
+## 0.2.0-beta.3 - 2026-07-30
+
+Cette beta ajoute le domaine Promotion, le lifecycle v3, les collections publiques d'occurrences et leurs adaptateurs Gutenberg et Divi. Elle finalise aussi l'updater WordPress natif et clarifie le format ISO des filtres de date Divi, sans migration des donnees metier.
+
+### Domaine Promotion et lifecycle v3
+
+- Promotions et annees du parcours additives sur les occurrences.
+- Projection SQL reconstructible des occurrences, sans devenir une source canonique.
+- Backfill borne, reprenable, idempotent et verifie avant `ready=true`.
+- Aucun Seminaire reel cree automatiquement.
+
+### Collections d'occurrences
+
+- API PHP et REST plate ou groupee par Promotion, annee et evenement.
+- Bloc Gutenberg dynamique avec modele enfant editable et contexte occurrence isole.
+- Module Divi 5 plat ou groupe, rendu serveur et pagination par instance.
+- Aide visible `Format : AAAA-MM-JJ` pour les bornes de date Divi.
 
 ### Updater WordPress natif
 

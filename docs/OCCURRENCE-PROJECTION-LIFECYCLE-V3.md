@@ -120,3 +120,7 @@ separate integration lots.
 Lifecycle v3 alimente desormais les collections publiques d'occurrences quand son etat est `ready`. Le selecteur SQL applique filtres, total, ordre stable et pagination avant hydratation. Tant que l'index n'est pas pret, si la table manque ou si une requete echoue, la collection reconstruit exactement les lignes depuis le stockage canonique et applique les memes regles en PHP.
 
 Le choix du chemin reste interne. Ni les fonctions publiques ni REST n'exposent table, version, option, verrou, curseur ou horodatage de projection. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).
+
+## Livraison beta.3
+
+0.2.0-beta.3 active officiellement le schema lifecycle v3. Le backfill reconstruit uniquement les projections techniques depuis _wp_seed_event_occurrences, puis ne passe a ready=true qu'apres controle des doublons, orphelins et associations Promotion/annee. Le stockage canonique et les dates de modification des evenements restent inchanges.

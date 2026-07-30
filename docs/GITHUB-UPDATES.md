@@ -93,4 +93,8 @@ L'updater ne promet pas de rollback proprietaire. En cas d'echec, restaurer atom
 
 ## Disponibilite
 
-L'updater securise est livre a partir de `0.2.0-beta.2`. Une installation en prerelease suit les prereleases officielles plus recentes ; une installation stable reste sur le canal stable sans opt-in. Une vraie mise a jour beta.2 vers beta.3 ne peut etre recetee qu'apres publication des assets officiels beta.3.
+L'updater securise est livre a partir de `0.2.0-beta.2`. Une installation en prerelease suit les prereleases officielles plus recentes ; une installation stable reste sur le canal stable sans opt-in. La transition native beta.2 vers beta.3 constitue la recette officielle de bout en bout apres publication des assets beta.3.
+
+## Validation officielle beta.3
+
+0.2.0-beta.3 est la premiere release utilisee pour valider de bout en bout la transition native depuis 0.2.0-beta.2. Les assets officiels restent le ZIP runtime-only et son fichier .sha256 ; les archives source GitHub ne sont jamais installees. Le controle couvre la proposition dans Extensions, la fiche de details, le checksum, la racine finale wp-seed-events/, l'activation et la correspondance stricte du runtime.

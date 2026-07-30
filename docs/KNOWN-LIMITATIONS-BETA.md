@@ -1,9 +1,9 @@
 # Limites connues pour la bêta
 
-Cette liste distingue les limites acceptées pour beta.2 des travaux nécessaires
+Cette liste distingue les limites acceptées pour beta.3 des travaux nécessaires
 avant 1.0 ou reportés après la version stable.
 
-## Acceptées pour beta.2
+## Acceptées pour beta.3
 
 - Les patterns Gutenberg sont insérés comme compositions non synchronisées par
   défaut. L'utilisateur choisit explicitement une composition synchronisée s'il
@@ -13,7 +13,7 @@ avant 1.0 ou reportés après la version stable.
 - Le contraste final dépend du thème et des styles choisis dans le builder.
 - Spectra n'est ni requis ni recetté sur le site de référence.
 - Les anciens slugs `brouillon-auto-*` ne sont pas migrés automatiquement.
-- L'updater GitHub ne déclenche aucune mise à jour automatique en arrière-plan. La mise à jour native beta.2 vers beta.3 ne pourra être validée contre la source officielle qu'après publication volontaire des assets beta.3.
+- L'updater GitHub ne déclenche aucune mise à jour automatique en arrière-plan. La transition native beta.2 vers beta.3 est la recette officielle de ce mécanisme.
 - L'initialisation lifecycle reste une action administrative visible et
   reprenable.
 - Certains flyers peuvent avoir un texte alternatif vide uniquement lorsqu'ils

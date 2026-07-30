@@ -132,3 +132,7 @@ WP Seed Core et dependance a Content Kit.
 Le domaine Promotion est consommable par les collections d'occurrences sans lecture directe des metas. La collection plate filtre par `promotion`, `promotion_id`, `promotion_slug` et `parcours_year`. La collection groupee ordonne les Promotions par ordre manuel, annee de debut, nom et ID, puis les annees de 1 a 4.
 
 Une Promotion archivee reste consultable pour l'historique. Une occurrence sans Promotion est valide hors parcours mais n'apparait pas dans la collection groupee. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).
+
+## Livraison beta.3
+
+Le domaine Promotion et les annees du parcours sont disponibles dans 0.2.0-beta.3. Leur adoption est additive : aucune occurrence historique n'est rattachee automatiquement et aucun Seminaire reel n'est cree par l'installation ou le lifecycle.

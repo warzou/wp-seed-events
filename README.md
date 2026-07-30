@@ -1,8 +1,8 @@
 # WP Seed Events
 
-Version actuelle : `0.2.0-beta.2`
+Version actuelle : `0.2.0-beta.3`
 
-WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette beta optimise les collections, ajoute un updater GitHub controle et conserve les contrats publics, donnees et URL existants.
+WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette beta livre les Promotions, le lifecycle v3, les collections d'occurrences Gutenberg et Divi ainsi que l'updater WordPress natif, sans modifier le stockage canonique ni les contenus existants.
 
 ## Fonctionnalites principales
 
@@ -40,17 +40,17 @@ Astra et Spectra restent facultatifs. Spectra n'est pas installe sur le site de 
 ## Installation
 
 1. Sauvegarder les fichiers et la base WordPress.
-2. Installer `wp-seed-events-0.2.0-beta.2.zip` depuis Extensions > Ajouter une extension.
+2. Installer `wp-seed-events-0.2.0-beta.3.zip` depuis Extensions > Ajouter une extension.
 3. Activer WP Seed Events.
 4. Ouvrir une fiche evenement puis verifier son rendu public.
 
 ## Mise a jour depuis une alpha
 
 1. Conserver une copie exacte du dossier actif `wp-seed-events`.
-2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-beta.2.zip`.
+2. Remplacer le plugin avec le ZIP `wp-seed-events-0.2.0-beta.3.zip`.
 3. Verifier la version active, une fiche evenement, les collections, les ICS et les builders utilises.
 
-Le changement de version ne declenche aucune migration, aucun backfill, aucune republication de coordonnee et aucune modification des slugs existants.
+Le changement de version ne declenche aucune migration metier, republication de coordonnee ou modification des slugs existants. Beta.3 reconstruit uniquement les projections techniques du lifecycle v3 depuis les occurrences canoniques.
 
 ## Rollback
 
@@ -102,4 +102,4 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - [Dynamic Data](docs/PUBLIC-EVENT-DYNAMIC-DATA.md)
 - [Compatibilite et deprecations](docs/PUBLIC-API-COMPATIBILITY.md)
 
-Voir [la note de release beta.2](docs/RELEASE-0.2.0-beta.2.md) et [le changelog](CHANGELOG.md) pour les details de release.
+Voir [la note de release beta.3](docs/RELEASE-0.2.0-beta.3.md) et [le changelog](CHANGELOG.md) pour les details de release.

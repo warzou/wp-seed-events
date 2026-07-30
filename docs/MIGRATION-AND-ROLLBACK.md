@@ -159,3 +159,9 @@ La reconstruction est versionnee, bornee, idempotente et reprenable. Tant qu'ell
 Le canal stable reste actif par defaut et les prereleases restent desactivees. Une release installable doit fournir le ZIP officiel et son asset `.sha256`. L'installation est refusee avant remplacement si le checksum, la racine, les chemins ou la version interne divergent.
 
 L'updater n'ajoute aucun rollback automatique. La sauvegarde exacte du dossier actif et de la base reste obligatoire. Voir [Mises a jour officielles depuis GitHub](GITHUB-UPDATES.md).
+
+## Migration vers beta.3 : lifecycle v3 et collections d'occurrences
+
+La mise a jour depuis beta.2 ne modifie ni les occurrences canoniques, ni les contenus, ni les slugs, ni les autorisations Personnes. Elle cree ou met a niveau uniquement la table de projections lifecycle v3, puis reconstruit les lignes techniques en lots bornes depuis `_wp_seed_event_occurrences`.
+
+Avant la mise a jour, sauvegarder la base et le dossier plugin actif. Apres installation, executer le backfill officiel jusqu'a `ready=true`, verifier l'absence de doublon et d'orphelin, puis recetter Collections, REST, ICS, Gutenberg et Divi. Un rollback du plugin ne requiert aucune conversion des donnees metier : la table de projections peut etre reconstruite par une version compatible.

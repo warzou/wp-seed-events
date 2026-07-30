@@ -123,3 +123,7 @@ annulent la requête précédente.
 - mode groupé structuré côté serveur avec un modèle occurrence commun.
 
 Le module Divi dédié aux occurrences reste hors de ce jalon.
+
+## Livraison beta.3
+
+Le bloc wp-seed-events/occurrence-collection est livre dans 0.2.0-beta.3. Son apercu est borne dans l'editeur, tandis que le frontend repete le modele complet sous un contexte occurrence isole. Aucun post technique, template concurrent ou dependance Spectra n'est introduit.
