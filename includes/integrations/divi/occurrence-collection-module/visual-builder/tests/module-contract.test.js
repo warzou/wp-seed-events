@@ -40,6 +40,14 @@ assert.strictEqual(defaults.grouped_limit, 200);
   );
 });
 
+['from', 'to'].forEach((field) => {
+  assert.strictEqual(items[field].description, 'Format : AAAA-MM-JJ');
+  assert.strictEqual(items[field].component.name, 'divi/text');
+});
+assert.ok(source.includes('new URLSearchParams(requestData).toString()'));
+assert.ok(!source.includes('toLocaleDateString'));
+assert.ok(!source.includes('toLocaleString'));
+
 assert.deepStrictEqual(Object.keys(items.mode.component.props.options), ['flat', 'grouped']);
 assert.deepStrictEqual(Object.keys(items.status.component.props.options), ['upcoming', 'past', 'all']);
 assert.deepStrictEqual(Object.keys(items.order.component.props.options), [
