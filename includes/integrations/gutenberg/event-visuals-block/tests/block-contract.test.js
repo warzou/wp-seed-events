@@ -299,7 +299,7 @@ check('packaging includes runtime assets and excludes sources', () => {
 check('Gutenberg Dates matches the expanded controls build', () => {
   assert.strictEqual(
     hash(datesRoot, 'build', 'index.js'),
-    '9243A535AE06A3867E2804FE2B27C477ADEE860B96E6687CD0332C6495CDA1D6',
+    '841B579B83F242F8D85F161516953A54743C81C5ADBC56B6A6EB8D2D7E5A78F3',
   );
 });
 

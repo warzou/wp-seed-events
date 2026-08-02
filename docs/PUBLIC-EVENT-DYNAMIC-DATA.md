@@ -244,3 +244,7 @@ attribut cible. Le registre fournit des projections neutres déjà normalisées.
   besoin builder validé.
 
 Le composant Personnes existe comme renderer structuré et comme adaptateur Divi et Gutenberg. Les coordonnées restent volontairement absentes de Dynamic Data : elles ne peuvent être rendues que par le composant Personnes après filtrage des permissions de publication.
+
+## Apercu image Divi dans une boucle
+
+La source image `communication_visual` reste une URL publique HTTP/HTTPS scalaire. Pour le canvas Divi 5, l'adaptateur de preview recupere cette valeur dans l'item courant de `/divi/v1/loop/query-results` et la transmet au module Image natif. Il ne change ni le contrat Event Data ni la valeur frontend, et ne reutilise jamais le post global ou un item precedent.

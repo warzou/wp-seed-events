@@ -157,3 +157,9 @@ Le ZIP inclut le bundle compilé et `src/module.json`, requis par l'enregistreme
 - aucune ouverture imposée dans un nouvel onglet ;
 - un seul document PDF ;
 - l'aperçu d'une page ordinaire sans événement reste volontairement vide.
+
+## Apercu dans le module Image natif
+
+Dans une boucle Divi 5, la donnee dynamique `WP Seed Events - Visuel de communication` fournit une URL publique scalaire au module Image natif. Le Visual Builder lit l'item courant du store de boucle et applique cette URL aux attributs runtime de l'image sans modifier le contenu sauvegarde. Le frontend, le lien dynamique vers la fiche evenement et les identifiants historiques restent inchanges.
+
+Un evenement prive, incompatible ou sans visuel reste vide. Aucun fallback vers le post global ou l'item precedent n'est effectue. La recette de reference couvre Divi 5.9.0, deux images distinctes et deux boucles independantes.

@@ -101,3 +101,7 @@ L'updater securise est livre a partir de `0.2.0-beta.2`. Une installation en pre
 ## Validation corrective beta.5
 
 La transition native de `0.2.0-beta.4` vers `0.2.0-beta.5` valide le meme contrat avec une release corrective : prerelease officielle, ZIP runtime-only, checksum obligatoire, details natifs, installation dans `wp-seed-events/`, plugin actif et runtime strictement identique a l'asset GitHub.
+
+## Validation corrective beta.6
+
+La release `0.2.0-beta.6` conserve le contrat de mise a jour natif : prerelease officielle, ZIP runtime-only, checksum obligatoire, details natifs et installation finale dans `wp-seed-events/`. Elle doit etre proposee aux installations beta.5 ayant active le canal des prereleases, puis le runtime installe doit correspondre strictement a l'asset GitHub.

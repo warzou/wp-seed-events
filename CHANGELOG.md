@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-beta.6 - 2026-08-02
+
+### Apercu image dynamique dans le canvas Divi
+
+- Le module Image natif de Divi 5 affiche desormais le vrai visuel de communication dans le Visual Builder lorsqu'il est utilise dans une boucle d'evenements.
+- La resolution utilise l'item courant du store de boucle Divi et l'URL publique scalaire deja exposee par le contrat Dynamic Data.
+- Aucun fallback vers le post global ou l'item precedent n'est autorise ; les evenements prives ou sans visuel restent vides.
+- Le frontend et les liens dynamiques vers les fiches evenements restent inchanges.
+- La recette Divi 5.9.0 couvre deux images distinctes, deux boucles independantes et l'absence de fuite de contexte.
 ## 0.2.0-beta.5 - 2026-08-02
 
 ### Apercu Dynamic Data Divi
