@@ -76,6 +76,8 @@ La résolution partagée Divi donne priorité à l'élément de boucle, puis au 
 
 Le module ne propose pas de sélecteur d'événement et ne persiste aucun ID fixe.
 
+Dans le Loop Builder, Divi injecte `__loop_post_id` dans le bloc répété. Le renderer PHP donne priorité à cette valeur résolue, puis utilise le résolveur d'ancêtre canonique. L'aperçu React accepte les attributs Divi ordinaires et Immutable ; il transmet le même `loop_id` à la route REST. Aucun contexte n'est conservé entre deux items ou deux instances.
+
 ## Aperçu REST
 
 Route :

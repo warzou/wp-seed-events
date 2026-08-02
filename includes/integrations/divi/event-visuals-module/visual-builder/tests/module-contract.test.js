@@ -22,6 +22,7 @@ const bootstrap = fs.readFileSync(
 );
 const packageJson = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'package.json'), 'utf8'));
 const buildScript = fs.readFileSync(path.join(pluginRoot, 'build-dev-zip.ps1'), 'utf8');
+const { getDiviAttribute, getDiviLoopPostId } = require(path.join(root, 'src', 'loop-context.js'));
 const datesBundlePath = path.join(
   pluginRoot,
   'includes',
@@ -115,6 +116,22 @@ test('loop context consumes the Divi runtime loop post ID', () => {
   assert.ok(!phpModule.includes('WPSEED_V4_CONTEXT'));
 });
 
+test('Visual Builder reads plain and Immutable Divi loop attributes', () => {
+  const immutableAttrs = {
+    get: (key) => (key === '__loop_post_id' ? '202' : undefined),
+  };
+
+  assert.strictEqual(getDiviAttribute({ __loop_post_id: '101' }, '__loop_post_id'), '101');
+  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '101' }), 101);
+  assert.strictEqual(getDiviLoopPostId(immutableAttrs), 202);
+});
+
+test('Visual Builder rejects missing or invalid Divi loop IDs', () => {
+  assert.strictEqual(getDiviLoopPostId({}), 0);
+  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: 'not-an-id' }), 0);
+  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '-10' }), 0);
+  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '10.5' }), 0);
+});
 test('Event Data API is called exactly once', () => {
   assert.strictEqual((phpModule.match(/wp_seed_events_get_event_data/g) || []).length, 1);
 });
@@ -230,5 +247,5 @@ test('Dates bundle matches the validated Loop Builder context build', () => {
   );
 });
 
-assert.strictEqual(passed, 22);
-console.log('Divi event visuals module contract: 22/22 OK');
+assert.strictEqual(passed, 24);
+console.log('Divi event visuals module contract: 24/24 OK');

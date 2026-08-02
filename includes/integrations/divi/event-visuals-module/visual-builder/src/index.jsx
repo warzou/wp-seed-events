@@ -15,6 +15,7 @@ const {
 const { useFetch } = window.divi.rest;
 
 import metadata from './module.json';
+import { getDiviLoopPostId } from './loop-context';
 
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
@@ -86,7 +87,7 @@ const EventVisualsPreview = ({ attrs, id, name, elements }) => {
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const postId = Number(currentPage?.id ?? 0);
-  const loopPostId = Number(attrs?.__loop_post_id ?? 0);
+  const loopPostId = getDiviLoopPostId(attrs);
 
   const requestData = useMemo(
     () => ({

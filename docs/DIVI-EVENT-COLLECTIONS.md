@@ -78,22 +78,19 @@ mixtes ou les autres routes Divi.
 La pagination, les inclusions et exclusions natives restent appliquées par
 Divi. Deux boucles présentes sur une même page sont résolues indépendamment.
 
-## Limite connue du Visual Builder
+## Contexte du module Visuels dans le Visual Builder
 
-Dans Divi 5.9, l'aperçu d'un module métier placé dans une boucle peut
-rester vide lorsque le canvas ne transmet pas le contexte de l'item au module
-enfant. Cette limite peut notamment affecter l'aperçu de **Visuels de
-communication** sans affecter le rendu frontend.
+Le module **Visuels de communication** lit l'identifiant injecte par le Loop
+Builder dans les attributs de chaque item, y compris lorsque Divi fournit une
+structure Immutable au renderer React. Le frontend donne priorite a l'attribut
+resolu du bloc repete et utilise ensuite le resolveur d'ancetre officiel de
+Divi.
 
-Le frontend résout le contexte de l'ancêtre répété avec le mécanisme Divi
-prévu pour `loop_id` et reste le rendu de référence. Une collection doit donc
-être contrôlée sur le frontend avant publication. Aucun ID fixe, shortcode ou
-fallback vers un autre événement ne doit être ajouté pour forcer l'aperçu.
-
-Le shortcode `[wp_seed_events]` reste le fallback universel et consomme le
-même contrat canonique. Aucun utilisateur ne doit renseigner les metas privées
-historiques de WP Seed Events dans Divi.
-
+Chaque carte conserve ainsi son propre evenement dans l'apercu et sur le
+frontend. Plusieurs items ou plusieurs modules sur une meme page ne partagent
+aucun etat de contexte. Une boucle incompatible ou un evenement prive reste
+vide, sans repli vers la page porteuse, le premier evenement ou l'item
+precedent.
 ## Reutiliser une carte avec les outils Divi
 
 Le parcours recommande reste entierement natif :

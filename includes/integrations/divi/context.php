@@ -32,8 +32,15 @@ function wp_seed_events_divi_get_module_event_context( $attrs, $block ) {
 	$parsed_attrs = isset( $parsed_block['attrs'] ) && is_array( $parsed_block['attrs'] )
 		? $parsed_block['attrs']
 		: array();
-	$module_attrs = array_replace( $parsed_attrs, $attrs );
-	$loop_post_id = absint( $module_attrs['__loop_post_id'] ?? 0 );
+	// Divi resolves loop variables on the parsed repeated block. Keep that
+	// resolved value authoritative when callback attributes still contain the
+	// original dynamic variable expression.
+	$module_attrs = array_replace( $attrs, $parsed_attrs );
+	$loop_post_id = absint( $parsed_attrs['__loop_post_id'] ?? 0 );
+
+	if ( 0 === $loop_post_id ) {
+		$loop_post_id = absint( $attrs['__loop_post_id'] ?? 0 );
+	}
 
 	$dynamic_content_utils = '\\ET\\Builder\\Packages\\Module\\Layout\\Components\\DynamicContent\\DynamicContentUtils';
 	$module_id             = isset( $parsed_block['id'] ) && is_scalar( $parsed_block['id'] )

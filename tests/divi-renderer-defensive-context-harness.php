@@ -69,7 +69,7 @@ namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
 
 	$GLOBALS['defensive_cases']      = 0;
-	$GLOBALS['defensive_post_types'] = array( 10 => 'wp_seed_event', 20 => 'page' );
+	$GLOBALS['defensive_post_types'] = array( 10 => 'wp_seed_event', 11 => 'wp_seed_event', 12 => 'wp_seed_event', 13 => 'wp_seed_event', 20 => 'page' );
 	$GLOBALS['defensive_queried_id'] = 0;
 	$GLOBALS['defensive_current_id'] = 0;
 
@@ -78,8 +78,14 @@ namespace {
 	}
 
 	class WP_REST_Request {
+		private $params;
+
+		public function __construct( $params = array() ) {
+			$this->params = is_array( $params ) ? $params : array();
+		}
+
 		public function get_param( $key ) {
-			return null;
+			return $this->params[ $key ] ?? null;
 		}
 	}
 
@@ -168,7 +174,25 @@ namespace {
 	}
 
 	function wp_seed_events_get_event_data( $event_id ) {
-		return 10 === (int) $event_id ? array( 'id' => 10 ) : array();
+		$events = array(
+			10 => array(
+				'id'                   => 10,
+				'communication_visual' => array( 'id' => 101 ),
+				'other_visuals'        => array(),
+			),
+			11 => array(
+				'id'                   => 11,
+				'communication_visual' => array( 'id' => 201 ),
+				'other_visuals'        => array( array( 'id' => 202 ), array( 'id' => 203 ) ),
+			),
+			12 => array(
+				'id'                   => 12,
+				'communication_visual' => array(),
+				'other_visuals'        => array(),
+			),
+		);
+
+		return $events[ (int) $event_id ] ?? array();
 	}
 
 	function wp_seed_events_render_public_event_dates_section( $event, $options ) {
@@ -176,7 +200,25 @@ namespace {
 	}
 
 	function wp_seed_events_render_public_event_visuals_section( $event, $options ) {
-		return '<section data-kind="visuals" data-event="' . (int) $event['id'] . '"></section>';
+		$media_ids = array();
+
+		if ( 'off' !== ( $options['show_flyer'] ?? 'on' ) && ! empty( $event['communication_visual']['id'] ) ) {
+			$media_ids[] = (int) $event['communication_visual']['id'];
+		}
+
+		if ( 'off' !== ( $options['show_visuals'] ?? 'on' ) ) {
+			foreach ( $event['other_visuals'] ?? array() as $visual ) {
+				if ( ! empty( $visual['id'] ) ) {
+					$media_ids[] = (int) $visual['id'];
+				}
+			}
+		}
+
+		if ( array() === $media_ids ) {
+			return '';
+		}
+
+		return '<section data-kind="visuals" data-event="' . (int) $event['id'] . '" data-media="' . implode( ',', $media_ids ) . '"></section>';
 	}
 
 	function wp_seed_events_render_public_event_people_section( $event, $options ) {
@@ -356,6 +398,91 @@ namespace {
 		defensive_assert( 0 === $resolved, 'Strict incompatible context fell back.' );
 	} );
 
+	defensive_case( 'visuals prefers the parsed repeated-block event over a raw callback token', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-loop-a', 'attrs' => array( '__loop_post_id' => 11 ) ),
+			array( 'postId' => 20, 'postType' => 'page' ),
+			array( '__loop_post_id' => '$variable(loop_post_id)$' )
+		);
+		defensive_assert( false !== strpos( $result['html'], 'data-event="11"' ), 'Parsed loop item was not authoritative.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-media="201,202,203"' ), 'Complete visual collection was not rendered.' );
+	} );
+
+	defensive_case( 'visuals renders the flyer without other visuals', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-flyer', 'attrs' => array( '__loop_post_id' => 11 ) ),
+			array(),
+			array( 'content' => array( 'innerContent' => array( 'desktop' => array( 'value' => array( 'show_flyer' => 'on', 'show_visuals' => 'off' ) ) ) ) )
+		);
+		defensive_assert( false !== strpos( $result['html'], 'data-media="201"' ), 'Flyer was not rendered.' );
+		defensive_assert( false === strpos( $result['html'], '202' ), 'Other visuals leaked into flyer-only output.' );
+	} );
+
+	defensive_case( 'visuals renders all other visuals without the flyer', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-others', 'attrs' => array( '__loop_post_id' => 11 ) ),
+			array(),
+			array( 'content' => array( 'innerContent' => array( 'desktop' => array( 'value' => array( 'show_flyer' => 'off', 'show_visuals' => 'on' ) ) ) ) )
+		);
+		defensive_assert( false !== strpos( $result['html'], 'data-media="202,203"' ), 'Other visuals were not rendered in stable order.' );
+		defensive_assert( false === strpos( $result['html'], '201' ), 'Flyer leaked into other-visual output.' );
+	} );
+
+	defensive_case( 'visuals returns empty for an event without visuals', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-empty', 'attrs' => array( '__loop_post_id' => 12 ) )
+		);
+		defensive_assert( '' === $result['html'], 'Empty event rendered a module wrapper.' );
+	} );
+
+	defensive_case( 'visuals keeps two module instances and two loop items isolated', function () {
+		$first = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-instance-a', 'attrs' => array( '__loop_post_id' => 10 ) )
+		);
+		$second = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-instance-b', 'attrs' => array( '__loop_post_id' => 11 ) )
+		);
+		$again = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-instance-a', 'attrs' => array( '__loop_post_id' => 10 ) )
+		);
+		defensive_assert( false !== strpos( $first['html'], 'data-event="10"' ), 'First item resolved incorrectly.' );
+		defensive_assert( false !== strpos( $second['html'], 'data-event="11"' ), 'Second item resolved incorrectly.' );
+		defensive_assert( $first['html'] === $again['html'], 'Loop context leaked between successive items.' );
+		defensive_assert( 'visuals-instance-a' === $first['args']['id'], 'First module ID changed.' );
+		defensive_assert( 'visuals-instance-b' === $second['args']['id'], 'Second module ID changed.' );
+	} );
+
+	defensive_case( 'visuals Visual Builder preview uses each explicit loop item', function () {
+		$first = WP_Seed_Events_Divi_Event_Visuals_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
+		$second = WP_Seed_Events_Divi_Event_Visuals_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 11, 'show_flyer' => 'off', 'show_visuals' => 'on' ) ) );
+		defensive_assert( false !== strpos( $first['html'], 'data-event="10"' ), 'First Visual Builder item resolved incorrectly.' );
+		defensive_assert( false !== strpos( $second['html'], 'data-event="11"' ), 'Second Visual Builder item resolved incorrectly.' );
+		defensive_assert( false !== strpos( $second['html'], 'data-media="202,203"' ), 'Visual Builder options were not preserved.' );
+	} );
+
+	defensive_case( 'visuals preserves a valid non-loop event context', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-single' ),
+			array( 'postId' => 10, 'postType' => 'wp_seed_event' )
+		);
+		defensive_assert( false !== strpos( $result['html'], 'data-event="10"' ), 'Non-loop event context regressed.' );
+	} );
+
+	defensive_case( 'visuals excludes a private event returned empty by Event Data', function () {
+		$result = defensive_render(
+			WP_Seed_Events_Divi_Event_Visuals_Module::class,
+			array( 'id' => 'visuals-private', 'attrs' => array( '__loop_post_id' => 13 ) )
+		);
+		defensive_assert( '' === $result['html'], 'Private event rendered through the public Event Data contract.' );
+	} );
 	restore_error_handler();
 
 	echo 'Divi defensive renderer metadata: ' . $GLOBALS['defensive_cases'] . '/' . $GLOBALS['defensive_cases'] . ' OK' . PHP_EOL;
