@@ -29,6 +29,34 @@ namespace ET\Builder\Packages\Module\Layout\Components\DynamicContent {
 namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
 
+	class D1_Divi_REST_Request {
+		private $route;
+
+		public function __construct( $route ) {
+			$this->route = (string) $route;
+		}
+
+		public function get_route() {
+			return $this->route;
+		}
+	}
+
+	class D1_Divi_REST_Response {
+		private $data;
+
+		public function __construct( $data ) {
+			$this->data = $data;
+		}
+
+		public function get_data() {
+			return $this->data;
+		}
+
+		public function set_data( $data ) {
+			$this->data = $data;
+		}
+	}
+
 	$GLOBALS['d1_divi_loaded_sources'] = array();
 	$GLOBALS['d1_divi_wrapper_args']   = array();
 	$GLOBALS['d1_divi_events']         = array();
@@ -213,6 +241,8 @@ namespace {
 	d1_divi_event( 914, 'La Renaissance en JEu' );
 	d1_divi_event( 1011, 'Second event' );
 	d1_divi_event( 1012, 'Cache event' );
+	d1_divi_event( 1014, 'Event without visual' );
+	$GLOBALS['d1_divi_events'][ 1014 ]['communication_visual'] = null;
 	d1_divi_post( 976, 'page' );
 	d1_divi_post( 998, 'page' );
 	d1_divi_post( 1205, 'page' );
@@ -294,6 +324,89 @@ namespace {
 		);
 		$args = end( $GLOBALS['d1_divi_wrapper_args'] );
 		d1_divi_assert( 'https://cdn.example.test/visual-914.jpg' === $args['value'], 'Divi image wrapper did not receive a URL' );
+	} );
+
+	d1_divi_case( 'communication visual exposes a loop-aware Divi image source', function () use ( $sources ) {
+		$name      = 'wp_seed_events_communication_visual';
+		$loop_name = 'loop_' . $name;
+		$source    = $sources[ $name ];
+		$options   = $source->register_option_callback( array(), 1205, 'edit' );
+
+		d1_divi_assert( isset( $options[ $name ], $options[ $loop_name ] ), 'historical or loop image option missing' );
+		d1_divi_assert( 'image' === $options[ $loop_name ]['type'], 'loop image option type differs' );
+		d1_divi_assert( 'WP Seed Events — Boucle' === $options[ $loop_name ]['group'], 'loop image option group differs' );
+		d1_divi_assert( $options[ $name ]['label'] === $options[ $loop_name ]['label'], 'loop image label differs' );
+	} );
+
+	d1_divi_case( 'loop communication visual resolves distinct items without leaking', function () use ( $sources ) {
+		$name        = 'loop_wp_seed_events_communication_visual';
+		$source      = $sources['wp_seed_events_communication_visual'];
+		$first       = $source->render_callback( '', array( 'name' => $name, 'post_id' => 1205, 'loop_id' => 914 ) );
+		$second      = $source->render_callback( '', array( 'name' => $name, 'post_id' => 1205, 'loop_id' => 1011 ) );
+		$first_again = $source->render_callback( '', array( 'name' => $name, 'post_id' => 1205, 'loop_id' => 914 ) );
+
+		d1_divi_assert( '<span data-source="' . $name . '">https://cdn.example.test/visual-914.jpg</span>' === $first, 'first loop image differs' );
+		d1_divi_assert( '<span data-source="' . $name . '">https://cdn.example.test/visual-1011.jpg</span>' === $second, 'second loop image differs' );
+		d1_divi_assert( $first === $first_again, 'loop image leaked between repeated items' );
+	} );
+
+	d1_divi_case( 'loop communication visual preserves the Divi token until an item exists', function () use ( $sources ) {
+		global $wp_seed_events_public_event_id;
+		$name  = 'loop_wp_seed_events_communication_visual';
+		$token = '$variable({"type":"content","value":{"name":"' . $name . '","settings":{}}})$';
+
+		$wp_seed_events_public_event_id = 0;
+		$GLOBALS['d1_divi_current_id']  = 1205;
+		d1_divi_assert( $token === $sources['wp_seed_events_communication_visual']->render_callback( $token, array( 'name' => $name, 'post_id' => 1205 ) ), 'unresolved loop token was discarded' );
+	} );
+
+	d1_divi_case( 'Divi loop REST items expose isolated communication visual previews', function () {
+		$response = new D1_Divi_REST_Response(
+			array(
+				'items' => array(
+					array( 'id' => 914, 'post_type' => 'wp_seed_event' ),
+					array( 'id' => 1011, 'post_type' => 'wp_seed_event' ),
+					array( 'id' => 1014, 'post_type' => 'wp_seed_event' ),
+					array( 'id' => 1057, 'post_type' => 'wp_seed_event' ),
+					array( 'id' => 1205, 'post_type' => 'page' ),
+				),
+			)
+		);
+
+		wp_seed_events_divi_add_event_loop_dynamic_data(
+			$response,
+			null,
+			new D1_Divi_REST_Request( '/divi/v1/loop/query-results' )
+		);
+		$items = $response->get_data()['items'];
+
+		d1_divi_assert( 'https://cdn.example.test/visual-914.jpg' === $items[0]['wp_seed_events_communication_visual'], 'first preview image differs' );
+		d1_divi_assert( 'https://cdn.example.test/visual-1011.jpg' === $items[1]['wp_seed_events_communication_visual'], 'second preview image differs' );
+		d1_divi_assert( ! array_key_exists( 'wp_seed_events_communication_visual', $items[2] ), 'empty event inherited a preview image' );
+		d1_divi_assert( ! array_key_exists( 'wp_seed_events_communication_visual', $items[3] ), 'private event exposed a preview image' );
+		d1_divi_assert( ! array_key_exists( 'wp_seed_events_communication_visual', $items[4] ), 'non-event loop item was modified' );
+
+		$again = new D1_Divi_REST_Response(
+			array( 'data' => array( 'items' => array( array( 'id' => 914, 'post_type' => 'wp_seed_event' ) ) ) )
+		);
+		wp_seed_events_divi_add_event_loop_dynamic_data(
+			$again,
+			null,
+			new D1_Divi_REST_Request( '/divi/v1/loop/query-results' )
+		);
+		d1_divi_assert( 'https://cdn.example.test/visual-914.jpg' === $again->get_data()['data']['items'][0]['wp_seed_events_communication_visual'], 'second response leaked prior loop item' );
+	} );
+
+	d1_divi_case( 'unrelated REST responses remain untouched', function () {
+		$data     = array( 'items' => array( array( 'id' => 914, 'post_type' => 'wp_seed_event' ) ) );
+		$response = new D1_Divi_REST_Response( $data );
+
+		wp_seed_events_divi_add_event_loop_dynamic_data(
+			$response,
+			null,
+			new D1_Divi_REST_Request( '/wp/v2/wp_seed_event' )
+		);
+		d1_divi_assert( $data === $response->get_data(), 'unrelated REST response changed' );
 	} );
 
 	d1_divi_case( 'communication visual resolves page model and distinct events', function () use ( $sources ) {

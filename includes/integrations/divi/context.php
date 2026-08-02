@@ -139,3 +139,73 @@ function wp_seed_events_divi_resolve_event_id( $context = array() ) {
 
 	return wp_seed_events_divi_is_event( $current_post_id ) ? $current_post_id : 0;
 }
+
+/**
+ * Add public WP Seed event fields to Divi's Visual Builder loop items.
+ *
+ * Divi resolves `loop_*` variables in the browser from the corresponding
+ * property on each `/divi/v1/loop/query-results` item. Frontend rendering
+ * continues to use the Dynamic Content provider and the same event resolver.
+ *
+ * @param mixed $response REST response.
+ * @param mixed $server   REST server.
+ * @param mixed $request  REST request.
+ * @return mixed
+ */
+function wp_seed_events_divi_add_event_loop_dynamic_data( $response, $server, $request ) {
+	if (
+		! is_object( $request )
+		|| ! is_callable( array( $request, 'get_route' ) )
+		|| '/divi/v1/loop/query-results' !== $request->get_route()
+		|| ! is_object( $response )
+		|| ! is_callable( array( $response, 'get_data' ) )
+		|| ! is_callable( array( $response, 'set_data' ) )
+	) {
+		return $response;
+	}
+
+	$data = $response->get_data();
+
+	if ( ! is_array( $data ) ) {
+		return $response;
+	}
+
+	if ( isset( $data['items'] ) && is_array( $data['items'] ) ) {
+		$items =& $data['items'];
+	} elseif ( isset( $data['data']['items'] ) && is_array( $data['data']['items'] ) ) {
+		$items =& $data['data']['items'];
+	} else {
+		return $response;
+	}
+
+	foreach ( $items as &$item ) {
+		if ( ! is_array( $item ) || 'wp_seed_event' !== ( $item['post_type'] ?? '' ) ) {
+			continue;
+		}
+
+		$event_id = wp_seed_events_divi_resolve_event_id(
+			array( 'loop_id' => absint( $item['id'] ?? 0 ) )
+		);
+		$image    = 0 !== $event_id
+			? wp_seed_events_dynamic_data_get_value( 'communication_visual', $event_id )
+			: array();
+
+		$image_url = is_array( $image )
+			? wp_seed_events_sanitize_public_http_url( $image['url'] ?? '' )
+			: '';
+
+		if ( '' !== $image_url ) {
+			$item['wp_seed_events_communication_visual'] = $image_url;
+		} else {
+			unset( $item['wp_seed_events_communication_visual'] );
+		}
+	}
+	unset( $item );
+
+	$response->set_data( $data );
+
+	return $response;
+}
+if ( function_exists( 'add_filter' ) ) {
+	add_filter( 'rest_post_dispatch', 'wp_seed_events_divi_add_event_loop_dynamic_data', 10, 3 );
+}
