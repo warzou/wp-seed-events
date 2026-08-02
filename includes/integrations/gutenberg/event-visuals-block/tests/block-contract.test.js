@@ -299,7 +299,7 @@ check('packaging includes runtime assets and excludes sources', () => {
 check('Gutenberg Dates matches the expanded controls build', () => {
   assert.strictEqual(
     hash(datesRoot, 'build', 'index.js'),
-    'EF6751EF1E9415C55EF73A01EEE200F25577726A861E1D441DB5BE8BFE13D3BE',
+    'AFD8F7E9145A8712CF75441DD17A45F10A518033AF0DE9F6E972B56A52D29DDF',
   );
 });
 
@@ -319,7 +319,7 @@ check('Divi modules match the validated Loop Builder context builds', () => {
   );
   assert.strictEqual(
     hash(diviVisualsRoot, 'build', 'wp-seed-events-event-visuals.js'),
-    'C82A7AB7A185D8373C35225390C4DA97956F7B414FD6D35CA2A9F558F1355F5F',
+    'D3984CB3A5BD2C2CCAE53903D24327D06C4C380BCA236A3FDF4416C4B7F0F644',
   );
 });
 

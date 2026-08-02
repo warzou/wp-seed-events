@@ -1,13 +1,14 @@
 # Changelog
 
-## 0.2.0-beta.4 - en preparation
+## 0.2.0-beta.4 - 2026-08-02
 
 ### Correction Divi
 
 - Le module Visuels de communication conserve l'identifiant de l'evenement courant dans chaque item du Loop Builder.
 - L'apercu Visual Builder lit les attributs Divi ordinaires et Immutable sans repli vers la page porteuse ou un autre evenement.
 - Le frontend donne priorite a l'attribut resolu du bloc repete, puis reutilise le resolveur canonique Divi existant.
-- Aucun changement de donnees, de contrat media ou de version n'est applique par ce correctif.
+- La recette Divi 5.9.0 couvre deux evenements avec des collections distinctes, un evenement sans visuel, deux modules, l'apercu REST, le frontend et les largeurs 1440, 820, 390 et 320 px.
+- Aucun changement de donnees ni de contrat media n'est applique par ce correctif.
 ## 0.2.0-beta.3 - 2026-07-30
 
 Cette beta ajoute le domaine Promotion, le lifecycle v3, les collections publiques d'occurrences et leurs adaptateurs Gutenberg et Divi. Elle finalise aussi l'updater WordPress natif et clarifie le format ISO des filtres de date Divi, sans migration des donnees metier.

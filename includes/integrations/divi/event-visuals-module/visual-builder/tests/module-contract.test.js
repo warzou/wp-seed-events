@@ -235,6 +235,7 @@ test('packaging requires runtime assets and excludes sources', () => {
   assert.ok(buildScript.includes('event-visuals-module/visual-builder'));
   assert.ok(buildScript.includes('wp-seed-events-event-visuals.js'));
   assert.ok(buildScript.includes('src/index.jsx'));
+  assert.ok(buildScript.includes('src/loop-context.js'));
   assert.ok(buildScript.includes('tests/*'));
   assert.ok(buildScript.includes('webpack.config.js'));
 });

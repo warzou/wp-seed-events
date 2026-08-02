@@ -68,7 +68,8 @@ $excludedRuntimePatterns += @(
     ($visualsModuleRuntimeRoot + '/package-lock.json'),
     ($visualsModuleRuntimeRoot + '/webpack.config.js'),
     ($visualsModuleRuntimeRoot + '/tests/*'),
-    ($visualsModuleRuntimeRoot + '/src/index.jsx')
+    ($visualsModuleRuntimeRoot + '/src/index.jsx'),
+    ($visualsModuleRuntimeRoot + '/src/loop-context.js')
 )
 
 foreach ($visualsModuleAsset in @($visualsModuleJson, $visualsModuleBundle)) {

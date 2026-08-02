@@ -5,7 +5,7 @@ Ce guide présente le parcours courant de WP Seed Events, de la création d'un
 autonome : Spectra n'est pas requis et WP Seed Content Kit n'est pas une
 dépendance.
 
-Ce guide accompagne `0.2.0-beta.3`. Les contrats Collections, Dates et
+Ce guide accompagne `0.2.0-beta.4`. Les contrats Collections, Dates et
 Personnes sont figés pour cette phase de stabilisation. L'updater officiel
 détecte les releases GitHub autorisées, mais aucune mise à jour automatique en
 arrière-plan n'est activée.
