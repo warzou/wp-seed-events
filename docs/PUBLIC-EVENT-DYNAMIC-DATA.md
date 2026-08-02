@@ -149,6 +149,12 @@ dans le groupe `WP Seed Events` avec leurs libellés français.
 Les providers utilisent l'API class-based publique de Divi 5 déjà validée. Ils
 ne contiennent ni shortcode, ni ID fixe, ni lecture de meta, ni HTML métier.
 
+Dans une boucle Divi, la source image enregistre aussi la variante technique
+`loop_wp_seed_events_communication_visual`. La route publique Divi
+`/divi/v1/loop/query-results` est enrichie uniquement pour les items
+`wp_seed_event` publics avec l'URL canonique de leur visuel. Le contexte de boucle
+canonique est reutilise sans fallback vers le post global ; un evenement prive,
+incompatible ou sans visuel reste vide, y compris apres un autre item renseigne.
 ## Gutenberg et Spectra
 
 Gutenberg conserve la source Block Bindings événement historique :

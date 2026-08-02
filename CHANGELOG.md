@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-beta.5 - 2026-08-02
+
+### Apercu Dynamic Data Divi
+
+- La donnee dynamique `Visuel de communication` expose une variante `loop_*` comprise par le Visual Builder Divi 5.
+- La reponse Divi `/divi/v1/loop/query-results` fournit l'URL canonique du visuel pour chaque evenement public de la boucle.
+- Le Visual Builder et le frontend affichent le meme visuel sans fallback vers le post global ni fuite entre items ou boucles.
+- Les evenements prives, incompatibles ou sans visuel restent vides ; le lien dynamique vers la fiche evenement reste inchange.
+- La recette Divi 5.9.0 couvre deux evenements aux visuels distincts, un evenement sans visuel et deux boucles independantes.
 ## 0.2.0-beta.4 - 2026-08-02
 
 ### Correction Divi

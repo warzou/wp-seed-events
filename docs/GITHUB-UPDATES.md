@@ -98,3 +98,6 @@ L'updater securise est livre a partir de `0.2.0-beta.2`. Une installation en pre
 ## Validation officielle beta.3
 
 0.2.0-beta.3 est la premiere release utilisee pour valider de bout en bout la transition native depuis 0.2.0-beta.2. Les assets officiels restent le ZIP runtime-only et son fichier .sha256 ; les archives source GitHub ne sont jamais installees. Le controle couvre la proposition dans Extensions, la fiche de details, le checksum, la racine finale wp-seed-events/, l'activation et la correspondance stricte du runtime.
+## Validation corrective beta.5
+
+La transition native de `0.2.0-beta.4` vers `0.2.0-beta.5` valide le meme contrat avec une release corrective : prerelease officielle, ZIP runtime-only, checksum obligatoire, details natifs, installation dans `wp-seed-events/`, plugin actif et runtime strictement identique a l'asset GitHub.
