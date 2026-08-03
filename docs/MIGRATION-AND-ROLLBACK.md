@@ -165,3 +165,17 @@ L'updater n'ajoute aucun rollback automatique. La sauvegarde exacte du dossier a
 La mise a jour depuis beta.2 ne modifie ni les occurrences canoniques, ni les contenus, ni les slugs, ni les autorisations Personnes. Elle cree ou met a niveau uniquement la table de projections lifecycle v3, puis reconstruit les lignes techniques en lots bornes depuis `_wp_seed_event_occurrences`.
 
 Avant la mise a jour, sauvegarder la base et le dossier plugin actif. Apres installation, executer le backfill officiel jusqu'a `ready=true`, verifier l'absence de doublon et d'orphelin, puis recetter Collections, REST, ICS, Gutenberg et Divi. Un rollback du plugin ne requiert aucune conversion des donnees metier : la table de projections peut etre reconstruite par une version compatible.
+
+## Migration vers Lifecycle V4 : classifications natives
+
+Lifecycle V4 projette les types existants vers `wp_seed_event_type`, la case
+d'epinglage vers le terme `featured` de `wp_seed_event_flag`, et la prochaine
+occurrence active vers la valeur de tri reconstructible. La migration est
+bornee, verrouillee, idempotente et reprenable par le panneau lifecycle
+existant. Elle conserve V3, ne modifie aucune donnee editoriale et reste
+`ready=false` jusqu'au controle d'integrite final.
+
+Avant migration, sauvegarder SQL et runtime. Apres migration, verifier les
+termes, les types principaux et secondaires, les epingles, le tri ASC/DESC,
+les evenements sans date, REST et les boucles. Un rollback restaure la
+sauvegarde ; aucune conversion inverse de contenu metier n'est necessaire.

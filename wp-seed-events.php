@@ -39,6 +39,7 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 }
 
 require_once __DIR__ . '/includes/public/occurrences.php';
+require_once __DIR__ . '/includes/public/classifications.php';
 require_once __DIR__ . '/includes/public/promotions.php';
 require_once __DIR__ . '/includes/admin/promotions.php';
 require_once __DIR__ . '/includes/admin/occurrence-projection.php';
@@ -135,6 +136,7 @@ add_shortcode( 'wp_seed_event_place', 'wp_seed_events_event_place_shortcode' );
 add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_info_shortcode' );
 
 function wp_seed_events_activate() {
+	wp_seed_events_register_native_classifications();
 	wp_seed_events_register_event_post_type();
 	wp_seed_events_install_occurrence_projection_table();
 	wp_seed_events_run_lifecycle_index_backfill_batch( true );
@@ -524,7 +526,9 @@ function wp_seed_events_event_type_public_slug( $type_key ) {
 		return '';
 	}
 
-	return sanitize_title( $options[ $type_key ] );
+	return function_exists( 'wp_seed_events_native_event_type_slug' )
+		? wp_seed_events_native_event_type_slug( $type_key )
+		: sanitize_title( $options[ $type_key ] );
 }
 
 function wp_seed_events_event_type_keys_for_event( $post_id ) {
@@ -703,25 +707,8 @@ function wp_seed_events_sort_event_admin_by_next_date( $query ) {
 		return;
 	}
 
-	wp_seed_events_initialize_missing_next_occurrence_sort_meta();
-
-	$order = 'DESC' === strtoupper( (string) $query->get( 'order' ) ) ? 'DESC' : 'ASC';
-
-	$query->set(
-		'meta_query',
-		array(
-			'relation'                => 'OR',
-			'next_occurrence_sort'    => array(
-				'key'     => '_wp_seed_event_next_occurrence_sort',
-				'compare' => 'EXISTS',
-			),
-			'next_occurrence_missing' => array(
-				'key'     => '_wp_seed_event_next_occurrence_sort',
-				'compare' => 'NOT EXISTS',
-			),
-		)
-	);
-	$query->set( 'orderby', array( 'next_occurrence_sort' => $order ) );
+	$query->set( 'orderby', 'wp_seed_next_occurrence' );
+	$query->set( 'wp_seed_next_occurrence_missing', 'last' );
 }
 
 function wp_seed_events_prefix_pinned_event_admin_title( $title, $post_id ) {
@@ -914,7 +901,10 @@ function wp_seed_events_next_occurrence_sort_value( $occurrences ) {
 	$valid_occurrences = array_filter(
 		$occurrences,
 		function ( $occurrence ) {
-			return is_array( $occurrence ) && ! empty( $occurrence['start_date'] );
+			return is_array( $occurrence )
+				&& ! empty( $occurrence['start_date'] )
+				&& empty( $occurrence['cancelled'] )
+				&& empty( $occurrence['is_cancelled'] );
 		}
 	);
 
@@ -933,9 +923,7 @@ function wp_seed_events_next_occurrence_sort_value( $occurrences ) {
 		}
 	}
 
-	$last_occurrence = end( $valid_occurrences );
-
-	return wp_seed_events_occurrence_sort_value( $last_occurrence );
+	return '';
 }
 function wp_seed_events_initialize_missing_next_occurrence_sort_meta() {
 	$event_ids = get_posts(
@@ -972,7 +960,10 @@ function wp_seed_events_next_occurrence_for_event( $post_id ) {
 	$valid_occurrences = array_filter(
 		$occurrences,
 		function ( $occurrence ) {
-			return is_array( $occurrence ) && ! empty( $occurrence['start_date'] );
+			return is_array( $occurrence )
+				&& ! empty( $occurrence['start_date'] )
+				&& empty( $occurrence['cancelled'] )
+				&& empty( $occurrence['is_cancelled'] );
 		}
 	);
 
@@ -989,7 +980,7 @@ function wp_seed_events_next_occurrence_for_event( $post_id ) {
 		}
 	}
 
-	return end( $valid_occurrences );
+	return array();
 }
 
 function wp_seed_events_place_name_for_event( $post_id ) {

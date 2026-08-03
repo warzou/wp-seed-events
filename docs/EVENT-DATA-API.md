@@ -22,7 +22,11 @@ $event = wp_seed_events_get_event_data( 123 );
 | `title` | `string` | Titre public. |
 | `slug` | `string` | Slug public de l'evenement, utilise avec `id` et `title` comme identite du theme. |
 | `url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
-| `types` | `string[]` | Libelles publics des types associes. |
+| `types` | `string[]` | Alias historique des libelles publics des types associes. |
+| `primary_type` | `array|null` | Type principal explicite : `key`, `slug`, `label`. |
+| `secondary_types` | `array[]` | Types secondaires publics. |
+| `all_types` | `array[]` | Ensemble ordonne des types publics. |
+| `is_pinned` | `bool` | Etat public de la case Evenement epingle. |
 | `occurrences` | `array[]` | Occurrences normalisees, annulees incluses. |
 | `promotions` | `array[]` | Promotions publiques distinctes des occurrences. |
 | `parcours_years` | `int[]` | Annees du parcours distinctes, triees de 1 a 4. |
@@ -51,6 +55,7 @@ Un objet Media expose : `id`, `url`, `mime_type`, `title`, `alt`, `caption`, `fi
 Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `public_phone` et `public_url`. Les alias `email`, `phone` et `link` reproduisent uniquement ces valeurs deja autorisees ; ils ne contournent jamais les permissions de publication.
 
 Le schema des occurrences est defini dans [Event Occurrences API](EVENT-OCCURRENCES-API.md).
+Le contrat des classifications natives et du tri est defini dans [Classifications natives](NATIVE-EVENT-CLASSIFICATIONS.md).
 Le schema Promotion et ses routes sont definis dans
 [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
 

@@ -354,6 +354,12 @@ function wp_seed_events_get_event_occurrences( $event_id ) {
 	return $result;
 }
 
+function wp_seed_events_sync_native_event_query_projection( $event_id ) {
+	return '';
+}
+function wp_seed_events_verify_native_classification_integrity() {
+	return true;
+}
 require dirname( __DIR__ ) . '/includes/admin/occurrence-projection.php';
 require dirname( __DIR__ ) . '/includes/admin/lifecycle-index.php';
 require dirname( __DIR__ ) . '/includes/admin/lifecycle-index-backfill.php';
@@ -371,7 +377,7 @@ foreach ( array( 'UNIQUE KEY event_occurrence', 'KEY promotion_year_start', 'KEY
 foreach ( array( 'person', 'email', 'phone', 'place', 'media', 'html' ) as $private_column ) {
 	v3_assert( false === strpos( wp_seed_events_occurrence_projection_schema(), $private_column ), 'Unnecessary projection data found: ' . $private_column );
 }
-v3_same( 3, wp_seed_events_lifecycle_index_expected_version(), 'Lifecycle version is not 3.' );
+v3_same( 4, wp_seed_events_lifecycle_index_expected_version(), 'Lifecycle version is not 4.' );
 v3_same( 25, wp_seed_events_lifecycle_index_batch_size(), 'Batch size changed.' );
 v3_same( 300, wp_seed_events_lifecycle_index_lock_ttl(), 'Lock TTL changed.' );
 
@@ -487,13 +493,13 @@ $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'] = array(
 	array( 'uid' => $uuid_a, 'start_date' => '2027-01-15' ),
 );
 wp_seed_events_sync_occurrence_projection( $event_id );
-$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 3;
+$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 4;
 $GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_progress_option_name() ] = array(
-	'version' => 3,
+	'version' => 4,
 	'status'  => 'complete',
 	'errors'  => 0,
 );
-v3_assert( wp_seed_events_is_lifecycle_index_ready(), 'Completed v3 lifecycle is not ready.' );
+v3_assert( wp_seed_events_is_lifecycle_index_ready(), 'Completed v4 lifecycle is not ready.' );
 v3_same( 1, count( wp_seed_events_get_occurrence_projection_rows( $event_id ) ), 'Ready index reader differs.' );
 
 $GLOBALS['wpdb']->fail_insert = true;
@@ -505,9 +511,9 @@ v3_same( 'failed', $failed_progress['status'], 'Failed targeted sync did not rec
 v3_assert( in_array( $event_id, $failed_progress['error_ids'], true ), 'Failed targeted sync did not queue an exact retry.' );
 
 wp_seed_events_sync_occurrence_projection( $event_id );
-$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 3;
+$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 4;
 $GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_progress_option_name() ] = array(
-	'version' => 3,
+	'version' => 4,
 	'status'  => 'complete',
 	'errors'  => 0,
 );
@@ -529,7 +535,7 @@ $GLOBALS['v3_options'] = array(
 $GLOBALS['wpdb']->table_exists = true;
 $migrated = wp_seed_events_run_lifecycle_index_backfill_batch();
 v3_assert( is_array( $migrated ) && 'complete' === $migrated['status'], 'V2 to V3 migration did not complete.' );
-v3_same( 3, get_option( wp_seed_events_lifecycle_index_version_option_name() ), 'V3 version was not stored.' );
+v3_same( 4, get_option( wp_seed_events_lifecycle_index_version_option_name() ), 'V4 version was not stored.' );
 v3_assert( wp_seed_events_is_lifecycle_index_ready(), 'Migrated lifecycle is not ready.' );
 v3_same( 1, count( $GLOBALS['wpdb']->rows ), 'Migration did not rebuild exact rows.' );
 
@@ -596,7 +602,7 @@ v3_same( 'running', $first_batch['status'], 'First bounded batch did not remain 
 v3_same( 25, $first_batch['processed'], 'First bounded batch size differs.' );
 v3_same( 25, $first_batch['cursor_id'], 'First bounded batch cursor differs.' );
 v3_assert( ! wp_seed_events_is_lifecycle_index_ready(), 'Interrupted migration became ready too early.' );
-v3_assert( ! array_key_exists( wp_seed_events_lifecycle_index_version_option_name(), $GLOBALS['v3_options'] ), 'Interrupted migration stored the v3 version.' );
+v3_assert( ! array_key_exists( wp_seed_events_lifecycle_index_version_option_name(), $GLOBALS['v3_options'] ), 'Interrupted migration stored the v4 version.' );
 
 $last_batch = wp_seed_events_run_lifecycle_index_backfill_batch();
 v3_same( 'complete', $last_batch['status'], 'Last partial batch did not complete.' );

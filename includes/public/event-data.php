@@ -104,6 +104,16 @@ function wp_seed_events_get_event_data( $event_id ) {
 	)
 		? wp_seed_events_sanitize_public_http_url( $media['event_document']['url'] ?? '' )
 		: '';
+	$type_data = function_exists( 'wp_seed_events_event_type_data_for_event' )
+		? wp_seed_events_event_type_data_for_event( $event_id )
+		: array(
+			'primary_type'   => null,
+			'secondary_types' => array(),
+			'all_types'       => array(),
+		);
+	$is_pinned = function_exists( 'wp_seed_events_event_is_pinned' )
+		? wp_seed_events_event_is_pinned( $event_id )
+		: false;
 
 	return array(
 		'id'                => $event_id,
@@ -111,6 +121,10 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'title'             => get_the_title( $event_id ),
 		'url'               => $event_url,
 		'types'             => wp_seed_events_event_type_labels_for_event( $event_id ),
+		'primary_type'      => $type_data['primary_type'],
+		'secondary_types'   => $type_data['secondary_types'],
+		'all_types'         => $type_data['all_types'],
+		'is_pinned'         => $is_pinned,
 		'occurrences'        => $occurrences,
 		'promotions'         => $promotions,
 		'parcours_years'     => array_values( $parcours_years ),

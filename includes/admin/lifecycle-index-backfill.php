@@ -18,7 +18,7 @@ if ( ! defined( 'WP_SEED_EVENTS_LIFECYCLE_INDEX_LOCK_TTL' ) ) {
 add_action( 'admin_post_wp_seed_events_run_lifecycle_index_backfill', 'wp_seed_events_handle_lifecycle_index_backfill' );
 
 function wp_seed_events_lifecycle_index_expected_version() {
-	return 3;
+	return 4;
 }
 
 function wp_seed_events_lifecycle_index_version_option_name() {
@@ -313,6 +313,10 @@ function wp_seed_events_run_lifecycle_index_backfill_batch( $restart = false ) {
 			$progress['status'] = 'running';
 		} else {
 			$integrity = wp_seed_events_verify_occurrence_projection_integrity();
+
+			if ( ! is_wp_error( $integrity ) ) {
+				$integrity = wp_seed_events_verify_native_classification_integrity();
+			}
 
 			if ( is_wp_error( $integrity ) ) {
 				$progress['status'] = 'failed';

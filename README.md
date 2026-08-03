@@ -90,6 +90,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 
 ## Developpeurs
 
+- [Classifications natives et tri](docs/NATIVE-EVENT-CLASSIFICATIONS.md)
 - [Event Data API](docs/EVENT-DATA-API.md)
 - [Event Occurrences API](docs/EVENT-OCCURRENCES-API.md)
 - [Occurrence Collections](docs/OCCURRENCE-COLLECTIONS.md)

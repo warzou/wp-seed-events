@@ -18,6 +18,7 @@ Les surfaces suivantes sont publiques et reutilisables :
 - `wp_seed_events_get_event_occurrences()`, `wp_seed_events_get_next_active_occurrence()`, `wp_seed_events_get_last_active_occurrence()` et `wp_seed_events_get_event_lifecycle()` ;
 - `wp_seed_events_get_promotion()` et `wp_seed_events_get_promotions()` ;
 - `wp_seed_events_query_event_collection()` ;
+- les taxonomies `wp_seed_event_type`, `wp_seed_event_flag` et le token WP_Query `wp_seed_next_occurrence` ;
 - `wp_seed_events_query_occurrence_collection()` et `wp_seed_events_query_grouped_occurrence_collection()` ;
 - `wp_seed_events_get_event_collection()`, alias retournant uniquement les Event Data ;
 - les renderers documentes Dates, Visuels et Personnes ;
@@ -47,6 +48,7 @@ Aucun hook PHP propre au plugin n'est actuellement declare comme extension publi
 Sont publics :
 
 - les schemas documentes Event Data et Occurrences ;
+- les classifications WordPress natives et leur contrat `tax_query` / `orderby` documente ;
 - le schema Promotion et les routes REST publiques en lecture seule documentees ;
 - le contrat Collections d'evenements `type`, `status`, `pinned`, `order`, `page`, `per_page`, `limit` ;
 - les collections d'occurrences plates et groupees, leurs schemas et leurs routes REST en lecture seule ;
@@ -68,6 +70,7 @@ Un consommateur externe utilise les APIs publiques et ne lit pas les metas, opti
 
 ## References
 
+- [Classifications natives et tri](NATIVE-EVENT-CLASSIFICATIONS.md)
 - [Event Data API](EVENT-DATA-API.md)
 - [Event Occurrences API](EVENT-OCCURRENCES-API.md)
 - [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md)
