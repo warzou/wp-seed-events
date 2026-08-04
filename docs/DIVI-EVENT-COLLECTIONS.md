@@ -167,3 +167,5 @@ le contrat de collection fondé sur les occurrences.
 Depuis `0.2.0-beta.8`, les valeurs catégorisées `selectedOptions` et le cache
 par instance sont explicitement couverts : une boucle Hero et une boucle standard
 ayant les mêmes réglages produisent les mêmes résultats.
+
+Depuis `0.2.0-beta.9`, les controles dedies sont la source unique des taxonomies Events. Les anciennes valeurs du selecteur natif sont migrees a la sauvegarde, les autres taxonomies restent intactes et la migration est idempotente.

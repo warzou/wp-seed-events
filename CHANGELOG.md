@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-beta.9 - 2026-08-04
+
+### Source unique des filtres Divi Events
+
+- Les controles dedies `Types d'evenement` et `Epinglage` sont les seules sources des taxonomies Events dans une boucle Divi.
+- Plusieurs types sont combines en OR ; le filtre d'epinglage se combine avec eux en AND.
+- Le selecteur natif Divi ne propose plus les taxonomies Events, tout en preservant les autres taxonomies.
+- Les anciennes boucles sont migrees a la sauvegarde de facon idempotente, avec gestion correcte du slashing WordPress.
+- La recette reelle de la page 1901 couvre les evenements 2414 et 2417, la duplication, la sauvegarde, la reouverture et l'isolation des boucles.
 ## 0.2.0-beta.8 - 2026-08-04
 
 ### Filtres Divi isoles par instance

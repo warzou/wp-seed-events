@@ -119,3 +119,7 @@ La release `0.2.0-beta.8` conserve le contrat de mise a jour natif et publie
 le correctif d'isolation des filtres Divi par instance. Le ZIP runtime-only et
 son fichier `.sha256` restent obligatoires ; aucune migration de donnees
 metier n'est introduite.
+
+## Release 0.2.0-beta.9
+
+La release `0.2.0-beta.9` conserve le contrat de mise a jour natif et publie la source unique des filtres Divi Events. Le ZIP runtime-only et son fichier `.sha256` restent obligatoires ; aucune migration de donnees metier n'est introduite.

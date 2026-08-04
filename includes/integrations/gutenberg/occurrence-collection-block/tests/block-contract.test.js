@@ -16,7 +16,7 @@ const contextSource = fs.readFileSync(
 
 assert.strictEqual( metadata.name, 'wp-seed-events/occurrence-collection' );
 assert.strictEqual( metadata.apiVersion, 3 );
-assert.strictEqual( metadata.version, '0.2.0-beta.8' );
+assert.strictEqual( metadata.version, '0.2.0-beta.9' );
 assert.strictEqual( metadata.attributes.mode.default, 'flat' );
 assert.deepStrictEqual( metadata.attributes.mode.enum, [ 'flat', 'grouped' ] );
 assert.strictEqual( metadata.attributes.perPage.default, 20 );
