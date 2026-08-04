@@ -18,6 +18,8 @@
 	const NAMESPACE = 'wpSeedEvents.eventCollectionFilters';
 	const EVENT_POST_TYPE = 'wp_seed_event';
 	const TYPE_TAXONOMY = 'wp_seed_event_type';
+	const FLAG_TAXONOMY = 'wp_seed_event_flag';
+	const MANAGED_TAXONOMIES = [TYPE_TAXONOMY, FLAG_TAXONOMY];
 
 	const toPlain = (value) => {
 		if (value && typeof value.toJS === 'function') {
@@ -60,6 +62,107 @@
 			: {};
 	};
 
+	const unmanagedOptions = (props) => Object.fromEntries(
+		Object.entries(props?.options || {}).filter(([taxonomy]) => !MANAGED_TAXONOMIES.includes(taxonomy))
+	);
+
+	const taxonomyForValue = (value, options) => {
+		const needle = String(value ?? '');
+
+		return Object.entries(options || {}).find(([, category]) => (
+			Object.prototype.hasOwnProperty.call(category?.options || {}, needle)
+		))?.[0] || '';
+	};
+
+	const splitNativeSelection = (selection, options = {}) => {
+		const plain = toPlain(selection);
+		const items = Array.isArray(plain) ? plain : (plain ? [plain] : []);
+		const result = { types: [], featured: false, unrelated: [] };
+
+		items.forEach((rawItem) => {
+			const item = toPlain(rawItem);
+
+			if (item && Array.isArray(toPlain(item.selectedOptions))) {
+				const taxonomy = String(item.categoryId || '');
+				const kept = [];
+
+				toPlain(item.selectedOptions).forEach((rawOption) => {
+					const option = toPlain(rawOption);
+					const value = String(option?.value ?? option ?? '');
+					const optionTaxonomy = taxonomy || taxonomyForValue(value, options);
+
+					if (optionTaxonomy === TYPE_TAXONOMY) {
+						result.types.push(option);
+					} else if (optionTaxonomy === FLAG_TAXONOMY) {
+						result.featured = true;
+					} else {
+						kept.push(option);
+					}
+				});
+
+				if (kept.length > 0) {
+					result.unrelated.push({ ...item, selectedOptions: kept });
+				}
+
+				return;
+			}
+
+			const value = String(item?.value ?? item ?? '');
+			const taxonomy = taxonomyForValue(value, options);
+
+			if (taxonomy === TYPE_TAXONOMY) {
+				result.types.push(item);
+			} else if (taxonomy === FLAG_TAXONOMY) {
+				result.featured = true;
+			} else if (value) {
+				result.unrelated.push(item);
+			}
+		});
+
+		return result;
+	};
+
+	const categorizedTypes = (types, options) => {
+		if (types.length === 0) {
+			return [];
+		}
+
+		return [{
+			categoryId: TYPE_TAXONOMY,
+			categoryName: options?.[TYPE_TAXONOMY]?.label || "Types d’événement",
+			selectedOptions: types,
+		}];
+	};
+
+	const migrateLoopValues = (rawLoopValues, options = {}) => {
+		const loopValues = { ...(toPlain(rawLoopValues) || {}) };
+		const include = splitNativeSelection(loopValues.includePostWithSpecificTerms, options);
+		const exclude = splitNativeSelection(loopValues.excludePostWithSpecificTerms, options);
+
+		if (!Object.prototype.hasOwnProperty.call(loopValues, 'wpSeedEventTypes') && include.types.length > 0) {
+			loopValues.wpSeedEventTypes = categorizedTypes(include.types, options);
+		}
+
+		if (
+			!Object.prototype.hasOwnProperty.call(loopValues, 'wpSeedEventPinned')
+			&& (include.types.length > 0 || include.featured || exclude.featured)
+		) {
+			loopValues.wpSeedEventPinned = exclude.featured
+				? 'exclude_featured'
+				: (include.featured ? 'featured_only' : 'all');
+		}
+
+		if (Object.prototype.hasOwnProperty.call(loopValues, 'includePostWithSpecificTerms')) {
+			loopValues.includePostWithSpecificTerms = include.unrelated;
+		}
+
+		if (Object.prototype.hasOwnProperty.call(loopValues, 'excludePostWithSpecificTerms')) {
+			loopValues.excludePostWithSpecificTerms = exclude.unrelated;
+		}
+
+		return loopValues;
+	};
+
 	const createFieldsFilter = () => (fields, context) => {
 		if (!isEventLoop(context?.loopValues) || !fields?.includePostWithSpecificTerms) {
 			return fields;
@@ -67,15 +170,34 @@
 
 		const nativeTypeField = fields.includePostWithSpecificTerms;
 		const nativeProps = nativeTypeField.component?.props || {};
+		const migrated = migrateLoopValues(context.loopValues, nativeProps.options);
+		const nativeUnmanagedProps = {
+			...nativeProps,
+			options: unmanagedOptions(nativeProps),
+		};
 
 		return {
 			...fields,
 			includePostWithSpecificTerms: {
 				...nativeTypeField,
-				visible: false,
+				visible: true,
+				component: {
+					...nativeTypeField.component,
+					props: nativeUnmanagedProps,
+				},
 			},
 			excludePostWithSpecificTerms: fields.excludePostWithSpecificTerms
-				? { ...fields.excludePostWithSpecificTerms, visible: false }
+				? {
+					...fields.excludePostWithSpecificTerms,
+					visible: true,
+					component: {
+						...fields.excludePostWithSpecificTerms.component,
+						props: {
+							...(fields.excludePostWithSpecificTerms.component?.props || {}),
+							options: unmanagedOptions(fields.excludePostWithSpecificTerms.component?.props || nativeProps),
+						},
+					},
+				}
 				: fields.excludePostWithSpecificTerms,
 			wpSeedEventTypes: {
 				...nativeTypeField,
@@ -84,10 +206,12 @@
 				description: 'Sélectionnez un ou plusieurs types. Plusieurs types sont combinés avec une logique OU.',
 				priority: 61,
 				visible: true,
+				defaultAttr: { desktop: { value: migrated.wpSeedEventTypes || [] } },
 				component: {
 					...nativeTypeField.component,
 					props: {
 						...nativeProps,
+						defaultValue: migrated.wpSeedEventTypes || [],
 						options: typeOptions(nativeProps),
 						showTagsWithCategory: false,
 						placeholder: '+ Sélectionner des types',
@@ -102,6 +226,7 @@
 				priority: 62,
 				render: true,
 				visible: true,
+				defaultAttr: { desktop: { value: migrated.wpSeedEventPinned || 'all' } },
 				features: {
 					dynamicContent: false,
 					hover: false,
@@ -112,7 +237,7 @@
 					type: 'field',
 					name: 'divi/select',
 					props: {
-						defaultValue: 'all',
+						defaultValue: migrated.wpSeedEventPinned || 'all',
 						options: {
 							all: { label: 'Tous' },
 							featured_only: { label: 'Uniquement les événements épinglés' },
@@ -148,7 +273,7 @@
 	};
 
 	const createQueryParamsFilter = () => (params, attrs, moduleId, queryType) => {
-		const loopValues = getLoopValues(attrs);
+		const loopValues = migrateLoopValues(getLoopValues(attrs));
 
 		if (queryType !== 'post_types' || !isEventLoop(loopValues)) {
 			return params;
@@ -186,16 +311,23 @@
 	return {
 		EVENT_POST_TYPE,
 		FIELDS_FILTER,
+		FLAG_TAXONOMY,
+		MANAGED_TAXONOMIES,
 		NAMESPACE,
 		QUERY_FILTER,
 		TYPE_TAXONOMY,
+		categorizedTypes,
 		createFieldsFilter,
 		createQueryParamsFilter,
 		getLoopValues,
 		isEventLoop,
+		migrateLoopValues,
 		register,
 		selectedPostTypes,
 		selectionValues,
+		splitNativeSelection,
+		taxonomyForValue,
 		typeOptions,
+		unmanagedOptions,
 	};
 });

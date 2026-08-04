@@ -47,6 +47,22 @@ function absint( $value ) {
 	return abs( (int) $value );
 }
 
+function wp_unslash( $value ) {
+	return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( (string) $value );
+}
+
+function wp_slash( $value ) {
+	return is_array( $value ) ? array_map( 'wp_slash', $value ) : addslashes( (string) $value );
+}
+
+function parse_blocks( $content ) {
+	$decoded = json_decode( (string) $content, true );
+	return is_array( $decoded ) ? $decoded : array();
+}
+
+function serialize_blocks( $blocks ) {
+	return json_encode( $blocks, JSON_UNESCAPED_SLASHES );
+}
 function sanitize_title( $value ) {
 	return trim( preg_replace( '/[^a-z0-9-]+/', '-', strtolower( (string) $value ) ), '-' );
 }
@@ -59,17 +75,18 @@ function divi_collection_term( $term_id, $slug, $taxonomy ) {
 	return (object) compact( 'term_id', 'slug', 'taxonomy' );
 }
 
-function get_term( $term_id, $taxonomy ) {
+function get_term( $term_id, $taxonomy = '' ) {
 	$terms = array(
 		11 => divi_collection_term( 11, 'atelier', 'wp_seed_event_type' ),
 		12 => divi_collection_term( 12, 'stage', 'wp_seed_event_type' ),
 		13 => divi_collection_term( 13, 'journee-decouverte', 'wp_seed_event_type' ),
 		14 => divi_collection_term( 14, 'reunion-information', 'wp_seed_event_type' ),
 		21 => divi_collection_term( 21, 'featured', 'wp_seed_event_flag' ),
+		30 => divi_collection_term( 30, 'actualites', 'category' ),
 	);
 	$term = $terms[ (int) $term_id ] ?? false;
 
-	return $term && $taxonomy === $term->taxonomy ? $term : false;
+	return $term && ( '' === $taxonomy || $taxonomy === $term->taxonomy ) ? $term : false;
 }
 
 function get_term_by( $field, $value, $taxonomy ) {
@@ -77,7 +94,7 @@ function get_term_by( $field, $value, $taxonomy ) {
 		return false;
 	}
 
-	foreach ( array( 11, 12, 13, 14, 21 ) as $term_id ) {
+	foreach ( array( 11, 12, 13, 14, 21, 30 ) as $term_id ) {
 		$term = get_term( $term_id, $taxonomy );
 
 		if ( $term && $value === $term->slug ) {
@@ -135,7 +152,7 @@ function divi_collection_query( $status = 'all', $pinned = 'all' ) {
 }
 
 divi_collection_case( 'hooks are registered once', function () {
-	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_before_execution', 'divi_module_options_loop_post_type_results_query_args' ) as $hook ) {
+	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_before_execution', 'divi_module_options_loop_post_type_results_query_args', 'wp_insert_post_data' ) as $hook ) {
 		divi_collection_assert( 1 === count( $GLOBALS['divi_collection_filters'][ $hook ] ?? array() ), 'Hook registration differs: ' . $hook );
 	}
 } );
@@ -460,6 +477,164 @@ divi_collection_case( 'two dedicated loops remain isolated', function () {
 	divi_collection_assert( 'IN' === $first['tax_query'][1]['operator'], 'First loop pinned state changed.' );
 	divi_collection_assert( array( 14 ) === $second['tax_query'][0]['terms'], 'Second loop type changed.' );
 	divi_collection_assert( 'NOT IN' === $second['tax_query'][1]['operator'], 'Second loop pinned state changed.' );
+} );
+
+
+divi_collection_case( 'legacy native selections migrate to dedicated controls', function () {
+	$values = array(
+		'queryType' => 'post_types',
+		'subTypes'  => array( array( 'value' => 'wp_seed_event' ) ),
+		'includePostWithSpecificTerms' => array(
+			array(
+				'categoryId'      => 'wp_seed_event_type',
+				'selectedOptions' => array(
+					array( 'value' => '13', 'label' => 'Journée découverte' ),
+					array( 'value' => '14', 'label' => 'Réunion information' ),
+				),
+			),
+			array(
+				'categoryId'      => 'wp_seed_event_flag',
+				'selectedOptions' => array( array( 'value' => '21', 'label' => 'Événement épinglé' ) ),
+			),
+			array(
+				'categoryId'      => 'category',
+				'selectedOptions' => array( array( 'value' => '30', 'label' => 'Actualités' ) ),
+			),
+		),
+	);
+	$normalized = wp_seed_events_divi_normalize_event_loop_values( $values );
+	divi_collection_assert( array( '13', '14' ) === wp_seed_events_divi_flatten_term_values( $normalized['wpSeedEventTypes'] ), 'Legacy types differ.' );
+	divi_collection_assert( 'featured_only' === $normalized['wpSeedEventPinned'], 'Legacy featured inclusion differs.' );
+	divi_collection_assert( 1 === count( $normalized['includePostWithSpecificTerms'] ), 'Unrelated taxonomy was not preserved.' );
+	divi_collection_assert( 'category' === $normalized['includePostWithSpecificTerms'][0]['categoryId'], 'Wrong native taxonomy survived.' );
+} );
+
+divi_collection_case( 'legacy featured exclusion migrates to dedicated exclusion', function () {
+	$normalized = wp_seed_events_divi_normalize_event_loop_values(
+		array(
+			'excludePostWithSpecificTerms' => array(
+				array(
+					'categoryId'      => 'wp_seed_event_flag',
+					'selectedOptions' => array( array( 'value' => '21' ) ),
+				),
+			),
+		)
+	);
+	divi_collection_assert( 'exclude_featured' === $normalized['wpSeedEventPinned'], 'Featured exclusion differs.' );
+	divi_collection_assert( array() === $normalized['excludePostWithSpecificTerms'], 'Featured remained in native exclusion.' );
+} );
+
+divi_collection_case( 'dedicated controls override old native Events terms', function () {
+	$normalized = wp_seed_events_divi_normalize_event_loop_values(
+		array(
+			'wpSeedEventTypes' => array( array( 'value' => '12' ) ),
+			'wpSeedEventPinned' => 'all',
+			'includePostWithSpecificTerms' => array(
+				array( 'categoryId' => 'wp_seed_event_type', 'selectedOptions' => array( array( 'value' => '13' ) ) ),
+				array( 'categoryId' => 'wp_seed_event_flag', 'selectedOptions' => array( array( 'value' => '21' ) ) ),
+			),
+		)
+	);
+	divi_collection_assert( array( '12' ) === wp_seed_events_divi_flatten_term_values( $normalized['wpSeedEventTypes'] ), 'Dedicated types lost priority.' );
+	divi_collection_assert( 'all' === $normalized['wpSeedEventPinned'], 'Dedicated pinned state lost priority.' );
+	divi_collection_assert( array() === $normalized['includePostWithSpecificTerms'], 'Controlled native terms survived.' );
+} );
+
+divi_collection_case( 'flat native values are classified without category wrappers', function () {
+	$normalized = wp_seed_events_divi_normalize_event_loop_values(
+		array( 'includePostWithSpecificTerms' => array( 13, 21, 30 ) )
+	);
+	divi_collection_assert( array( '13' ) === wp_seed_events_divi_flatten_term_values( $normalized['wpSeedEventTypes'] ), 'Flat type was not migrated.' );
+	divi_collection_assert( 'featured_only' === $normalized['wpSeedEventPinned'], 'Flat featured was not migrated.' );
+	divi_collection_assert( array( 30 ) === $normalized['includePostWithSpecificTerms'], 'Flat unrelated term was not preserved.' );
+} );
+
+divi_collection_case( 'saved event block migration is idempotent', function () {
+	$block = array(
+		'attrs' => array(
+			'module' => array(
+				'advanced' => array(
+					'loop' => array(
+						'desktop' => array(
+							'value' => array(
+								'queryType' => 'post_types',
+								'subTypes' => array( array( 'value' => 'wp_seed_event' ) ),
+								'includePostWithSpecificTerms' => array(
+									array( 'categoryId' => 'wp_seed_event_type', 'selectedOptions' => array( array( 'value' => '13' ), array( 'value' => '14' ) ) ),
+								),
+							),
+						),
+					),
+				),
+			),
+		),
+		'innerBlocks' => array(),
+	);
+	$changed = false;
+	$first   = wp_seed_events_divi_migrate_event_loop_block( $block, $changed );
+	divi_collection_assert( $changed, 'Legacy block was not migrated.' );
+	divi_collection_assert( array( '13', '14' ) === wp_seed_events_divi_flatten_term_values( $first['attrs']['module']['advanced']['loop']['desktop']['value']['wpSeedEventTypes'] ), 'Saved types differ.' );
+	divi_collection_assert( array() === $first['attrs']['module']['advanced']['loop']['desktop']['value']['includePostWithSpecificTerms'], 'Native field was not emptied.' );
+	$changed = false;
+	$second  = wp_seed_events_divi_migrate_event_loop_block( $first, $changed );
+	divi_collection_assert( ! $changed && $first === $second, 'Migration is not idempotent.' );
+} );
+
+divi_collection_case( 'slashed post payload migrates before storage', function () {
+	$block = array(
+		'attrs' => array(
+			'module' => array(
+				'advanced' => array(
+					'loop' => array(
+						'desktop' => array(
+							'value' => array(
+								'queryType' => 'post_types',
+								'subTypes' => array( array( 'value' => 'wp_seed_event' ) ),
+								'includePostWithSpecificTerms' => array(
+									array( 'categoryId' => 'wp_seed_event_type', 'selectedOptions' => array( array( 'value' => '13' ) ) ),
+								),
+							),
+						),
+					),
+				),
+			),
+		),
+		'innerBlocks' => array(),
+	);
+	$payload = array( 'post_type' => 'page', 'post_content' => wp_slash( serialize_blocks( array( $block ) ) ) );
+	$result  = wp_seed_events_divi_migrate_event_loop_post_data( $payload );
+	$stored  = parse_blocks( wp_unslash( $result['post_content'] ) );
+	$values  = $stored[0]['attrs']['module']['advanced']['loop']['desktop']['value'];
+	divi_collection_assert( array( '13' ) === wp_seed_events_divi_flatten_term_values( $values['wpSeedEventTypes'] ), 'Slashed types were not migrated.' );
+	divi_collection_assert( 'all' === $values['wpSeedEventPinned'], 'Slashed pinned default differs.' );
+	divi_collection_assert( array() === $values['includePostWithSpecificTerms'], 'Slashed native field was not emptied.' );
+} );
+divi_collection_case( 'revision payload remains byte-equivalent', function () {
+	$payload = array( 'post_type' => 'revision', 'post_content' => 'wp_seed_event legacy content' );
+	divi_collection_assert( $payload === wp_seed_events_divi_migrate_event_loop_post_data( $payload ), 'Revision payload changed.' );
+} );
+
+divi_collection_case( 'ordinary saved loop remains byte-equivalent', function () {
+	$block = array(
+		'attrs' => array(
+			'module' => array(
+				'advanced' => array(
+					'loop' => array(
+						'desktop' => array(
+							'value' => array(
+								'queryType' => 'post_types',
+								'subTypes'  => array( array( 'value' => 'post' ) ),
+							),
+						),
+					),
+				),
+			),
+		),
+		'innerBlocks' => array(),
+	);
+	$changed = false;
+	$result  = wp_seed_events_divi_migrate_event_loop_block( $block, $changed );
+	divi_collection_assert( ! $changed && $block === $result, 'Ordinary loop was changed.' );
 } );
 
 divi_collection_case( 'adapter has no storage or rendering dependency', function () {

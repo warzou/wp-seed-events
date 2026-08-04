@@ -33,6 +33,10 @@ const nativeFields = {
 						label: "Indicateurs d’événement",
 						options: { 21: { label: 'Événement épinglé' } },
 					},
+					category: {
+						label: 'Catégories',
+						options: { 30: { label: 'Actualités' } },
+					},
 				},
 			},
 		},
@@ -55,8 +59,8 @@ const fields = fieldsFilter(nativeFields, {
 	loopValues: eventLoop,
 });
 
-check(fields.includePostWithSpecificTerms.visible === false, 'generic include control stayed visible');
-check(fields.excludePostWithSpecificTerms.visible === false, 'generic exclude control stayed visible');
+check(fields.includePostWithSpecificTerms.visible === true, 'native include control was hidden');
+check(fields.excludePostWithSpecificTerms.visible === true, 'native exclude control was hidden');
 check(fields.wpSeedEventTypes.label === "Types d’événement", 'type label differs');
 check(fields.wpSeedEventTypes.subName === 'wpSeedEventTypes', 'type attribute differs');
 check(Object.keys(fields.wpSeedEventTypes.component.props.options).length === 1, 'flag taxonomy was not removed');
@@ -129,6 +133,84 @@ adapter.createQueryParamsFilter()(ordinaryParams, {
 }, 'module-c', 'post_types');
 check(!ordinaryParams.has('wp_seed_event_types'), 'ordinary query received event types');
 check(!ordinaryParams.has('wp_seed_event_pinned'), 'ordinary query received pinned state');
+
+const untouchedEventLoop = adapter.migrateLoopValues(eventLoop, nativeFields.includePostWithSpecificTerms.component.props.options);
+check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventTypes'), 'new event loop received automatic types');
+check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventPinned'), 'new event loop received automatic featured state');
+
+
+check(
+	JSON.stringify(Object.keys(fields.includePostWithSpecificTerms.component.props.options)) === JSON.stringify(['category']),
+	'native include options still expose Events taxonomies'
+);
+
+const legacyLoop = {
+	...eventLoop,
+	includePostWithSpecificTerms: [
+		{
+			categoryId: 'wp_seed_event_type',
+			categoryName: "Types d’événement",
+			selectedOptions: [
+				{ value: '11', label: 'Journée découverte' },
+				{ value: '12', label: 'Réunion d’information' },
+			],
+		},
+		{
+			categoryId: 'wp_seed_event_flag',
+			categoryName: "Indicateurs d’événement",
+			selectedOptions: [{ value: '21', label: 'Événement épinglé' }],
+		},
+		{
+			categoryId: 'category',
+			categoryName: 'Catégories',
+			selectedOptions: [{ value: '30', label: 'Actualités' }],
+		},
+	],
+};
+const migratedLegacy = adapter.migrateLoopValues(
+	legacyLoop,
+	nativeFields.includePostWithSpecificTerms.component.props.options
+);
+check(adapter.selectionValues(migratedLegacy.wpSeedEventTypes).join(',') === '11,12', 'legacy types were not migrated');
+check(migratedLegacy.wpSeedEventPinned === 'featured_only', 'legacy featured inclusion was not migrated');
+check(migratedLegacy.includePostWithSpecificTerms.length === 1, 'unrelated native taxonomy was not preserved');
+check(migratedLegacy.includePostWithSpecificTerms[0].categoryId === 'category', 'wrong native taxonomy survived');
+
+const legacyFields = fieldsFilter(nativeFields, {
+	attrName: 'module.advanced.loop',
+	loopValues: legacyLoop,
+});
+check(
+	adapter.selectionValues(legacyFields.wpSeedEventTypes.defaultAttr.desktop.value).join(',') === '11,12',
+	'legacy types are not visible in the dedicated control'
+);
+check(legacyFields.wpSeedEventPinned.defaultAttr.desktop.value === 'featured_only', 'legacy featured is not visible in the dedicated control');
+
+const legacyParams = new URLSearchParams();
+adapter.createQueryParamsFilter()(legacyParams, {
+	module: { advanced: { loop: { desktop: { value: legacyLoop } } } },
+}, 'legacy-loop', 'post_types');
+check(legacyParams.get('wp_seed_event_types') === '11,12', 'legacy types were not sent to REST');
+check(legacyParams.get('wp_seed_event_pinned') === 'featured_only', 'legacy featured was not sent to REST');
+
+const excludedFeatured = adapter.migrateLoopValues({
+	...eventLoop,
+	excludePostWithSpecificTerms: [{
+		categoryId: 'wp_seed_event_flag',
+		selectedOptions: [{ value: '21', label: 'Événement épinglé' }],
+	}],
+}, nativeFields.includePostWithSpecificTerms.component.props.options);
+check(excludedFeatured.wpSeedEventPinned === 'exclude_featured', 'legacy featured exclusion was not migrated');
+check(excludedFeatured.excludePostWithSpecificTerms.length === 0, 'featured remained in native exclusion');
+
+const explicitControls = adapter.migrateLoopValues({
+	...legacyLoop,
+	wpSeedEventTypes: [{ value: '12', label: 'Stage' }],
+	wpSeedEventPinned: 'all',
+}, nativeFields.includePostWithSpecificTerms.component.props.options);
+check(adapter.selectionValues(explicitControls.wpSeedEventTypes).join(',') === '12', 'explicit types lost priority');
+check(explicitControls.wpSeedEventPinned === 'all', 'explicit pinned state lost priority');
+check(explicitControls.includePostWithSpecificTerms.length === 1, 'native Events terms survived explicit controls');
 
 const registrations = [];
 const windowObject = {

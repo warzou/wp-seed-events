@@ -157,11 +157,9 @@ titre du contrôle. Le sélecteur générique multi-taxonomies de Divi conserve 
 libellés complets. Les filtres restent des `tax_query` WordPress standard ;
 aucune méta ou classification parallèle n’est créée.
 
-Lorsqu’une boucle ancienne ne contient pas encore ces attributs dédiés, ses
-filtres natifs existants restent inchangés. Dès qu’un contrôle WP Seed Events
-est enregistré, il devient autoritatif pour sa taxonomie : les clauses
-génériques contradictoires sur le type ou `featured` sont retirées avant
-l’ajout de la clause dédiée. Les autres taxonomies restent intactes.
+Lorsqu’une boucle ancienne contient encore des termes Events dans le sélecteur natif, WP Seed Events les normalise sans changer la requête métier : les types rejoignent **Types d’événement**, `featured` rejoint **Épinglage**, puis ces termes sont retirés du champ natif. Une inclusion `featured` devient **Uniquement les événements épinglés** et une exclusion devient **Exclure les événements épinglés**. La migration est persistée lors de la prochaine sauvegarde Divi et reste idempotente.
+
+Les contrôles dédiés sont ensuite la source unique des clauses `wp_seed_event_type` et `wp_seed_event_flag=featured`. Le sélecteur natif reste visible pour les autres taxonomies, mais ses options Events en sont retirées. Les termes non gérés par WP Seed Events sont préservés à l’identique. Une configuration migrée affiche donc les types et l’épinglage dans leurs contrôles dédiés, sans terme Events résiduel dans **Termes spécifiques**.
 
 Le tri **1re date de l’événement** demeure indépendant et continue d’utiliser
 le contrat de collection fondé sur les occurrences.

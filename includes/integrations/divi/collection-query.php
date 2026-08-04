@@ -34,7 +34,7 @@ function wp_seed_events_divi_collection_orderby() {
  * @return array
  */
 function wp_seed_events_divi_collection_controls_from_loop_values( $loop_values ) {
-	$loop_values = is_array( $loop_values ) ? $loop_values : array();
+	$loop_values = wp_seed_events_divi_normalize_event_loop_values( $loop_values );
 
 	return array(
 		'types_present'  => array_key_exists( 'wpSeedEventTypes', $loop_values ),
@@ -212,6 +212,250 @@ function wp_seed_events_divi_flatten_term_values( $raw_values ) {
 
 	return array_values( array_unique( $values ) );
 }
+
+/**
+ * Resolve the taxonomy belonging to one saved Divi term value.
+ *
+ * @param mixed  $value             Saved term ID or slug.
+ * @param string $category_taxonomy Taxonomy supplied by Divi's categorized value.
+ * @return string
+ */
+function wp_seed_events_divi_term_value_taxonomy( $value, $category_taxonomy = '' ) {
+	$category_taxonomy = sanitize_key( (string) $category_taxonomy );
+
+	if ( '' !== $category_taxonomy ) {
+		return $category_taxonomy;
+	}
+
+	$value = trim( (string) $value );
+
+	if ( '' === $value ) {
+		return '';
+	}
+
+	if ( ctype_digit( $value ) ) {
+		$term = get_term( absint( $value ) );
+
+		return $term && ! is_wp_error( $term ) ? sanitize_key( (string) $term->taxonomy ) : '';
+	}
+
+	foreach ( array( 'wp_seed_event_type', 'wp_seed_event_flag' ) as $taxonomy ) {
+		$term = get_term_by( 'slug', sanitize_title( $value ), $taxonomy );
+
+		if ( $term && ! is_wp_error( $term ) ) {
+			return $taxonomy;
+		}
+	}
+
+	return '';
+}
+
+/**
+ * Split one native Divi term selection into Events controls and unrelated terms.
+ *
+ * @param mixed $raw_values Native Divi tag-input value.
+ * @return array
+ */
+function wp_seed_events_divi_split_native_term_selection( $raw_values ) {
+	if ( is_string( $raw_values ) ) {
+		$decoded    = json_decode( $raw_values, true );
+		$raw_values = is_array( $decoded ) ? $decoded : explode( ',', $raw_values );
+	}
+
+	$items     = is_array( $raw_values ) ? array_values( $raw_values ) : array( $raw_values );
+	$types     = array();
+	$featured  = false;
+	$unrelated = array();
+
+	foreach ( $items as $item ) {
+		if ( is_array( $item ) && isset( $item['selectedOptions'] ) && is_array( $item['selectedOptions'] ) ) {
+			$taxonomy = sanitize_key( (string) ( $item['categoryId'] ?? '' ) );
+			$kept     = array();
+
+			foreach ( $item['selectedOptions'] as $option ) {
+				$value           = is_array( $option ) ? ( $option['value'] ?? '' ) : $option;
+				$option_taxonomy = wp_seed_events_divi_term_value_taxonomy( $value, $taxonomy );
+
+				if ( 'wp_seed_event_type' === $option_taxonomy ) {
+					$types[] = $option;
+				} elseif ( 'wp_seed_event_flag' === $option_taxonomy ) {
+					$term = ctype_digit( (string) $value )
+						? get_term( absint( $value ), 'wp_seed_event_flag' )
+						: get_term_by( 'slug', sanitize_title( (string) $value ), 'wp_seed_event_flag' );
+
+					if ( $term && ! is_wp_error( $term ) && 'featured' === (string) $term->slug ) {
+						$featured = true;
+					} else {
+						$kept[] = $option;
+					}
+				} else {
+					$kept[] = $option;
+				}
+			}
+
+			if ( array() !== $kept ) {
+				$item['selectedOptions'] = $kept;
+				$unrelated[]             = $item;
+			}
+			continue;
+		}
+
+		$value    = is_array( $item ) ? ( $item['value'] ?? '' ) : $item;
+		$taxonomy = wp_seed_events_divi_term_value_taxonomy( $value );
+
+		if ( 'wp_seed_event_type' === $taxonomy ) {
+			$types[] = $item;
+		} elseif ( 'wp_seed_event_flag' === $taxonomy ) {
+			$term = ctype_digit( (string) $value )
+				? get_term( absint( $value ), $taxonomy )
+				: get_term_by( 'slug', sanitize_title( (string) $value ), $taxonomy );
+
+			if ( $term && ! is_wp_error( $term ) && 'featured' === (string) $term->slug ) {
+				$featured = true;
+			} else {
+				$unrelated[] = $item;
+			}
+		} elseif ( '' !== trim( (string) $value ) ) {
+			$unrelated[] = $item;
+		}
+	}
+
+	return array(
+		'types'     => $types,
+		'featured'  => $featured,
+		'unrelated' => $unrelated,
+	);
+}
+
+/**
+ * Make dedicated Events controls authoritative for one Divi loop value.
+ *
+ * @param array $loop_values Saved Divi loop values.
+ * @return array
+ */
+function wp_seed_events_divi_normalize_event_loop_values( $loop_values ) {
+	$loop_values = is_array( $loop_values ) ? $loop_values : array();
+	$include     = wp_seed_events_divi_split_native_term_selection( $loop_values['includePostWithSpecificTerms'] ?? array() );
+	$exclude     = wp_seed_events_divi_split_native_term_selection( $loop_values['excludePostWithSpecificTerms'] ?? array() );
+
+	if ( ! array_key_exists( 'wpSeedEventTypes', $loop_values ) && array() !== $include['types'] ) {
+		$loop_values['wpSeedEventTypes'] = array(
+			array(
+				'categoryId'      => 'wp_seed_event_type',
+				'categoryName'    => 'Types d’événement',
+				'selectedOptions' => $include['types'],
+			),
+	);
+	}
+
+	if ( ! array_key_exists( 'wpSeedEventPinned', $loop_values ) && ( array() !== $include['types'] || $include['featured'] || $exclude['featured'] ) ) {
+		$loop_values['wpSeedEventPinned'] = $exclude['featured']
+			? 'exclude_featured'
+			: ( $include['featured'] ? 'featured_only' : 'all' );
+	}
+
+	if ( array_key_exists( 'includePostWithSpecificTerms', $loop_values ) ) {
+		$loop_values['includePostWithSpecificTerms'] = $include['unrelated'];
+	}
+
+	if ( array_key_exists( 'excludePostWithSpecificTerms', $loop_values ) ) {
+		$loop_values['excludePostWithSpecificTerms'] = $exclude['unrelated'];
+	}
+
+	return $loop_values;
+}
+
+/**
+ * Detect an event-only Divi post loop from its saved values.
+ *
+ * @param array $loop_values Saved Divi loop values.
+ * @return bool
+ */
+function wp_seed_events_divi_is_event_loop_values( $loop_values ) {
+	$loop_values = is_array( $loop_values ) ? $loop_values : array();
+
+	if ( 'post_types' !== sanitize_key( (string) ( $loop_values['queryType'] ?? '' ) ) ) {
+		return false;
+	}
+
+	$post_types = wp_seed_events_divi_flatten_term_values( $loop_values['subTypes'] ?? array() );
+	$post_types = array_values( array_unique( array_map( 'sanitize_key', $post_types ) ) );
+
+	return array( 'wp_seed_event' ) === $post_types;
+}
+
+/**
+ * Normalize Events loop attributes recursively before WordPress stores content.
+ *
+ * @param array $block   Parsed block.
+ * @param bool  $changed Whether an Events loop was migrated.
+ * @return array
+ */
+function wp_seed_events_divi_migrate_event_loop_block( $block, &$changed ) {
+	if ( ! is_array( $block ) ) {
+		return $block;
+	}
+
+	$loop_values = $block['attrs']['module']['advanced']['loop']['desktop']['value'] ?? null;
+
+	if ( is_array( $loop_values ) && wp_seed_events_divi_is_event_loop_values( $loop_values ) ) {
+		$normalized = wp_seed_events_divi_normalize_event_loop_values( $loop_values );
+
+		if ( $normalized !== $loop_values ) {
+			$block['attrs']['module']['advanced']['loop']['desktop']['value'] = $normalized;
+			$changed = true;
+		}
+	}
+
+	if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+		foreach ( $block['innerBlocks'] as $index => $inner_block ) {
+			$block['innerBlocks'][ $index ] = wp_seed_events_divi_migrate_event_loop_block( $inner_block, $changed );
+		}
+	}
+
+	return $block;
+}
+
+/**
+ * Persist the dedicated Events controls when an existing Divi page is saved.
+ *
+ * @param string $content Post content before storage.
+ * @return string
+ */
+function wp_seed_events_divi_migrate_event_loop_content( $content ) {
+	if ( ! is_string( $content ) || false === strpos( $content, 'wp_seed_event' ) || ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
+		return $content;
+	}
+
+	$blocks  = parse_blocks( $content );
+	$changed = false;
+
+	foreach ( $blocks as $index => $block ) {
+		$blocks[ $index ] = wp_seed_events_divi_migrate_event_loop_block( $block, $changed );
+	}
+
+	return $changed ? serialize_blocks( $blocks ) : $content;
+}
+/**
+ * Normalize Divi Events loop attributes in the final post payload.
+ *
+ * The generic content_save_pre filter can run before a builder has assembled its
+ * final block attributes. wp_insert_post_data is the stable last write boundary.
+ *
+ * @param array $data Final sanitized post data.
+ * @return array
+ */
+function wp_seed_events_divi_migrate_event_loop_post_data( $data ) {
+	if ( ! is_array( $data ) || 'revision' === ( $data['post_type'] ?? '' ) || ! isset( $data['post_content'] ) ) {
+		return $data;
+	}
+
+	$content              = wp_unslash( $data['post_content'] );
+	$data['post_content'] = wp_slash( wp_seed_events_divi_migrate_event_loop_content( $content ) );
+
+	return $data;
+}
+add_filter( 'wp_insert_post_data', 'wp_seed_events_divi_migrate_event_loop_post_data', 20 );
 
 /**
  * Resolve Divi term IDs or slugs to native term IDs.
