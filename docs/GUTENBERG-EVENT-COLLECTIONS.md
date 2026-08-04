@@ -90,3 +90,10 @@ Le bouton natif `Modifier le design` ouvre les presentations `Carte compacte` et
 La carte compacte utilise le bloc Dates en mode Prochaine date, sans horaires ni liens calendrier et sans bloc Personnes par defaut. La carte detaillee utilise Toutes les prochaines dates, affiche les horaires et inclut Personnes avec Organisateurs et Intervenants. Les coordonnees restent soumises aux permissions de publication.
 
 Le bloc parent expose Type d'evenement, Statut, Evenements epingles, Trier par, Ordre et Elements par page. Les patterns officiels sont non synchronises ; l'utilisateur peut ensuite enregistrer une composition WordPress synchronisee ou non selon son besoin.
+
+## Taxonomies natives
+
+Depuis `0.2.0-beta.7`, les taxonomies de type et d'épinglage sont publiques
+dans le registre WordPress tout en restant sans archive publique. Gutenberg et
+les blocs de requête compatibles peuvent donc découvrir leurs termes et
+transmettre un `tax_query`, sans lire les métadonnées historiques.

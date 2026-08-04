@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0-beta.7 - 2026-08-04
+
+### Taxonomies natives visibles dans les constructeurs
+
+- `wp_seed_event_type` et `wp_seed_event_flag` sont désormais publiques pour être détectées par Divi, Gutenberg et les autres constructeurs fondés sur le registre WordPress.
+- Elles restent non interrogeables publiquement, sans réécriture ni archive, et continuent d'utiliser les interfaces métier WP Seed Events.
+- Divi 5.9.0 reçoit les quatre types réels et le terme `featured` via `/divi/v1/loop/query-taxonomies`.
+- `tax_query`, REST, Gutenberg, le tri `wp_seed_next_occurrence` et Lifecycle V4 restent inchangés.
+
+
 ## 0.2.0-beta.6 - 2026-08-02
 
 ### Apercu image dynamique dans le canvas Divi

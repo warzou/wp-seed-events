@@ -123,3 +123,11 @@ carte Divi imposee.
 Le Loop Builder, les filtres `type`, `status` et `pinned`, le tri visible `1re date de l'evenement`, l'ordre et la pagination utilisent le contrat canonique des collections. Les modules Dates, Visuels et Personnes recoivent le contexte de chaque item en frontend.
 
 La Divi Library, les presets et les elements globaux restent les mecanismes recommandes pour reutiliser une carte. WP Seed Events ne cree aucun second moteur de template et n'impose aucun design.
+
+## Filtres taxonomiques natifs
+
+Avec `0.2.0-beta.7`, Divi 5.9.0 détecte `wp_seed_event_type` et
+`wp_seed_event_flag` dans son contrôle de termes spécifiques. Les quatre types
+réels et le terme `featured` proviennent du registre WordPress ; aucun filtre
+Divi parallèle ne duplique les règles métier. Le tri
+`1re date de l'événement` reste fourni séparément par le contrat de collection.

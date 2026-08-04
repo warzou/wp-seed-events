@@ -121,3 +121,15 @@ nouvelle donnée métier.
 
 L'absence éventuelle d'un choix graphique `orderby` est une limite du
 constructeur, pas une raison de dupliquer les règles métier dans un adaptateur.
+
+## Détection par les constructeurs
+
+Depuis `0.2.0-beta.7`, `wp_seed_event_type` et `wp_seed_event_flag` utilisent
+`public=true` afin d'être détectées par les constructeurs qui filtrent leur
+registre sur cette propriété WordPress. Elles conservent
+`publicly_queryable=false`, `rewrite=false` et `show_in_rest=true` : aucune
+archive publique ni interface technique concurrente n'est créée.
+
+Divi 5.9.0 expose ainsi les quatre types réels et `featured` dans
+`/divi/v1/loop/query-taxonomies`. Le terme `featured` reste une projection de
+la case métier canonique et ne peut pas être édité par une métabox native.

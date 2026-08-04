@@ -105,3 +105,10 @@ La transition native de `0.2.0-beta.4` vers `0.2.0-beta.5` valide le meme contra
 ## Validation corrective beta.6
 
 La release `0.2.0-beta.6` conserve le contrat de mise a jour natif : prerelease officielle, ZIP runtime-only, checksum obligatoire, details natifs et installation finale dans `wp-seed-events/`. Elle doit etre proposee aux installations beta.5 ayant active le canal des prereleases, puis le runtime installe doit correspondre strictement a l'asset GitHub.
+
+## Release 0.2.0-beta.7
+
+La release `0.2.0-beta.7` conserve le contrat de mise à jour natif : prerelease
+officielle, ZIP runtime-only et fichier `.sha256` obligatoire. Elle rend les
+taxonomies Events détectables par les constructeurs sans créer d'archive
+publique ni modifier le stockage métier.
