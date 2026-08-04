@@ -47,6 +47,49 @@ function absint( $value ) {
 	return abs( (int) $value );
 }
 
+function sanitize_title( $value ) {
+	return trim( preg_replace( '/[^a-z0-9-]+/', '-', strtolower( (string) $value ) ), '-' );
+}
+
+function is_wp_error( $value ) {
+	return false;
+}
+
+function divi_collection_term( $term_id, $slug, $taxonomy ) {
+	return (object) compact( 'term_id', 'slug', 'taxonomy' );
+}
+
+function get_term( $term_id, $taxonomy ) {
+	$terms = array(
+		11 => divi_collection_term( 11, 'atelier', 'wp_seed_event_type' ),
+		12 => divi_collection_term( 12, 'stage', 'wp_seed_event_type' ),
+		13 => divi_collection_term( 13, 'journee-decouverte', 'wp_seed_event_type' ),
+		14 => divi_collection_term( 14, 'reunion-information', 'wp_seed_event_type' ),
+		21 => divi_collection_term( 21, 'featured', 'wp_seed_event_flag' ),
+	);
+	$term = $terms[ (int) $term_id ] ?? false;
+
+	return $term && $taxonomy === $term->taxonomy ? $term : false;
+}
+
+function get_term_by( $field, $value, $taxonomy ) {
+	if ( 'slug' !== $field || ( 'featured' === $value && empty( $GLOBALS['divi_featured_term_exists'] ) ) ) {
+		return false;
+	}
+
+	foreach ( array( 11, 12, 13, 14, 21 ) as $term_id ) {
+		$term = get_term( $term_id, $taxonomy );
+
+		if ( $term && $value === $term->slug ) {
+			return $term;
+		}
+	}
+
+	return false;
+}
+
+$GLOBALS['divi_featured_term_exists'] = true;
+
 function wp_seed_events_query_event_collection( $args ) {
 	$GLOBALS['divi_collection_calls'][] = $args;
 	$key = (string) $args['type'] . ':' . (string) $args['status'] . ':' . (string) $args['pinned'];
@@ -92,7 +135,7 @@ function divi_collection_query( $status = 'all', $pinned = 'all' ) {
 }
 
 divi_collection_case( 'hooks are registered once', function () {
-	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_after_execution', 'divi_module_options_loop_post_type_results_query_args' ) as $hook ) {
+	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_before_execution', 'divi_module_options_loop_post_type_results_query_args' ) as $hook ) {
 		divi_collection_assert( 1 === count( $GLOBALS['divi_collection_filters'][ $hook ] ?? array() ), 'Hook registration differs: ' . $hook );
 	}
 } );
@@ -211,6 +254,212 @@ divi_collection_case( 'two loops remain isolated', function () {
 	$past   = wp_seed_events_divi_apply_collection_query( divi_collection_query( 'past' ) );
 	divi_collection_assert( array( 7, 2, 5 ) === $future['post__in'], 'First loop changed.' );
 	divi_collection_assert( array( 9, 3 ) === $past['post__in'], 'Second loop changed.' );
+} );
+
+divi_collection_case( 'one dedicated type creates one native clause', function () {
+	$query = array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'date' );
+	$args  = wp_seed_events_divi_apply_collection_query(
+		$query,
+		'',
+		array( 'types_present' => true, 'types' => array( array( 'value' => 'atelier' ) ) )
+	);
+	$clause = $args['tax_query'][0];
+	divi_collection_assert( 'wp_seed_event_type' === $clause['taxonomy'], 'Type taxonomy differs.' );
+	divi_collection_assert( array( 11 ) === $clause['terms'], 'Type slug was not normalized.' );
+	divi_collection_assert( 'IN' === $clause['operator'], 'Type operator differs.' );
+} );
+
+divi_collection_case( 'two dedicated types share one OR-compatible IN clause', function () {
+	$args = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'date' ),
+		'',
+		array( 'types_present' => true, 'types' => '13,14' )
+	);
+	divi_collection_assert( array( 13, 14 ) === $args['tax_query'][0]['terms'], 'Multiple type IDs differ.' );
+	divi_collection_assert( 'IN' === $args['tax_query'][0]['operator'], 'Multiple types do not use OR-compatible IN.' );
+} );
+
+divi_collection_case( 'empty dedicated types mean all types', function () {
+	$query = array(
+		'post_type' => array( 'wp_seed_event' ),
+		'tax_query' => array( array( 'taxonomy' => 'wp_seed_event_type', 'terms' => array( 11 ) ) ),
+	);
+	$args = wp_seed_events_divi_apply_collection_query( $query, '', array( 'types_present' => true, 'types' => array() ) );
+	divi_collection_assert( ! isset( $args['tax_query'] ), 'Cleared type control retained a generic type clause.' );
+} );
+
+divi_collection_case( 'empty categorized selection means all types', function () {
+	$types = array( array( 'categoryId' => 'wp_seed_event_type', 'selectedOptions' => array() ) );
+	$args = wp_seed_events_divi_apply_collection_query(
+		array(
+			'post_type' => array( 'wp_seed_event' ),
+			'tax_query' => array( array( 'taxonomy' => 'wp_seed_event_type', 'terms' => array( 11 ) ) ),
+		),
+		'',
+		array( 'types_present' => true, 'types' => $types )
+	);
+	divi_collection_assert( ! isset( $args['post__in'] ), 'Empty category wrapper forced an empty query.' );
+	divi_collection_assert( ! isset( $args['tax_query'] ), 'Empty category wrapper retained a type clause.' );
+} );
+
+divi_collection_case( 'featured only creates a native IN clause', function () {
+	$args = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'pinned_present' => true, 'pinned' => 'featured_only' )
+	);
+	$clause = $args['tax_query'][0];
+	divi_collection_assert( 'wp_seed_event_flag' === $clause['taxonomy'], 'Featured taxonomy differs.' );
+	divi_collection_assert( array( 21 ) === $clause['terms'] && 'IN' === $clause['operator'], 'Featured-only clause differs.' );
+} );
+
+divi_collection_case( 'featured exclusion creates a native NOT IN clause', function () {
+	$args = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'pinned_present' => true, 'pinned' => 'exclude_featured' )
+	);
+	divi_collection_assert( 'NOT IN' === $args['tax_query'][0]['operator'], 'Featured exclusion differs.' );
+} );
+
+divi_collection_case( 'types and featured combine with AND', function () {
+	$args = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array(
+			'types_present'  => true,
+			'types'          => array( 11, 12 ),
+			'pinned_present' => true,
+			'pinned'         => 'featured_only',
+		)
+	);
+	divi_collection_assert( 'AND' === $args['tax_query']['relation'], 'Type and featured relation differs.' );
+	divi_collection_assert( 'wp_seed_event_type' === $args['tax_query'][0]['taxonomy'], 'Type clause missing.' );
+	divi_collection_assert( 'wp_seed_event_flag' === $args['tax_query'][1]['taxonomy'], 'Featured clause missing.' );
+} );
+
+divi_collection_case( 'dedicated controls override contradictory generic clauses', function () {
+	$query = array(
+		'post_type' => array( 'wp_seed_event' ),
+		'tax_query' => array(
+			array( 'taxonomy' => 'wp_seed_event_type', 'field' => 'term_id', 'terms' => array( 11 ) ),
+			array( 'taxonomy' => 'wp_seed_event_flag', 'field' => 'term_id', 'terms' => array( 21 ) ),
+			array( 'taxonomy' => 'category', 'field' => 'term_id', 'terms' => array( 30 ) ),
+			'relation' => 'OR',
+		),
+	);
+	$args = wp_seed_events_divi_apply_collection_query(
+		$query,
+		'',
+		array(
+			'types_present'  => true,
+			'types'          => array( 13, 14 ),
+			'pinned_present' => true,
+			'pinned'         => 'exclude_featured',
+		)
+	);
+	$serialized = serialize( $args['tax_query'] );
+	divi_collection_assert( 1 === substr_count( $serialized, 'wp_seed_event_type' ), 'Generic type clause survived.' );
+	divi_collection_assert( 1 === substr_count( $serialized, 'wp_seed_event_flag' ), 'Generic featured clause survived.' );
+	divi_collection_assert( false !== strpos( $serialized, 'category' ), 'Unrelated taxonomy clause was removed.' );
+	divi_collection_assert( false !== strpos( $serialized, 'NOT IN' ), 'Dedicated exclusion was not authoritative.' );
+} );
+
+divi_collection_case( 'missing featured term is deterministic', function () {
+	$GLOBALS['divi_featured_term_exists'] = false;
+	$only = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'pinned_present' => true, 'pinned' => 'featured_only' )
+	);
+	$exclude = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'pinned_present' => true, 'pinned' => 'exclude_featured' )
+	);
+	$GLOBALS['divi_featured_term_exists'] = true;
+	divi_collection_assert( array( 0 ) === $only['post__in'], 'Missing featured term expanded only-filter results.' );
+	divi_collection_assert( ! isset( $exclude['tax_query'] ), 'Missing featured term constrained exclusion results.' );
+} );
+
+divi_collection_case( 'categorized Divi selections resolve their selected options', function () {
+	$types = array(
+		array(
+			'categoryId'      => 'wp_seed_event_type',
+			'categoryName'    => 'Types d’événement',
+			'selectedOptions' => array(
+				array( 'value' => '13', 'label' => 'Journée découverte' ),
+				array( 'value' => '14', 'label' => 'Réunion d’information' ),
+			),
+		),
+	);
+	$args = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'date' ),
+		'',
+		array( 'types_present' => true, 'types' => $types, 'pinned_present' => true, 'pinned' => 'all' )
+	);
+	divi_collection_assert( ! isset( $args['post__in'] ), 'Categorized values forced an empty query.' );
+	divi_collection_assert( array( 13, 14 ) === $args['tax_query'][0]['terms'], 'Categorized type IDs differ.' );
+	divi_collection_assert( 'IN' === $args['tax_query'][0]['operator'], 'Categorized types do not use OR-compatible IN.' );
+	divi_collection_assert( 1 === count( $args['tax_query'] ), 'Pinned all added a flag clause.' );
+} );
+
+divi_collection_case( 'standard and Hero loop instances produce identical pre-cache queries', function () {
+	$values = array(
+		'wpSeedEventTypes' => array(
+			array(
+				'categoryId'      => 'wp_seed_event_type',
+				'selectedOptions' => array( array( 'value' => '13' ), array( 'value' => '14' ) ),
+			),
+		),
+		'wpSeedEventPinned' => 'all',
+	);
+	$base = array( 'query_args' => array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'date' ) );
+	$standard = wp_seed_events_divi_filter_collection_loop_data(
+		$base,
+		array( 'id' => 'standard-loop', 'module' => array( 'advanced' => array( 'loop' => array( 'desktop' => array( 'value' => $values ) ) ) ) )
+	);
+	$hero = wp_seed_events_divi_filter_collection_loop_data(
+		$base,
+		array( 'id' => 'hero-loop', 'module' => array( 'advanced' => array( 'loop' => array( 'desktop' => array( 'value' => $values ) ) ) ) )
+	);
+	divi_collection_assert( $standard['query_args'] === $hero['query_args'], 'Container context changed identical loop filters.' );
+	divi_collection_assert( array( 13, 14 ) === $hero['query_args']['tax_query'][0]['terms'], 'Hero terms differ.' );
+	divi_collection_assert( ! isset( $hero['query_args']['post__in'] ), 'Hero query was forced empty.' );
+	divi_collection_assert( empty( $GLOBALS['divi_collection_filters']['divi_loop_data_after_execution'] ), 'Post-cache hook remains registered.' );
+} );
+
+divi_collection_case( 'frontend and REST controls produce identical clauses', function () {
+	$loop_values = array(
+		'wpSeedEventTypes'  => array( array( 'value' => '11' ), array( 'value' => '12' ) ),
+		'wpSeedEventPinned' => 'exclude_featured',
+	);
+	$loop = wp_seed_events_divi_filter_collection_loop_data(
+		array( 'query_args' => array( 'post_type' => array( 'wp_seed_event' ) ) ),
+		array( 'module' => array( 'advanced' => array( 'loop' => array( 'desktop' => array( 'value' => $loop_values ) ) ) ) )
+	);
+	$rest = wp_seed_events_divi_filter_collection_rest_query_args(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		array( 'wp_seed_event_types' => '11,12', 'wp_seed_event_pinned' => 'exclude_featured' )
+	);
+	divi_collection_assert( $loop['query_args']['tax_query'] === $rest['tax_query'], 'Frontend and REST clauses differ.' );
+} );
+
+divi_collection_case( 'two dedicated loops remain isolated', function () {
+	$first = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'types_present' => true, 'types' => array( 11 ), 'pinned_present' => true, 'pinned' => 'featured_only' )
+	);
+	$second = wp_seed_events_divi_apply_collection_query(
+		array( 'post_type' => array( 'wp_seed_event' ) ),
+		'',
+		array( 'types_present' => true, 'types' => array( 14 ), 'pinned_present' => true, 'pinned' => 'exclude_featured' )
+	);
+	divi_collection_assert( array( 11 ) === $first['tax_query'][0]['terms'], 'First loop type changed.' );
+	divi_collection_assert( 'IN' === $first['tax_query'][1]['operator'], 'First loop pinned state changed.' );
+	divi_collection_assert( array( 14 ) === $second['tax_query'][0]['terms'], 'Second loop type changed.' );
+	divi_collection_assert( 'NOT IN' === $second['tax_query'][1]['operator'], 'Second loop pinned state changed.' );
 } );
 
 divi_collection_case( 'adapter has no storage or rendering dependency', function () {

@@ -126,8 +126,42 @@ La Divi Library, les presets et les elements globaux restent les mecanismes reco
 
 ## Filtres taxonomiques natifs
 
-Avec `0.2.0-beta.7`, Divi 5.9.0 détecte `wp_seed_event_type` et
-`wp_seed_event_flag` dans son contrôle de termes spécifiques. Les quatre types
-réels et le terme `featured` proviennent du registre WordPress ; aucun filtre
-Divi parallèle ne duplique les règles métier. Le tri
-`1re date de l'événement` reste fourni séparément par le contrat de collection.
+Depuis `0.2.0-beta.7`, Divi 5.9.0 détecte `wp_seed_event_type` et
+`wp_seed_event_flag` parce que ces taxonomies sont publiques dans le registre
+WordPress, sans devenir publiquement interrogeables et sans archive.
+
+Pour une boucle portant exclusivement sur `wp_seed_event`, WP Seed Events
+remplace le sélecteur générique ambigu par deux contrôles dédiés :
+
+- **Types d’événement** accepte zéro, un ou plusieurs termes de
+  `wp_seed_event_type`. Une sélection vide signifie tous les types. Plusieurs
+  types sont réunis dans une seule clause `IN`, donc avec une logique OU ;
+- **Épinglage** propose **Tous**, **Uniquement les événements épinglés** et
+  **Exclure les événements épinglés**. Les deux derniers choix utilisent une
+  clause native sur `wp_seed_event_flag=featured`, respectivement `IN` et
+  `NOT IN`.
+
+Les deux contrôles se combinent avec une logique AND. Ils sont enregistrés dans
+les attributs de la boucle Divi. Le format catégorisé natif de Divi
+(`selectedOptions`) est normalisé sans changer les identifiants de termes. Les
+valeurs sont transmises à l’aperçu par le hook public
+`divi.module.layout.childModule.loop.resultsQueryParams`, puis appliquées au
+frontend par `divi_loop_data_before_execution`, avant que Divi ne consulte son
+cache de requêtes. Une section Hero et une section standard utilisant les mêmes
+réglages produisent ainsi les mêmes arguments `WP_Query`, sans collision entre
+instances.
+
+Les pastilles du contrôle dédié affichent uniquement le libellé du terme, par
+exemple **Journée découverte**, puisque la taxonomie est déjà indiquée par le
+titre du contrôle. Le sélecteur générique multi-taxonomies de Divi conserve ses
+libellés complets. Les filtres restent des `tax_query` WordPress standard ;
+aucune méta ou classification parallèle n’est créée.
+
+Lorsqu’une boucle ancienne ne contient pas encore ces attributs dédiés, ses
+filtres natifs existants restent inchangés. Dès qu’un contrôle WP Seed Events
+est enregistré, il devient autoritatif pour sa taxonomie : les clauses
+génériques contradictoires sur le type ou `featured` sont retirées avant
+l’ajout de la clause dédiée. Les autres taxonomies restent intactes.
+
+Le tri **1re date de l’événement** demeure indépendant et continue d’utiliser
+le contrat de collection fondé sur les occurrences.

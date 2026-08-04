@@ -249,6 +249,38 @@ function wp_seed_events_divi_enqueue_dynamic_event_image_preview_asset() {
 add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_dynamic_event_image_preview_asset' );
 
 /**
+ * Add event-specific taxonomy controls to Divi's native loop group.
+ */
+function wp_seed_events_divi_enqueue_event_collection_filters_asset() {
+	if (
+		! function_exists( 'et_core_is_fb_enabled' )
+		|| ! function_exists( 'et_builder_d5_enabled' )
+		|| ! et_core_is_fb_enabled()
+		|| ! et_builder_d5_enabled()
+		|| ! class_exists( '\\ET\\Builder\\VisualBuilder\\Assets\\PackageBuildManager' )
+	) {
+		return;
+	}
+
+	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
+		array(
+			'name'    => 'wp-seed-events-event-collection-filters',
+			'version' => WP_SEED_EVENTS_VERSION,
+			'script'  => array(
+				'src'                => plugins_url( 'event-collection-filters.js', __FILE__ ),
+				'deps'               => array(
+					'divi-module-library',
+					'divi-vendor-wp-hooks',
+				),
+				'enqueue_top_window' => false,
+				'enqueue_app_window' => true,
+			),
+		)
+	);
+}
+add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_event_collection_filters_asset' );
+
+/**
  * Enqueue the compiled people module only inside the Divi 5 Visual Builder.
  */
 function wp_seed_events_divi_enqueue_event_people_module_assets() {
