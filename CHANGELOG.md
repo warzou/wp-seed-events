@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0-beta.8 - 2026-08-04
+
+### Filtres Divi isoles par instance
+
+- Les selections Divi categorisees via `selectedOptions` sont normalisees sans produire de requete vide.
+- Une selection vide signifie tous les types ; plusieurs types utilisent une seule clause `IN`, donc une logique OR.
+- `Epinglage = Tous` n'ajoute aucune clause `featured`.
+- Les filtres sont appliques avant le cache de boucle Divi afin de conserver l'independance des sections Hero et standard.
+- Les pastilles du controle dedie affichent uniquement le libelle du type.
+- La recette reelle couvre les evenements 2414 et 2417 sous Divi 5.9.0.
+
 ## 0.2.0-beta.7 - 2026-08-04
 
 ### Taxonomies natives visibles dans les constructeurs

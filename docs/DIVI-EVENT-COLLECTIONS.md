@@ -165,3 +165,7 @@ l’ajout de la clause dédiée. Les autres taxonomies restent intactes.
 
 Le tri **1re date de l’événement** demeure indépendant et continue d’utiliser
 le contrat de collection fondé sur les occurrences.
+
+Depuis `0.2.0-beta.8`, les valeurs catégorisées `selectedOptions` et le cache
+par instance sont explicitement couverts : une boucle Hero et une boucle standard
+ayant les mêmes réglages produisent les mêmes résultats.

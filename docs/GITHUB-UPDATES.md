@@ -112,3 +112,10 @@ La release `0.2.0-beta.7` conserve le contrat de mise à jour natif : prerelease
 officielle, ZIP runtime-only et fichier `.sha256` obligatoire. Elle rend les
 taxonomies Events détectables par les constructeurs sans créer d'archive
 publique ni modifier le stockage métier.
+
+## Release 0.2.0-beta.8
+
+La release `0.2.0-beta.8` conserve le contrat de mise a jour natif et publie
+le correctif d'isolation des filtres Divi par instance. Le ZIP runtime-only et
+son fichier `.sha256` restent obligatoires ; aucune migration de donnees
+metier n'est introduite.
