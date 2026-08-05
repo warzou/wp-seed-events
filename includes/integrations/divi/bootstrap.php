@@ -262,10 +262,15 @@ function wp_seed_events_divi_enqueue_event_collection_filters_asset() {
 		return;
 	}
 
+	$asset_path    = __DIR__ . '/event-collection-filters.js';
+	$asset_version = is_readable( $asset_path )
+		? substr( hash_file( 'sha256', $asset_path ), 0, 12 )
+		: WP_SEED_EVENTS_VERSION;
+
 	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
 		array(
 			'name'    => 'wp-seed-events-event-collection-filters',
-			'version' => WP_SEED_EVENTS_VERSION,
+			'version' => $asset_version,
 			'script'  => array(
 				'src'                => plugins_url( 'event-collection-filters.js', __FILE__ ),
 				'deps'               => array(

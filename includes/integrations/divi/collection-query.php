@@ -37,10 +37,14 @@ function wp_seed_events_divi_collection_controls_from_loop_values( $loop_values 
 	$loop_values = wp_seed_events_divi_normalize_event_loop_values( $loop_values );
 
 	return array(
-		'types_present'  => array_key_exists( 'wpSeedEventTypes', $loop_values ),
-		'types'          => $loop_values['wpSeedEventTypes'] ?? array(),
-		'pinned_present' => array_key_exists( 'wpSeedEventPinned', $loop_values ),
-		'pinned'         => (string) ( $loop_values['wpSeedEventPinned'] ?? 'all' ),
+		'types_present'          => array_key_exists( 'wpSeedEventTypes', $loop_values ),
+		'types'                  => $loop_values['wpSeedEventTypes'] ?? array(),
+		'pinned_present'         => array_key_exists( 'wpSeedEventPinned', $loop_values ),
+		'pinned'                 => (string) ( $loop_values['wpSeedEventPinned'] ?? 'all' ),
+		'empty_behavior_present' => array_key_exists( 'wpSeedEventEmptyBehavior', $loop_values ),
+		'empty_behavior'         => (string) ( $loop_values['wpSeedEventEmptyBehavior'] ?? 'divi_default' ),
+		'empty_message_present'  => array_key_exists( 'wpSeedEventEmptyMessage', $loop_values ),
+		'empty_message'          => (string) ( $loop_values['wpSeedEventEmptyMessage'] ?? '' ),
 	);
 }
 
@@ -66,10 +70,14 @@ function wp_seed_events_divi_collection_controls_from_rest_params( $params ) {
 	$params = is_array( $params ) ? $params : array();
 
 	return array(
-		'types_present'  => array_key_exists( 'wp_seed_event_types', $params ),
-		'types'          => $params['wp_seed_event_types'] ?? array(),
-		'pinned_present' => array_key_exists( 'wp_seed_event_pinned', $params ),
-		'pinned'         => (string) ( $params['wp_seed_event_pinned'] ?? 'all' ),
+		'types_present'          => array_key_exists( 'wp_seed_event_types', $params ),
+		'types'                  => $params['wp_seed_event_types'] ?? array(),
+		'pinned_present'         => array_key_exists( 'wp_seed_event_pinned', $params ),
+		'pinned'                 => (string) ( $params['wp_seed_event_pinned'] ?? 'all' ),
+		'empty_behavior_present' => array_key_exists( 'wp_seed_event_empty_behavior', $params ),
+		'empty_behavior'         => (string) ( $params['wp_seed_event_empty_behavior'] ?? 'divi_default' ),
+		'empty_message_present'  => array_key_exists( 'wp_seed_event_empty_message', $params ),
+		'empty_message'          => (string) ( $params['wp_seed_event_empty_message'] ?? '' ),
 	);
 }
 
@@ -374,7 +382,10 @@ function wp_seed_events_divi_normalize_event_loop_values( $loop_values ) {
 function wp_seed_events_divi_is_event_loop_values( $loop_values ) {
 	$loop_values = is_array( $loop_values ) ? $loop_values : array();
 
-	if ( 'post_types' !== sanitize_key( (string) ( $loop_values['queryType'] ?? '' ) ) ) {
+	$query_type = sanitize_key( (string) ( $loop_values['queryType'] ?? 'post_types' ) );
+	$query_type = '' === $query_type ? 'post_types' : $query_type;
+
+	if ( 'post_types' !== $query_type ) {
 		return false;
 	}
 
@@ -750,3 +761,130 @@ function wp_seed_events_divi_filter_collection_rest_query_args( $query_args, $pa
 	return wp_seed_events_divi_apply_collection_query( $query_args, $requested_orderby, $controls );
 }
 add_filter( 'divi_module_options_loop_post_type_results_query_args', 'wp_seed_events_divi_filter_collection_rest_query_args', 20, 2 );
+
+/**
+ * Normalize the empty-result behavior saved by the Events loop controls.
+ *
+ * Missing attributes deliberately preserve Divi's native output for existing
+ * and new loops because Divi does not expose a reliable persisted "new loop"
+ * marker.
+ *
+ * @param mixed $behavior Raw behavior.
+ * @return string
+ */
+function wp_seed_events_divi_normalize_empty_behavior( $behavior ) {
+	$behavior = sanitize_key( (string) $behavior );
+
+	return in_array( $behavior, array( 'hide', 'custom_message', 'divi_default' ), true )
+		? $behavior
+		: 'divi_default';
+}
+
+/**
+ * Read empty-result settings only from the Divi element that owns an Events loop.
+ *
+ * @param array $attrs Divi module attributes.
+ * @return array|null
+ */
+function wp_seed_events_divi_empty_settings_from_attrs( $attrs ) {
+	if ( ! is_array( $attrs ) || empty( $attrs['__loop_no_results'] ) ) {
+		return null;
+	}
+
+	$loop_values = $attrs['module']['advanced']['loop']['desktop']['value'] ?? array();
+
+	if ( ! wp_seed_events_divi_is_event_loop_values( $loop_values ) ) {
+		return null;
+	}
+
+	$controls = wp_seed_events_divi_collection_controls_from_loop_values( $loop_values );
+
+	return array(
+		'behavior' => wp_seed_events_divi_normalize_empty_behavior( $controls['empty_behavior'] ),
+		'message'  => $controls['empty_message'],
+	);
+}
+
+/**
+ * Render the custom empty message without Divi's generic heading or paragraph.
+ *
+ * @param string $message Saved message.
+ * @return string
+ */
+function wp_seed_events_divi_empty_message_markup( $message ) {
+	$message = trim( (string) $message );
+
+	if ( '' === $message ) {
+		return '';
+	}
+
+	return '<div class="wp-seed-events-loop-empty-message">' . nl2br( esc_html( $message ) ) . '</div>';
+}
+
+/**
+ * Replace Divi's no-results content for regular modules.
+ *
+ * @param string $content Native content.
+ * @param array  $attrs   Module attributes.
+ * @return string
+ */
+function wp_seed_events_divi_filter_no_results_output( $content, $attrs ) {
+	$settings = wp_seed_events_divi_empty_settings_from_attrs( $attrs );
+
+	if ( null === $settings || 'divi_default' === $settings['behavior'] ) {
+		return $content;
+	}
+
+	return 'hide' === $settings['behavior']
+		? ''
+		: wp_seed_events_divi_empty_message_markup( $settings['message'] );
+}
+add_filter( 'divi_loop_no_results_output', 'wp_seed_events_divi_filter_no_results_output', 20, 5 );
+
+/**
+ * Remove the exact regular module carrying an empty Events loop.
+ *
+ * @param string $output Rendered loop owner.
+ * @param array  $attrs  Module attributes.
+ * @return string
+ */
+function wp_seed_events_divi_filter_loop_rendered_output( $output, $attrs ) {
+	$settings = wp_seed_events_divi_empty_settings_from_attrs( $attrs );
+
+	return null !== $settings && 'hide' === $settings['behavior'] ? '' : $output;
+}
+add_filter( 'divi_loop_rendered_output', 'wp_seed_events_divi_filter_loop_rendered_output', 20, 5 );
+
+/**
+ * Apply empty behavior to structural loop owners such as rows and columns.
+ *
+ * @param string $output       Rendered module wrapper.
+ * @param array  $wrapper_args Divi wrapper arguments.
+ * @return string
+ */
+function wp_seed_events_divi_filter_module_wrapper( $output, $wrapper_args ) {
+	$attrs    = is_array( $wrapper_args ) ? ( $wrapper_args['attrs'] ?? array() ) : array();
+	$settings = wp_seed_events_divi_empty_settings_from_attrs( $attrs );
+
+	if ( null === $settings || 'divi_default' === $settings['behavior'] ) {
+		return $output;
+	}
+
+	if ( 'hide' === $settings['behavior'] ) {
+		return '';
+	}
+
+	$message = wp_seed_events_divi_empty_message_markup( $settings['message'] );
+	$class   = '\ET\Builder\Packages\Module\Options\Loop\LoopUtils';
+
+	if ( class_exists( $class ) && is_callable( array( $class, 'render_no_results_found_message' ) ) ) {
+		$native = $class::render_no_results_found_message();
+
+		if ( '' !== $native && false !== strpos( $output, $native ) ) {
+			return str_replace( $native, $message, $output );
+		}
+	}
+
+	return preg_replace( '#<div class="entry">.*?</div>#s', $message, $output, 1 );
+}
+add_filter( 'divi_module_wrapper_render', 'wp_seed_events_divi_filter_module_wrapper', 20, 2 );

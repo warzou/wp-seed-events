@@ -141,7 +141,13 @@ remplace le sélecteur générique ambigu par deux contrôles dédiés :
   clause native sur `wp_seed_event_flag=featured`, respectivement `IN` et
   `NOT IN`.
 
-Les deux contrôles se combinent avec une logique AND. Ils sont enregistrés dans
+Dans le panneau Boucle, **Types d’événement**, **Épinglage**, **Si aucun
+événement n’est trouvé** et son éventuel champ de message sont insérés
+immédiatement après **Type de publication**, avant les contrôles génériques
+Divi. Une seconde application du filtre ne les duplique pas.
+
+Les deux filtres métier se combinent avec une logique AND. Ils sont
+enregistrés dans
 les attributs de la boucle Divi. Le format catégorisé natif de Divi
 (`selectedOptions`) est normalisé sans changer les identifiants de termes. Les
 valeurs sont transmises à l’aperçu par le hook public
@@ -164,8 +170,32 @@ Les contrôles dédiés sont ensuite la source unique des clauses `wp_seed_event
 Le tri **1re date de l’événement** demeure indépendant et continue d’utiliser
 le contrat de collection fondé sur les occurrences.
 
+## Boucle Events sans résultat
+
+Le contrôle **Si aucun événement n’est trouvé** propose trois comportements :
+
+- **Masquer l’élément de boucle** retire uniquement l’élément Divi qui porte la
+  boucle. Une ligne ou une colonne porteuse disparaît entièrement, sans masquer
+  sa section parente ;
+- **Afficher un message personnalisé** remplace le contenu générique de Divi
+  par le seul texte enregistré, échappé dans un conteneur responsive ;
+- **Utiliser le comportement Divi par défaut** conserve la sortie native.
+
+L’absence de l’attribut enregistré vaut toujours **Comportement Divi par
+défaut**. Divi ne fournit pas de marqueur persistant permettant de distinguer
+fiablement une boucle nouvellement créée d’une boucle ancienne. Ce choix
+préserve donc le rendu de toutes les boucles existantes ; le masquage doit être
+sélectionné explicitement. Les boucles qui ne portent pas exclusivement sur
+**wp_seed_event** ne sont jamais modifiées.
+
+Le frontend et le Visual Builder utilisent les mêmes attributs et les hooks de
+rendu officiels **divi_loop_no_results_output**, **divi_loop_rendered_output**
+et **divi_module_wrapper_render**. Aucun script client ne masque un parent
+après le rendu, ce qui évite un flash du message **Aucun résultat trouvé**.
+
 Depuis `0.2.0-beta.8`, les valeurs catégorisées `selectedOptions` et le cache
 par instance sont explicitement couverts : une boucle Hero et une boucle standard
 ayant les mêmes réglages produisent les mêmes résultats.
 
 Depuis `0.2.0-beta.9`, les controles dedies sont la source unique des taxonomies Events. Les anciennes valeurs du selecteur natif sont migrees a la sauvegarde, les autres taxonomies restent intactes et la migration est idempotente.
+Divi 5.9.0 peut omettre `queryType=post_types` dans le schema compact d'un conteneur enfant (`enable`, `loopId`, `subTypes`) tout en affichant le panneau Boucle complet. WP Seed Events traite cette omission comme la valeur par defaut native uniquement lorsque `subTypes` contient exclusivement `wp_seed_event`. Les controles dedies restent ainsi visibles dans une ligne porteuse comme dans sa colonne de canvas, sans modifier les boucles ordinaires, mixtes ou les requetes explicitement non basees sur des publications.

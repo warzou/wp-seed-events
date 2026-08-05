@@ -47,6 +47,10 @@ function absint( $value ) {
 	return abs( (int) $value );
 }
 
+function esc_html( $value ) {
+	return htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+}
+
 function wp_unslash( $value ) {
 	return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( (string) $value );
 }
@@ -152,7 +156,7 @@ function divi_collection_query( $status = 'all', $pinned = 'all' ) {
 }
 
 divi_collection_case( 'hooks are registered once', function () {
-	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_before_execution', 'divi_module_options_loop_post_type_results_query_args', 'wp_insert_post_data' ) as $hook ) {
+	foreach ( array( 'rest_request_before_callbacks', 'et_builder_loop_order_by_options_wp_seed_event', 'divi_loop_data_before_execution', 'divi_module_options_loop_post_type_results_query_args', 'wp_insert_post_data', 'divi_loop_no_results_output', 'divi_loop_rendered_output', 'divi_module_wrapper_render' ) as $hook ) {
 		divi_collection_assert( 1 === count( $GLOBALS['divi_collection_filters'][ $hook ] ?? array() ), 'Hook registration differs: ' . $hook );
 	}
 } );
@@ -549,6 +553,22 @@ divi_collection_case( 'flat native values are classified without category wrappe
 	divi_collection_assert( array( 30 ) === $normalized['includePostWithSpecificTerms'], 'Flat unrelated term was not preserved.' );
 } );
 
+divi_collection_case( 'compact Divi column defaults to post types query', function () {
+	$compact = array(
+		'enable'   => 'on',
+		'loopId'   => 'hero-events',
+		'subTypes' => array( array( 'value' => 'wp_seed_event' ) ),
+	);
+	divi_collection_assert( wp_seed_events_divi_is_event_loop_values( $compact ), 'Compact event loop was not recognized.' );
+
+	$mixed = $compact;
+	$mixed['subTypes'][] = array( 'value' => 'post' );
+	divi_collection_assert( ! wp_seed_events_divi_is_event_loop_values( $mixed ), 'Mixed compact loop was treated as event-only.' );
+
+	$explicit_other = $compact;
+	$explicit_other['queryType'] = 'terms';
+	divi_collection_assert( ! wp_seed_events_divi_is_event_loop_values( $explicit_other ), 'Explicit non-post query was ignored.' );
+} );
 divi_collection_case( 'saved event block migration is idempotent', function () {
 	$block = array(
 		'attrs' => array(
@@ -635,6 +655,125 @@ divi_collection_case( 'ordinary saved loop remains byte-equivalent', function ()
 	$changed = false;
 	$result  = wp_seed_events_divi_migrate_event_loop_block( $block, $changed );
 	divi_collection_assert( ! $changed && $block === $result, 'Ordinary loop was changed.' );
+} );
+
+function divi_collection_empty_attrs( $behavior = null, $message = null, $no_results = true, $post_type = 'wp_seed_event' ) {
+	$values = array(
+		'queryType' => 'post_types',
+		'subTypes'  => array( array( 'value' => $post_type ) ),
+	);
+
+	if ( null !== $behavior ) {
+		$values['wpSeedEventEmptyBehavior'] = $behavior;
+	}
+
+	if ( null !== $message ) {
+		$values['wpSeedEventEmptyMessage'] = $message;
+	}
+
+	$attrs = array(
+		'module' => array(
+			'advanced' => array(
+				'loop' => array(
+					'desktop' => array( 'value' => $values ),
+				),
+			),
+		),
+	);
+
+	if ( $no_results ) {
+		$attrs['__loop_no_results'] = true;
+	}
+
+	return $attrs;
+}
+
+divi_collection_case( 'missing empty behavior preserves Divi output', function () {
+	$attrs  = divi_collection_empty_attrs();
+	$native = '<div class="entry"><h2>No Results Found.</h2></div>';
+
+	divi_collection_assert( 'divi_default' === wp_seed_events_divi_normalize_empty_behavior( '' ), 'Missing behavior is not Divi default.' );
+	divi_collection_assert( $native === wp_seed_events_divi_filter_no_results_output( $native, $attrs ), 'Legacy loop output changed.' );
+	divi_collection_assert( $native === wp_seed_events_divi_filter_loop_rendered_output( $native, $attrs ), 'Legacy loop owner changed.' );
+} );
+
+divi_collection_case( 'empty Events row is removed in hide mode', function () {
+	$attrs = divi_collection_empty_attrs( 'hide', '' );
+
+	divi_collection_assert( '' === wp_seed_events_divi_filter_no_results_output( 'No Results Found.', $attrs ), 'Native empty content flashed.' );
+	divi_collection_assert( '' === wp_seed_events_divi_filter_loop_rendered_output( '<div class="et_pb_row">row</div>', $attrs ), 'Empty row remained.' );
+	divi_collection_assert(
+		'' === wp_seed_events_divi_filter_module_wrapper( '<div class="et_pb_row">row</div>', array( 'attrs' => $attrs, 'name' => 'divi/row' ) ),
+		'Structural row remained.'
+	);
+} );
+
+divi_collection_case( 'empty Events column is removed without touching its parent', function () {
+	$attrs        = divi_collection_empty_attrs( 'hide', '' );
+	$parent_attrs = array( '__loop_no_results' => true );
+
+	divi_collection_assert(
+		'' === wp_seed_events_divi_filter_module_wrapper( '<div class="et_pb_column">column</div>', array( 'attrs' => $attrs, 'name' => 'divi/column' ) ),
+		'Empty column remained.'
+	);
+	divi_collection_assert(
+		'<section>parent</section>' === wp_seed_events_divi_filter_module_wrapper(
+			'<section>parent</section>',
+			array( 'attrs' => $parent_attrs, 'parentAttrs' => $attrs, 'name' => 'divi/section' )
+		),
+		'Non-owning parent was removed.'
+	);
+} );
+
+divi_collection_case( 'custom empty message is escaped and replaces Divi markup', function () {
+	$attrs   = divi_collection_empty_attrs( 'custom_message', '<script>alert(1)</script>' );
+	$message = wp_seed_events_divi_filter_no_results_output( 'No Results Found.', $attrs );
+	$wrapper = wp_seed_events_divi_filter_module_wrapper(
+		'<div class="et_pb_row"><div class="entry"><h2>No Results Found.</h2><p>Native.</p></div></div>',
+		array( 'attrs' => $attrs, 'name' => 'divi/row' )
+	);
+
+	divi_collection_assert( false === strpos( $message, '<script>' ), 'Message was not escaped.' );
+	divi_collection_assert( false !== strpos( $message, '&lt;script&gt;' ), 'Escaped message is missing.' );
+	divi_collection_assert( false === strpos( $wrapper, 'No Results Found.' ), 'Divi generic heading remained.' );
+	divi_collection_assert( false !== strpos( $wrapper, 'wp-seed-events-loop-empty-message' ), 'Custom message wrapper is missing.' );
+} );
+
+divi_collection_case( 'explicit empty custom message emits no generic fallback', function () {
+	$attrs = divi_collection_empty_attrs( 'custom_message', '' );
+
+	divi_collection_assert( '' === wp_seed_events_divi_filter_no_results_output( 'No Results Found.', $attrs ), 'Empty message fell back to Divi.' );
+	divi_collection_assert(
+		'<div class="et_pb_row"></div>' === wp_seed_events_divi_filter_module_wrapper(
+			'<div class="et_pb_row"><div class="entry"><h2>No Results Found.</h2></div></div>',
+			array( 'attrs' => $attrs, 'name' => 'divi/row' )
+		),
+		'Empty structural message retained generic markup.'
+	);
+} );
+
+divi_collection_case( 'results and non-Events loops are unchanged', function () {
+	$with_results = divi_collection_empty_attrs( 'hide', '', false );
+	$ordinary     = divi_collection_empty_attrs( 'hide', '', true, 'post' );
+	$output       = '<div>result</div>';
+
+	divi_collection_assert( $output === wp_seed_events_divi_filter_loop_rendered_output( $output, $with_results ), 'Non-empty Events loop was hidden.' );
+	divi_collection_assert( $output === wp_seed_events_divi_filter_loop_rendered_output( $output, $ordinary ), 'Ordinary empty loop was hidden.' );
+	divi_collection_assert(
+		$output === wp_seed_events_divi_filter_module_wrapper( $output, array( 'attrs' => $ordinary ) ),
+		'Ordinary structural loop changed.'
+	);
+} );
+
+divi_collection_case( 'two empty Events loops keep independent behavior', function () {
+	$hidden  = divi_collection_empty_attrs( 'hide', '' );
+	$message = divi_collection_empty_attrs( 'custom_message', 'Autre programmation.' );
+
+	divi_collection_assert( '' === wp_seed_events_divi_filter_loop_rendered_output( '<div>one</div>', $hidden ), 'Hidden loop was rendered.' );
+	divi_collection_assert(
+		false !== strpos( wp_seed_events_divi_filter_no_results_output( 'native', $message ), 'Autre programmation.' ),
+		'Message loop did not retain its own behavior.'
+	);
 } );
 
 divi_collection_case( 'adapter has no storage or rendering dependency', function () {
