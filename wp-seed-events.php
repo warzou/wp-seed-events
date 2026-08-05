@@ -38,6 +38,10 @@ if ( ! defined( 'WP_SEED_EVENTS_VERSION' ) ) {
 	define( 'WP_SEED_EVENTS_VERSION', '' !== $wp_seed_events_version ? $wp_seed_events_version : '0.0.0-dev' );
 }
 
+if ( ! defined( 'WP_SEED_EVENTS_REWRITE_VERSION' ) ) {
+	define( 'WP_SEED_EVENTS_REWRITE_VERSION', '2026-08-05-type-scoped-event-rewrites-v2' );
+}
+
 require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/public/classifications.php';
 require_once __DIR__ . '/includes/public/promotions.php';
@@ -124,6 +128,7 @@ add_filter( 'template_include', 'wp_seed_events_public_template_include', 99 );
 add_filter( 'body_class', 'wp_seed_events_public_body_class' );
 add_filter( 'post_type_link', 'wp_seed_events_event_post_type_link', 10, 4 );
 add_filter( 'query_vars', 'wp_seed_events_permalink_query_vars' );
+add_action( 'init', 'wp_seed_events_maybe_flush_rewrite_rules', 99 );
 add_action( 'template_redirect', 'wp_seed_events_redirect_event_to_canonical_url', 1 );
 add_shortcode( 'wp_seed_event_card', 'wp_seed_events_event_card_shortcode' );
 add_shortcode( 'wp_seed_events', 'wp_seed_events_event_collection_shortcode' );
@@ -141,6 +146,7 @@ function wp_seed_events_activate() {
 	wp_seed_events_install_occurrence_projection_table();
 	wp_seed_events_run_lifecycle_index_backfill_batch( true );
 	flush_rewrite_rules();
+	update_option( 'wp_seed_events_rewrite_version', WP_SEED_EVENTS_REWRITE_VERSION, false );
 }
 
 function wp_seed_events_enqueue_public_visuals_style() {
@@ -312,6 +318,161 @@ function wp_seed_events_permalink_includes_primary_type() {
 	return '1' === get_option( 'wp_seed_events_permalink_include_primary_type', '1' );
 }
 
+function wp_seed_events_maybe_flush_rewrite_rules() {
+	if ( function_exists( 'wp_installing' ) && wp_installing() ) {
+		return;
+	}
+
+	if ( WP_SEED_EVENTS_REWRITE_VERSION === get_option( 'wp_seed_events_rewrite_version', '' ) ) {
+		return;
+	}
+
+	flush_rewrite_rules( false );
+	update_option( 'wp_seed_events_rewrite_version', WP_SEED_EVENTS_REWRITE_VERSION, false );
+}
+
+function wp_seed_events_event_type_public_slug_for_key( $type_key ) {
+	$type_key = sanitize_key( $type_key );
+
+	if ( '' === $type_key ) {
+		return '';
+	}
+
+	return function_exists( 'wp_seed_events_native_event_type_slug' )
+		? wp_seed_events_native_event_type_slug( $type_key )
+		: sanitize_title( str_replace( '_', '-', $type_key ) );
+}
+
+function wp_seed_events_public_event_type_rewrite_slugs() {
+	$slugs         = array();
+	$reserved_roots = wp_seed_events_reserved_root_slugs();
+
+	foreach ( wp_seed_events_event_type_options() as $type_key => $type_label ) {
+		$slug = wp_seed_events_event_type_public_slug( $type_key );
+
+		if ( '' !== $slug && ! wp_seed_events_event_type_slug_has_root_conflict( $slug, $reserved_roots ) ) {
+			$slugs[ $slug ] = sanitize_key( $type_key );
+		}
+	}
+
+	ksort( $slugs, SORT_STRING );
+
+	return $slugs;
+}
+
+function wp_seed_events_reserved_root_slugs() {
+	$reserved = array(
+		'atom',
+		'attachment',
+		'author',
+		'category',
+		'comments',
+		'comment-page',
+		'embed',
+		'favicon.ico',
+		'feed',
+		'index.php',
+		'page',
+		'rdf',
+		'robots.txt',
+		'rss',
+		'rss2',
+		's',
+		'search',
+		'sitemap.xml',
+		'tag',
+		'wp-admin',
+		'wp-content',
+		'wp-includes',
+		'wp-json',
+		'wp-login.php',
+		'wp-sitemap.xml',
+		'xmlrpc.php',
+	);
+
+	global $wp_post_types, $wp_taxonomies, $wp_rewrite;
+
+	foreach ( array( $wp_post_types, $wp_taxonomies ) as $objects ) {
+		if ( ! is_array( $objects ) ) {
+			continue;
+		}
+
+		foreach ( $objects as $name => $object ) {
+			if ( 'wp_seed_event' === $name || empty( $object->rewrite ) ) {
+				continue;
+			}
+
+			$rewrite_slug = is_array( $object->rewrite ) && isset( $object->rewrite['slug'] ) ? $object->rewrite['slug'] : $name;
+			$root         = strtok( trim( (string) $rewrite_slug, '/' ), '/' );
+
+			if ( false !== $root && '' !== $root ) {
+				$reserved[] = sanitize_title( $root );
+			}
+		}
+	}
+
+	if ( is_object( $wp_rewrite ) ) {
+		foreach ( array( 'author_base', 'comments_base', 'feed_base', 'pagination_base', 'search_base' ) as $property ) {
+			if ( ! empty( $wp_rewrite->{$property} ) ) {
+				$reserved[] = sanitize_title( $wp_rewrite->{$property} );
+			}
+		}
+	}
+
+	if ( function_exists( 'get_pages' ) && function_exists( 'get_page_uri' ) ) {
+		$pages = get_pages(
+			array(
+				'post_status'     => array( 'publish', 'private' ),
+				'sort_column'     => 'post_name',
+				'suppress_filters' => true,
+			)
+		);
+
+		foreach ( $pages as $page ) {
+			$page_path = trim( (string) get_page_uri( $page ), '/' );
+			$parts     = array_values( array_filter( explode( '/', $page_path ) ) );
+
+			if ( 1 < count( $parts ) ) {
+				$reserved[] = sanitize_title( $parts[0] );
+			}
+		}
+	}
+
+	$reserved = array_values( array_unique( array_filter( array_map( 'sanitize_title', $reserved ) ) ) );
+
+	return apply_filters( 'wp_seed_events_reserved_root_slugs', $reserved );
+}
+
+function wp_seed_events_event_type_slug_has_root_conflict( $slug, $reserved_roots = null ) {
+	$slug           = sanitize_title( $slug );
+	$reserved_roots = null === $reserved_roots ? wp_seed_events_reserved_root_slugs() : $reserved_roots;
+
+	return '' !== $slug && in_array( $slug, $reserved_roots, true );
+}
+
+function wp_seed_events_event_type_key_has_root_conflict( $type_key ) {
+	$slug = wp_seed_events_event_type_public_slug_for_key( $type_key );
+
+	return wp_seed_events_event_type_slug_has_root_conflict( $slug );
+}
+
+function wp_seed_events_event_type_rewrite_slug_conflicts() {
+	$conflicts      = array();
+	$reserved_roots = wp_seed_events_reserved_root_slugs();
+
+	foreach ( wp_seed_events_event_type_options() as $type_key => $type_label ) {
+		$slug = wp_seed_events_event_type_public_slug( $type_key );
+
+		if ( wp_seed_events_event_type_slug_has_root_conflict( $slug, $reserved_roots ) ) {
+			$conflicts[ $slug ] = sanitize_key( $type_key );
+		}
+	}
+
+	ksort( $conflicts, SORT_STRING );
+
+	return $conflicts;
+}
+
 function wp_seed_events_permalink_path_parts( $post ) {
 	$post = get_post( $post );
 
@@ -365,7 +526,12 @@ function wp_seed_events_add_event_rewrite_rules() {
 		return;
 	}
 
-	add_rewrite_rule( '^([^/]+)/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[2]&wp_seed_event_primary_type=$matches[1]', 'top' );
+	if ( wp_seed_events_permalink_includes_primary_type() ) {
+		foreach ( wp_seed_events_public_event_type_rewrite_slugs() as $type_slug => $type_key ) {
+			add_rewrite_rule( '^' . preg_quote( $type_slug, '#' ) . '/([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]&wp_seed_event_primary_type=' . rawurlencode( $type_key ), 'top' );
+		}
+	}
+
 	add_rewrite_rule( '^([^/]+)/?$', 'index.php?post_type=wp_seed_event&name=$matches[1]', 'bottom' );
 }
 
@@ -499,6 +665,16 @@ function wp_seed_events_maybe_save_permalink_settings() {
 	$new_prefix    = sanitize_title( trim( (string) $raw_prefix, "/ \t\n\r\0\x0B" ) );
 	$new_with_type = ! empty( $_POST['wp_seed_events_permalink_include_primary_type'] );
 
+	if ( '' === $new_prefix && $new_with_type && array() !== wp_seed_events_event_type_rewrite_slug_conflicts() ) {
+		add_settings_error(
+			'wp_seed_events_permalink_prefix',
+			'wp_seed_events_permalink_prefix_root_conflict',
+			'Le prefixe Events ne peut pas etre vide tant qu un type d evenement utilise une racine WordPress existante.',
+			'error'
+		);
+		return;
+	}
+
 	if ( '' === $new_prefix ) {
 		update_option( 'wp_seed_events_permalink_prefix', '', false );
 	} elseif ( wp_seed_events_default_permalink_prefix() === $new_prefix ) {
@@ -526,9 +702,7 @@ function wp_seed_events_event_type_public_slug( $type_key ) {
 		return '';
 	}
 
-	return function_exists( 'wp_seed_events_native_event_type_slug' )
-		? wp_seed_events_native_event_type_slug( $type_key )
-		: sanitize_title( $options[ $type_key ] );
+	return wp_seed_events_event_type_public_slug_for_key( $type_key );
 }
 
 function wp_seed_events_event_type_keys_for_event( $post_id ) {
@@ -1787,6 +1961,9 @@ function wp_seed_events_render_event_types_admin_page() {
 
 		<?php elseif ( 'type_is_default' === $message ) : ?>
 			<div class="notice notice-warning is-dismissible"><p>Ce type système ne peut pas être supprimé.</p></div>
+
+		<?php elseif ( 'type_slug_conflict' === $message ) : ?>
+			<div class="notice notice-error is-dismissible"><p>Ce slug de type entre en conflit avec une racine WordPress existante. Definissez un prefixe Events ou choisissez un autre nom.</p></div>
 		<?php endif; ?>
 
 		<div id="col-container" class="wp-clearfix">
@@ -1919,6 +2096,7 @@ function wp_seed_events_handle_event_types_admin_form() {
 	$custom_types      = wp_seed_events_custom_event_type_options();
 	$label_overrides   = wp_seed_events_event_type_label_overrides();
 	$removed_type_keys = wp_seed_events_removed_default_event_type_keys();
+	$rewrite_needs_flush = false;
 
 	if ( 'add' === $admin_action ) {
 		$new_type_label = isset( $_POST['wp_seed_new_event_type_label'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_event_type_label'] ) ) : '';
@@ -1926,7 +2104,13 @@ function wp_seed_events_handle_event_types_admin_form() {
 		if ( '' !== $new_type_label ) {
 			$type_key = wp_seed_events_event_type_key_from_label( $new_type_label, wp_seed_events_event_type_options() );
 
+			if ( '' !== $type_key && '' === wp_seed_events_permalink_prefix() && wp_seed_events_event_type_key_has_root_conflict( $type_key ) ) {
+				wp_safe_redirect( wp_seed_events_event_types_admin_url( 'type_slug_conflict' ) );
+				exit;
+			}
+
 			if ( '' !== $type_key ) {
+				$rewrite_needs_flush = true;
 				if ( isset( $default_options[ $type_key ] ) && in_array( $type_key, $removed_type_keys, true ) ) {
 					$base_type_key = $type_key;
 					$index         = 2;
@@ -1963,6 +2147,8 @@ function wp_seed_events_handle_event_types_admin_form() {
 			}
 		}
 	} elseif ( 'delete' === $admin_action && '' !== $type_key ) {
+		$rewrite_needs_flush = true;
+
 		if ( wp_seed_events_default_event_type_key() === $type_key ) {
 			wp_safe_redirect( wp_seed_events_event_types_admin_url( 'type_is_default' ) );
 			exit;
@@ -1996,6 +2182,11 @@ function wp_seed_events_handle_event_types_admin_form() {
 		update_option( 'wp_seed_events_removed_default_event_type_keys', $removed_type_keys, false );
 	} else {
 		delete_option( 'wp_seed_events_removed_default_event_type_keys' );
+	}
+
+	if ( $rewrite_needs_flush ) {
+		flush_rewrite_rules( false );
+		update_option( 'wp_seed_events_rewrite_version', WP_SEED_EVENTS_REWRITE_VERSION, false );
 	}
 
 	wp_safe_redirect( wp_seed_events_event_types_admin_url( 'types_saved' ) );
