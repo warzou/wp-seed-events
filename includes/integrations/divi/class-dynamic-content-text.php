@@ -73,6 +73,10 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 		return $this->field_type;
 	}
 
+	public function get_loop_name(): string {
+		return 'loop_' . $this->get_name();
+	}
+
 	/**
 	 * Return the label displayed by Divi.
 	 */
@@ -106,6 +110,17 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 			'fields' => array(),
 		);
 
+		$loop_name = $this->get_loop_name();
+		if ( ! isset( $options[ $loop_name ] ) ) {
+			$options[ $loop_name ] = array_merge(
+				$options[ $name ],
+				array(
+					'id'    => $loop_name,
+					'group' => esc_html__( 'WP Seed Events — Boucle', 'wp-seed-events' ),
+				)
+			);
+		}
+
 		return $options;
 	}
 
@@ -115,7 +130,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 	public function render_callback( $value, array $data_args = array() ): string {
 		$name = isset( $data_args['name'] ) ? (string) $data_args['name'] : '';
 
-		if ( $this->get_name() !== $name ) {
+		if ( ! in_array( $name, array( $this->get_name(), $this->get_loop_name() ), true ) ) {
 			return $value;
 		}
 

@@ -1,0 +1,46 @@
+{
+  "name": "wp-seed-events/event-share",
+  "d4Shortcode": "",
+  "title": "WP Seed — Partage de l’événement",
+  "titles": "WP Seed — Partage de l’événement",
+  "folder": "wp-seed-events",
+  "category": "module",
+  "moduleClassName": "wp_seed_events_divi_event_share",
+  "moduleOrderClassName": "wp_seed_events_divi_event_share",
+  "usesContext": ["postId", "postType", "queryId"],
+  "attributes": {
+    "__loop_post_id": {"type": "string", "default": ""},
+    "module": {
+      "type": "object",
+      "selector": "{{selector}}",
+      "default": {"meta": {"adminLabel": {"desktop": {"value": "WP Seed — Partage de l’événement"}}}},
+      "settings": {
+        "meta": {"adminLabel": {}},
+        "advanced": {"htmlAttributes": {}, "loop": {}},
+        "decoration": {
+          "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {},
+          "filters": {}, "transform": {}, "animation": {}, "overflow": {}, "disabledOn": {},
+          "transition": {}, "position": {}, "zIndex": {}, "scroll": {}, "sticky": {}
+        }
+      }
+    },
+    "shareStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-share", "settings": {"decoration": {
+      "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}
+    }}},
+    "summaryStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-share summary", "settings": {"decoration": {
+      "font": {"component": {"props": {"groupLabel": "Bouton Partager", "fieldLabel": "Texte"}}},
+      "spacing": {}, "border": {}, "background": {}
+    }}},
+    "actionsStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-share__actions", "settings": {"decoration": {
+      "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {}
+    }}},
+    "buttonStyle": {"type": "object", "selector": "{{selector}} [data-wp-seed-event-share-copy]", "settings": {"decoration": {
+      "font": {"component": {"props": {"groupLabel": "Copier le lien", "fieldLabel": "Texte"}}},
+      "spacing": {}, "border": {}, "background": {}
+    }}},
+    "linkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-share__actions a", "settings": {"decoration": {
+      "font": {"component": {"props": {"groupLabel": "Lien email", "fieldLabel": "Texte"}}}
+    }}}
+  },
+  "settings": {"content": "auto", "design": "auto", "advanced": "auto", "groups": {}}
+}

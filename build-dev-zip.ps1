@@ -69,8 +69,7 @@ $excludedRuntimePatterns += @(
     ($visualsModuleRuntimeRoot + '/package-lock.json'),
     ($visualsModuleRuntimeRoot + '/webpack.config.js'),
     ($visualsModuleRuntimeRoot + '/tests/*'),
-    ($visualsModuleRuntimeRoot + '/src/index.jsx'),
-    ($visualsModuleRuntimeRoot + '/src/loop-context.js')
+    ($visualsModuleRuntimeRoot + '/src/index.jsx')
 )
 
 foreach ($visualsModuleAsset in @($visualsModuleJson, $visualsModuleBundle)) {
@@ -94,6 +93,23 @@ $excludedRuntimePatterns += @(
 foreach ($peopleModuleAsset in @($peopleModuleJson, $peopleModuleBundle)) {
     if (-not (Test-Path -LiteralPath $peopleModuleAsset -PathType Leaf)) {
         throw ('Missing Divi people module asset. Run npm run build first: ' + $peopleModuleAsset)
+    }
+}
+$shareModuleRuntimeRoot = 'includes/integrations/divi/event-share-module/visual-builder'
+$shareModuleJson = Join-Path $root ($shareModuleRuntimeRoot + '/src/module.json')
+$shareModuleBundle = Join-Path $root ($shareModuleRuntimeRoot + '/build/wp-seed-events-event-share.js')
+$excludedRuntimePatterns += @(
+    ($shareModuleRuntimeRoot + '/node_modules/*'),
+    ($shareModuleRuntimeRoot + '/package.json'),
+    ($shareModuleRuntimeRoot + '/package-lock.json'),
+    ($shareModuleRuntimeRoot + '/webpack.config.js'),
+    ($shareModuleRuntimeRoot + '/tests/*'),
+    ($shareModuleRuntimeRoot + '/src/index.jsx')
+)
+
+foreach ($shareModuleAsset in @($shareModuleJson, $shareModuleBundle)) {
+    if (-not (Test-Path -LiteralPath $shareModuleAsset -PathType Leaf)) {
+        throw ('Missing Divi share module asset. Run npm run build first: ' + $shareModuleAsset)
     }
 }
 $occurrenceModuleRuntimeRoot = 'includes/integrations/divi/occurrence-collection-module/visual-builder'

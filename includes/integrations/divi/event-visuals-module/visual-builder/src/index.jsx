@@ -15,7 +15,9 @@ const {
 const { useFetch } = window.divi.rest;
 
 import metadata from './module.json';
-import { getDiviLoopPostId } from './loop-context';
+import { resolveCurrentEventContext } from '../../../visual-builder-event-context';
+
+const { data } = window.divi;
 
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
@@ -79,15 +81,19 @@ const moduleClassnames = ({ classnamesInstance, attrs }) => {
   );
 };
 
-const EventVisualsPreview = ({ attrs, id, name, elements }) => {
+const EventVisualsPreview = (props) => {
+  const { attrs, id, name, elements } = props;
   const { fetch, response, isLoading } = useFetch({ html: '' });
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
   const options = normalizeOptions(attrs);
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
-  const postId = Number(currentPage?.id ?? 0);
-  const loopPostId = getDiviLoopPostId(attrs);
+  const parentId = typeof props.parentId === 'string' ? props.parentId : '';
+  const loopIndex = Number.isInteger(props.loopIndex) ? props.loopIndex : -1;
+  const eventContext = resolveCurrentEventContext({ data, attrs, parentId, loopIndex, currentPage });
+  const postId = eventContext.eventId;
+  const loopPostId = eventContext.eventId;
 
   const requestData = useMemo(
     () => ({
@@ -95,7 +101,7 @@ const EventVisualsPreview = ({ attrs, id, name, elements }) => {
       ...(loopPostId > 0 ? { loop_id: loopPostId } : {}),
       ...options,
     }),
-    [postId, loopPostId, optionsKey],
+    [postId, loopPostId, eventContext.cacheKey, optionsKey],
   );
   const restRoute = useMemo(
     () => '/wp-seed-events/v1/divi-event-visuals-preview?' + new URLSearchParams(requestData).toString(),

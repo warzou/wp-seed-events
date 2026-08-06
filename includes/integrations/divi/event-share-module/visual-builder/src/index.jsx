@@ -26,17 +26,11 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
         },
       },
     })}
-    {elements.style({ attrName: 'sectionStyle' })}
-    {elements.style({ attrName: 'titleStyle' })}
-    {elements.style({ attrName: 'listStyle' })}
-    {elements.style({ attrName: 'itemStyle' })}
-    {elements.style({ attrName: 'nameStyle' })}
-    {elements.style({ attrName: 'rolesStyle' })}
-    {elements.style({ attrName: 'roleStyle' })}
-    {elements.style({ attrName: 'contactsStyle' })}
-    {elements.style({ attrName: 'emailLinkStyle' })}
-    {elements.style({ attrName: 'phoneLinkStyle' })}
-    {elements.style({ attrName: 'publicLinkStyle' })}
+    {elements.style({ attrName: 'shareStyle' })}
+    {elements.style({ attrName: 'summaryStyle' })}
+    {elements.style({ attrName: 'actionsStyle' })}
+    {elements.style({ attrName: 'buttonStyle' })}
+    {elements.style({ attrName: 'linkStyle' })}
   </StyleContainer>
 );
 
@@ -48,16 +42,14 @@ const moduleClassnames = ({ classnamesInstance, attrs }) => {
   classnamesInstance.add(elementClassnames({ attrs: attrs?.module?.decoration ?? {} }));
 };
 
-const EventPeoplePreview = (props) => {
+const EventSharePreview = (props) => {
   const { attrs, id, name, elements } = props;
   const { fetch, response, isLoading } = useFetch({ html: '' });
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
-  const values = attrs?.content?.innerContent?.desktop?.value ?? {};
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const context = resolveCurrentEventContext({ data, attrs, parentId: props.parentId, loopIndex: props.loopIndex, currentPage });
-  const requestData = useMemo(() => ({ post_id: context.eventId, ...(context.eventId > 0 ? { loop_id: context.eventId } : {}), ...values }), [context.cacheKey, JSON.stringify(values)]);
-  const restRoute = useMemo(() => `/wp-seed-events/v1/divi-event-people-preview?${new URLSearchParams(requestData).toString()}`, [requestData]);
+  const restRoute = useMemo(() => `/wp-seed-events/v1/divi-event-share-preview?post_id=${context.eventId}&loop_id=${context.eventId}`, [context.cacheKey]);
   useEffect(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -68,50 +60,24 @@ const EventPeoplePreview = (props) => {
   }, [restRoute]);
   const html = typeof response?.html === 'string' ? response.html : '';
   return (
-    <ModuleContainer attrs={attrs} elements={elements} id={id} moduleClassName='wp_seed_events_divi_event_people' name={name} scriptDataComponent={ModuleScriptData} stylesComponent={ModuleStyles} classnamesFunction={moduleClassnames}>
+    <ModuleContainer attrs={attrs} elements={elements} id={id} moduleClassName='wp_seed_events_divi_event_share' name={name} scriptDataComponent={ModuleScriptData} stylesComponent={ModuleStyles} classnamesFunction={moduleClassnames}>
       {elements.styleComponents({ attrName: 'module' })}
       <ElementComponents attrs={attrs?.module?.decoration ?? {}} id={id} />
       <div className='et_pb_module_inner'>
-        {isLoading && <div role='status'>Chargement des personnes…</div>}
-        {!isLoading && hasError && <div role='alert'>L’aperçu des personnes est indisponible.</div>}
+        {isLoading && <div role='status'>Chargement du partage…</div>}
+        {!isLoading && hasError && <div role='alert'>L’aperçu du partage est indisponible.</div>}
         {!isLoading && !hasError && html !== '' && <div dangerouslySetInnerHTML={{ __html: html }} />}
       </div>
     </ModuleContainer>
   );
 };
 
-const eventPeopleModule = {
-  renderers: { edit: EventPeoplePreview },
-  placeholderContent: {
-    __loop_post_id: loopPostIdContext,
-    content: {
-      innerContent: {
-        desktop: {
-          value: {
-            title: 'Contacts et intervenants',
-            heading_level: 'h2',
-            role: 'all',
-            role_organizer: 'off',
-            role_speaker: 'off',
-            role_registration_contact: 'off',
-            role_information_contact: 'off',
-            show_name: 'on',
-            show_roles: 'on',
-            show_email: 'on',
-            show_phone: 'on',
-            show_link: 'on',
-            link_phone: 'on',
-            link_email: 'on',
-            link_url: 'on',
-            layout: 'list',
-          },
-        },
-      },
-    },
-  },
+const eventShareModule = {
+  renderers: { edit: EventSharePreview },
+  placeholderContent: { __loop_post_id: loopPostIdContext },
 };
 
-addFilter('divi.moduleLibrary.moduleMapping', 'wpSeedEvents.eventPeopleFolder', (modules) => {
+addFilter('divi.moduleLibrary.moduleMapping', 'wpSeedEvents.eventShareFolder', (modules) => {
   const module = modules?.[metadata.name];
 
   if (module?.metadata) {
@@ -121,7 +87,7 @@ addFilter('divi.moduleLibrary.moduleMapping', 'wpSeedEvents.eventPeopleFolder', 
   return modules;
 });
 
-addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.eventPeople', () => {
+addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.eventShare', () => {
   registerFolder({
     name: 'wp-seed-events',
     path: '',
@@ -129,5 +95,5 @@ addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.e
     icon: '',
     category: 'module',
   });
-  registerModule(metadata, eventPeopleModule);
+  registerModule(metadata, eventShareModule);
 });

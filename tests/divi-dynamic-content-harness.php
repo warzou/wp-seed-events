@@ -66,6 +66,7 @@ namespace {
 	$GLOBALS['d1_divi_queried_id']     = 0;
 	$GLOBALS['d1_divi_data_calls']     = 0;
 	$GLOBALS['d1_divi_case_count']     = 0;
+	$GLOBALS['d1_divi_actions']        = array();
 
 	function absint( $value ) {
 		return abs( (int) $value );
@@ -116,7 +117,8 @@ namespace {
 		return $url;
 	}
 
-	function add_action() {
+	function add_action( $hook, $callback, $priority = 10 ) {
+		$GLOBALS['d1_divi_actions'][] = array( $hook, $callback, $priority );
 	}
 
 	function add_filter() {
@@ -250,6 +252,29 @@ namespace {
 
 	wp_seed_events_divi_load_next_date();
 	$sources = d1_divi_sources_by_name();
+
+	d1_divi_case( 'frontend retries Dynamic Content registration after Divi loads', function () {
+		$matches = array_values(
+			array_filter(
+				$GLOBALS['d1_divi_actions'],
+				static function ( $action ) {
+					return array( 'wp', 'wp_seed_events_divi_load_next_date', 5 ) === $action;
+				}
+			)
+		);
+		d1_divi_assert( 1 === count( $matches ), 'frontend Dynamic Content fallback hook differs' );
+	} );
+
+	d1_divi_case( 'Theme Builder module context prefers the queried event', function () {
+		$GLOBALS['d1_divi_queried_id'] = 914;
+		$block = (object) array(
+			'parsed_block' => array(),
+			'context'      => array( 'postId' => 2773, 'postType' => 'et_body_layout' ),
+		);
+		$context = wp_seed_events_divi_get_module_event_context( array(), $block );
+		d1_divi_assert( 914 === wp_seed_events_divi_resolve_event_id( $context ), 'queried event lost to layout context' );
+		$GLOBALS['d1_divi_queried_id'] = 0;
+	} );
 
 	d1_divi_case( 'all registry Dynamic Content sources load once', function () use ( $sources ) {
 		$expected = array_map(

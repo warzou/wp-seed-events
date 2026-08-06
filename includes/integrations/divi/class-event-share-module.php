@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Divi 5 adapter for the shared public event people renderer.
+ * Divi 5 adapter for the official public event sharing renderer.
  */
-class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
-	const MODULE_NAME = 'wp-seed-events/event-people';
+class WP_Seed_Events_Divi_Event_Share_Module implements DependencyInterface {
+	const MODULE_NAME = 'wp-seed-events/event-share';
 
 	public function load() {
 		add_action( 'init', array( self::class, 'register_module' ) );
@@ -24,7 +24,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 
 	public static function register_module() {
 		ModuleRegistration::register_module(
-			__DIR__ . '/event-people-module/visual-builder/src',
+			__DIR__ . '/event-share-module/visual-builder/src',
 			array( 'render_callback' => array( self::class, 'render_callback' ) )
 		);
 	}
@@ -32,7 +32,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 	public static function register_rest_routes() {
 		register_rest_route(
 			'wp-seed-events/v1',
-			'/divi-event-people-preview',
+			'/divi-event-share-preview',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( self::class, 'rest_preview' ),
@@ -42,15 +42,14 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 	}
 
 	public static function rest_preview( WP_REST_Request $request ) {
-		$event_id = wp_seed_events_divi_rest_preview_event_id( $request );
-		$options  = self::normalize_options( $request->get_params() );
-		return rest_ensure_response( array( 'html' => self::render_people( $event_id, $options ) ) );
+		return rest_ensure_response(
+			array( 'html' => self::render_share( wp_seed_events_divi_rest_preview_event_id( $request ) ) )
+		);
 	}
 
 	public static function render_callback( $attrs, $content, $block, $elements ) {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
-		$options  = self::normalize_options( self::get_content_values( $attrs ) );
-		$html     = self::render_people( $event_id, $options );
+		$html     = self::render_share( $event_id );
 
 		if ( '' === $html ) {
 			return '';
@@ -73,7 +72,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 				'attrs'               => $attrs,
 				'elements'            => $elements,
 				'id'                  => $block->parsed_block['id'] ?? '',
-				'moduleClassName'     => 'wp_seed_events_divi_event_people',
+				'moduleClassName'     => 'wp_seed_events_divi_event_share',
 				'name'                => $block->block_type->name,
 				'moduleCategory'      => $block->block_type->category,
 				'classnamesFunction'  => array( self::class, 'module_classnames' ),
@@ -84,7 +83,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		);
 	}
 
-	private static function render_people( $event_id, $options ) {
+	private static function render_share( $event_id ) {
 		$event_id = absint( $event_id );
 
 		if ( 0 === $event_id ) {
@@ -93,63 +92,8 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 
 		$event = wp_seed_events_get_event_data( $event_id );
 
-		if ( array() === $event ) {
-			return '';
-		}
-
-		return (string) wp_seed_events_render_public_event_people_section( $event, $options );
+		return array() === $event ? '' : (string) wp_seed_events_render_event_share_menu( $event );
 	}
-
-	private static function get_content_values( $attrs ) {
-		return isset( $attrs['content']['innerContent']['desktop']['value'] )
-			&& is_array( $attrs['content']['innerContent']['desktop']['value'] )
-			? $attrs['content']['innerContent']['desktop']['value']
-			: array();
-	}
-
-	private static function normalize_options( $values ) {
-		$values = is_array( $values ) ? $values : array();
-		$role_toggles = array(
-			'role_organizer'            => 'organizer',
-			'role_speaker'              => 'speaker',
-			'role_registration_contact' => 'registration_contact',
-			'role_information_contact'  => 'information_contact',
-		);
-		$has_role_toggles = false;
-		$roles            = array();
-
-		foreach ( $role_toggles as $field => $role ) {
-			if ( array_key_exists( $field, $values ) ) {
-				$has_role_toggles = true;
-			}
-
-			if ( wp_seed_events_public_boolean_option( $values[ $field ] ?? false, false ) ) {
-				$roles[] = $role;
-			}
-		}
-
-		$legacy_role = wp_seed_events_public_people_role_option( $values['role'] ?? 'all' );
-		if ( ! $has_role_toggles && 'all' !== $legacy_role ) {
-			$roles = array( $legacy_role );
-		}
-
-		return array(
-			'title'         => array_key_exists( 'title', $values ) && is_scalar( $values['title'] ) ? (string) $values['title'] : 'Contacts et intervenants',
-			'heading_level' => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
-			'roles'         => $roles,
-			'role'          => $legacy_role,
-			'show_name'     => wp_seed_events_public_boolean_option( $values['show_name'] ?? true, true ),
-			'show_roles'    => wp_seed_events_public_boolean_option( $values['show_roles'] ?? true, true ),
-			'show_email'    => wp_seed_events_public_boolean_option( $values['show_email'] ?? true, true ),
-			'show_phone'    => wp_seed_events_public_boolean_option( $values['show_phone'] ?? true, true ),
-			'show_link'     => wp_seed_events_public_boolean_option( $values['show_link'] ?? true, true ),
-			'link_phone'    => wp_seed_events_public_boolean_option( $values['link_phone'] ?? true, true ),
-			'link_email'    => wp_seed_events_public_boolean_option( $values['link_email'] ?? true, true ),
-			'link_url'      => wp_seed_events_public_boolean_option( $values['link_url'] ?? true, true ),
-			'layout'        => wp_seed_events_public_event_people_layout_option( $values['layout'] ?? 'list' ),
-		);
-	}
-
 
 	public static function module_classnames( $args ) {
 		$args['classnamesInstance']->add(
@@ -172,7 +116,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 			),
 		);
 
-		foreach ( array( 'sectionStyle', 'titleStyle', 'listStyle', 'itemStyle', 'nameStyle', 'rolesStyle', 'roleStyle', 'contactsStyle', 'emailLinkStyle', 'phoneLinkStyle', 'publicLinkStyle' ) as $attr_name ) {
+		foreach ( array( 'shareStyle', 'summaryStyle', 'actionsStyle', 'buttonStyle', 'linkStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 

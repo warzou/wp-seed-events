@@ -19,8 +19,7 @@ import metadata from './module.json';
 import {
   createEventDatesPreviewFilter,
   getDiviDesktopFieldValue,
-  getDiviLoopPostId,
-  getEventLoopItemContext,
+  resolveCurrentEventContext,
   toPlainObject,
 } from './loop-preview-context';
 
@@ -167,19 +166,12 @@ const EventDatesPreview = (props) => {
   const listOptions = normalizeListOptions(attrs);
   const optionsKey = JSON.stringify({ ...options, ...listOptions });
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
-  const currentPageId = Number(currentPage?.id ?? 0);
   const parentId = typeof props.parentId === 'string' ? props.parentId : '';
   const loopIndex = Number.isInteger(props.loopIndex) ? props.loopIndex : -1;
-  const storeContext = getEventLoopItemContext(data, parentId, loopIndex);
-  const storedLoopPostId = storeContext.eventId;
-  const attrLoopPostId = getDiviLoopPostId(attrs);
-  const loopPostId = storedLoopPostId > 0 ? storedLoopPostId : attrLoopPostId;
-  const postId = loopPostId > 0 ? loopPostId : currentPageId;
-  const loopContextKey = JSON.stringify({
-    parentId,
-    loopIndex,
-    loopPostId,
-  });
+  const eventContext = resolveCurrentEventContext({ data, attrs, parentId, loopIndex, currentPage });
+  const loopPostId = eventContext.eventId;
+  const postId = eventContext.eventId;
+  const loopContextKey = eventContext.cacheKey;
 
   const requestData = useMemo(
     () => ({

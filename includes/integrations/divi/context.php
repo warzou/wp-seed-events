@@ -79,6 +79,16 @@ function wp_seed_events_divi_get_module_event_context( $attrs, $block ) {
 		return array();
 	}
 
+	$queried_event_id = absint( get_queried_object_id() );
+
+	if ( wp_seed_events_divi_is_event( $queried_event_id ) ) {
+		return array(
+			'post_id'     => $queried_event_id,
+			'post_type'   => 'wp_seed_event',
+			'strict_post' => true,
+		);
+	}
+
 	if ( array_key_exists( 'postId', $block_context ) || array_key_exists( 'postType', $block_context ) ) {
 		return array(
 			'post_id'     => $context_post_id,
@@ -95,6 +105,25 @@ function wp_seed_events_divi_get_module_event_context( $attrs, $block ) {
  *
  * A real but incompatible loop item must not fall back to its holder page.
  */
+function wp_seed_events_divi_rest_preview_event_id( $request ) {
+	return wp_seed_events_divi_resolve_event_id(
+		array(
+			'loop_id'     => absint( $request->get_param( 'loop_id' ) ),
+			'post_id'     => absint( $request->get_param( 'post_id' ) ),
+			'strict_post' => true,
+		)
+	);
+}
+
+function wp_seed_events_divi_rest_preview_permissions( $request ) {
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		return false;
+	}
+	$event_id = absint( $request->get_param( 'loop_id' ) ?: $request->get_param( 'post_id' ) );
+
+	return 0 === $event_id || ( wp_seed_events_divi_is_event( $event_id ) && current_user_can( 'edit_post', $event_id ) );
+}
+
 function wp_seed_events_divi_resolve_event_id( $context = array() ) {
 	$context = is_array( $context ) ? $context : array();
 	$loop_id = absint( $context['loop_id'] ?? 0 );
@@ -135,7 +164,7 @@ function wp_seed_events_divi_resolve_event_id( $context = array() ) {
 		return $queried_post_id;
 	}
 
-	$current_post_id = absint( $context['current_post_id'] ?? get_the_ID() );
+	$current_post_id = absint( $context['current_post_id'] ?? 0 );
 
 	return wp_seed_events_divi_is_event( $current_post_id ) ? $current_post_id : 0;
 }
@@ -186,18 +215,21 @@ function wp_seed_events_divi_add_event_loop_dynamic_data( $response, $server, $r
 		$event_id = wp_seed_events_divi_resolve_event_id(
 			array( 'loop_id' => absint( $item['id'] ?? 0 ) )
 		);
-		$image    = 0 !== $event_id
-			? wp_seed_events_dynamic_data_get_value( 'communication_visual', $event_id )
-			: array();
+		foreach ( wp_seed_events_dynamic_data_fields() as $field => $definition ) {
+			$value = 0 !== $event_id ? wp_seed_events_dynamic_data_get_value( $field, $event_id ) : '';
 
-		$image_url = is_array( $image )
-			? wp_seed_events_sanitize_public_http_url( $image['url'] ?? '' )
-			: '';
+			if ( 'image' === ( $definition['type'] ?? '' ) ) {
+				$value = is_array( $value ) ? wp_seed_events_sanitize_public_http_url( $value['url'] ?? '' ) : '';
+			} elseif ( ! is_scalar( $value ) ) {
+				$value = '';
+			}
 
-		if ( '' !== $image_url ) {
-			$item['wp_seed_events_communication_visual'] = $image_url;
-		} else {
-			unset( $item['wp_seed_events_communication_visual'] );
+			$key = 'wp_seed_events_' . $field;
+			if ( '' !== (string) $value ) {
+				$item[ $key ] = (string) $value;
+			} else {
+				unset( $item[ $key ] );
+			}
 		}
 	}
 	unset( $item );

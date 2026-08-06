@@ -155,12 +155,11 @@ assert.ok(source.includes("'divi.module.wrapper.render'"));
 assert.ok(source.includes('createEventDatesPreviewFilter'));
 assert.ok(source.includes('const EventDatesEditRenderer = (props) => <EventDatesPreview {...props} />;'));
 assert.ok(source.includes('edit: EventDatesEditRenderer'));
-assert.ok(source.includes('getEventLoopItemContext(data, parentId, loopIndex)'));
-assert.ok(source.includes('const postId = loopPostId > 0 ? loopPostId : currentPageId'));
-assert.ok(source.includes('const loopContextKey = JSON.stringify({'));
+assert.ok(source.includes('resolveCurrentEventContext({ data, attrs, parentId, loopIndex, currentPage })'));
+assert.ok(source.includes('const postId = eventContext.eventId'));
+assert.ok(source.includes('const loopContextKey = eventContext.cacheKey'));
 assert.ok(source.includes('parentId,'));
 assert.ok(source.includes('loopIndex,'));
-assert.ok(source.includes('loopPostId,'));
 assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
 [
   'list_marker_type',
