@@ -62,6 +62,7 @@ const applyPreviewListStyle = (html, listOptions, documentRef = document) => {
 
   list.style.setProperty('list-style-type', markerType, 'important');
   list.style.setProperty('list-style-position', markerPosition, 'important');
+  list.style.setProperty('padding-block-end', '0', 'important');
 
   items.forEach((item) => {
     item.style.setProperty('display', 'list-item', 'important');
@@ -214,6 +215,8 @@ const EventDatesPreview = (props) => {
     [html, optionsKey],
   );
 
+  const previewContent = !isLoading && !hasError && previewHtml !== '';
+
   return (
     <ModuleContainer
       attrs={attrs}
@@ -227,16 +230,17 @@ const EventDatesPreview = (props) => {
     >
       {elements.styleComponents({ attrName: 'module' })}
       <ElementComponents attrs={attrs?.module?.decoration ?? {}} id={id} />
-      <div className="et_pb_module_inner">
+      {previewContent ? (
+        <div className="et_pb_module_inner" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+      ) : (
+        <div className="et_pb_module_inner">
         {isLoading && <div role="status">Chargement des dates…</div>}
         {!isLoading && hasError && <div role="alert">L’aperçu des dates est indisponible.</div>}
         {!isLoading && !hasError && previewHtml === '' && (
           <div>Aucune date à afficher dans ce contexte.</div>
         )}
-        {!isLoading && !hasError && previewHtml !== '' && (
-          <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-        )}
-      </div>
+        </div>
+      )}
     </ModuleContainer>
   );
 };

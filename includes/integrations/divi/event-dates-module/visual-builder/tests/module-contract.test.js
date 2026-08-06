@@ -174,11 +174,17 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
 [
   "documentRef.createElement('template')",
   "list.style.setProperty('list-style-type', markerType, 'important')",
+  "list.style.setProperty('padding-block-end', '0', 'important')",
   "item.style.setProperty('display', 'list-item', 'important')",
   "item.style.setProperty('list-style-type', markerType, 'important')",
   "markerType === 'none'",
-  'dangerouslySetInnerHTML={{ __html: previewHtml }}',
+  'className="et_pb_module_inner" dangerouslySetInnerHTML={{ __html: previewHtml }}',
 ].forEach((contract) => assert.ok(source.includes(contract), `Missing Visual Builder marker contract: ${contract}`));
+assert.ok(source.includes("const previewContent = !isLoading && !hasError && previewHtml !== '';"));
+assert.ok(
+  !source.includes('<div dangerouslySetInnerHTML={{ __html: previewHtml }} />'),
+  'The REST renderer must not be wrapped in an extra anonymous preview row.',
+);
 
 assert.ok(bootstrap.includes("hash_file( 'sha256', $script_path )"));
 assert.ok(bootstrap.includes("$script_version .= '-' . substr( $script_hash, 0, 12 )"));

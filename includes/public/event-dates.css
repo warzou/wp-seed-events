@@ -1,3 +1,7 @@
+.wp-seed-event-section--dates > .wp-seed-event-dates {
+	padding-block-end: 0;
+}
+
 .wp-seed-event-dates.has-custom-list-style {
 	list-style-position: var(--wp-seed-event-dates-marker-position, outside) !important;
 	list-style-type: var(--wp-seed-event-dates-marker-type, disc) !important;

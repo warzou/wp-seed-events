@@ -712,6 +712,8 @@ wp_seed_events_harness_case(
 		wp_seed_events_harness_contains( '.is-marker-circle > .wp-seed-event-date', $css, 'Circle marker rule is missing.' );
 		wp_seed_events_harness_contains( '.is-marker-square > .wp-seed-event-date', $css, 'Square marker rule is missing.' );
 		wp_seed_events_harness_contains( '.wp-seed-event-date + .wp-seed-event-date', $css, 'Occurrence gap selector is missing.' );
+		wp_seed_events_harness_contains( '.wp-seed-event-section--dates > .wp-seed-event-dates', $css, 'Frontend date list scope is missing.' );
+		wp_seed_events_harness_contains( 'padding-block-end: 0', $css, 'Divi list bottom padding is not normalized.' );
 
 		$plugin_source = file_get_contents( dirname( __DIR__ ) . '/wp-seed-events.php' );
 		wp_seed_events_harness_contains( "hash_file( 'sha256', \$dates_stylesheet )", $plugin_source, 'Dates stylesheet URL must be content-versioned.' );
