@@ -244,7 +244,7 @@ test('Dates bundle matches the validated Loop Builder context build', () => {
   const hash = crypto.createHash('sha256').update(fs.readFileSync(datesBundlePath)).digest('hex').toUpperCase();
   assert.strictEqual(
     hash,
-    'F8E1DA0A85A16776A20FA7AB19C28468993561E57DAB17A3F5B64DC71A2BC37D',
+    '567828045E60A9C1875C674366DEAD0C8262B5FC1E3DDC7DBF2F9C0DE9145441',
   );
 });
 

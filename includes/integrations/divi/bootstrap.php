@@ -165,10 +165,21 @@ function wp_seed_events_divi_enqueue_event_dates_module_assets() {
 		return;
 	}
 
+	$script_path    = __DIR__ . '/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js';
+	$script_version = WP_SEED_EVENTS_VERSION;
+
+	if ( is_readable( $script_path ) ) {
+		$script_hash = hash_file( 'sha256', $script_path );
+
+		if ( is_string( $script_hash ) && '' !== $script_hash ) {
+			$script_version .= '-' . substr( $script_hash, 0, 12 );
+		}
+	}
+
 	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
 		array(
 			'name'    => 'wp-seed-events-event-dates-module',
-			'version' => WP_SEED_EVENTS_VERSION,
+			'version' => $script_version,
 			'script'  => array(
 				'src'                => plugins_url( 'event-dates-module/visual-builder/build/wp-seed-events-event-dates.js', __FILE__ ),
 				'deps'               => array(

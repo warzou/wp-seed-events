@@ -42,6 +42,7 @@ $excludedRuntimePatterns = @(
     "$moduleRuntimeRoot/webpack.config.js",
     "$moduleRuntimeRoot/tests/*",
     "$moduleRuntimeRoot/src/index.jsx",
+    "$moduleRuntimeRoot/src/loop-preview-context.js",
     "$gutenbergRuntimeRoot/node_modules/*",
     "$gutenbergRuntimeRoot/tests/*",
     "$gutenbergRuntimeRoot/src/*",

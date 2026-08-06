@@ -59,6 +59,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'format'              => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_times'          => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_calendar_links' => array( 'sanitize_callback' => 'sanitize_key' ),
+					'list_marker_type'     => array( 'sanitize_callback' => 'sanitize_key' ),
+					'list_marker_position' => array( 'sanitize_callback' => 'sanitize_key' ),
+					'list_indent'          => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'occurrence_gap'       => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'marker_color'         => array( 'sanitize_callback' => 'sanitize_text_field' ),
 				),
 			)
 		);
@@ -92,6 +97,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'show_times'          => $request->get_param( 'show_times' ),
 				'format'              => $request->get_param( 'format' ),
 				'show_calendar_links' => $request->get_param( 'show_calendar_links' ),
+				'list_marker_type'     => $request->get_param( 'list_marker_type' ),
+				'list_marker_position' => $request->get_param( 'list_marker_position' ),
+				'list_indent'          => $request->get_param( 'list_indent' ),
+				'occurrence_gap'       => $request->get_param( 'occurrence_gap' ),
+				'marker_color'         => $request->get_param( 'marker_color' ),
 			)
 		);
 
@@ -107,7 +117,9 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	 */
 	public static function render_callback( $attrs, $content, $block, $elements ) {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
-		$options  = self::normalize_options( self::get_content_values( $attrs ) );
+		$options  = self::normalize_options(
+			array_merge( self::get_content_values( $attrs ), self::get_list_values( $attrs ) )
+		);
 		$html     = self::render_dates( $event_id, $options );
 
 		if ( '' === $html ) {
@@ -177,6 +189,37 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	}
 
 	/**
+	 * Read the persistent list design values saved by Divi.
+	 */
+	private static function get_list_values( $attrs ) {
+		$advanced = isset( $attrs['listStyle']['advanced'] ) && is_array( $attrs['listStyle']['advanced'] )
+			? $attrs['listStyle']['advanced']
+			: array();
+		$mapping  = array(
+			'markerType'     => 'list_marker_type',
+			'markerPosition' => 'list_marker_position',
+			'leftIndent'     => 'list_indent',
+			'occurrenceGap'  => 'occurrence_gap',
+			'markerColor'    => 'marker_color',
+		);
+		$values   = array();
+
+		foreach ( $mapping as $attribute => $option ) {
+			$value = $advanced[ $attribute ]['desktop']['value'] ?? null;
+
+			if ( is_array( $value ) && is_scalar( $value[ $attribute ] ?? null ) ) {
+				$value = $value[ $attribute ];
+			}
+
+			if ( is_scalar( $value ) ) {
+				$values[ $option ] = (string) $value;
+			}
+		}
+
+		return $values;
+	}
+
+	/**
 	 * Convert Divi field values to the shared renderer contract.
 	 */
 	private static function normalize_options( $values ) {
@@ -216,6 +259,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'show_times'          => self::is_enabled( $values['show_times'] ?? 'on' ),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
 			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
+			'list_marker_type'     => $values['list_marker_type'] ?? 'disc',
+			'list_marker_position' => $values['list_marker_position'] ?? 'outside',
+			'list_indent'          => $values['list_indent'] ?? '2.5em',
+			'occurrence_gap'       => $values['occurrence_gap'] ?? '0px',
+			'marker_color'         => $values['marker_color'] ?? '',
 		);
 	}
 

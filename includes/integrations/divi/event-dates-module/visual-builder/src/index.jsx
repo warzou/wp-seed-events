@@ -13,12 +13,70 @@ const {
   registerModule,
 } = window.divi.moduleLibrary;
 const { useFetch } = window.divi.rest;
+const { data } = window.divi;
 
 import metadata from './module.json';
+import {
+  createEventDatesPreviewFilter,
+  getDiviDesktopFieldValue,
+  getDiviLoopPostId,
+  getEventLoopItemContext,
+  toPlainObject,
+} from './loop-preview-context';
 
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
 const getContentValues = (attrs) => attrs?.content?.innerContent?.desktop?.value ?? {};
+const normalizeListOptions = (attrs) => {
+  const advanced = toPlainObject(attrs?.listStyle)?.advanced ?? {};
+  const markerTypes = ['none', 'disc', 'circle', 'square'];
+  const markerPositions = ['outside', 'inside'];
+  const markerType = getDiviDesktopFieldValue(advanced.markerType, 'markerType', 'disc');
+  const markerPosition = getDiviDesktopFieldValue(advanced.markerPosition, 'markerPosition', 'outside');
+
+  return {
+    list_marker_type: markerTypes.includes(markerType) ? markerType : 'disc',
+    list_marker_position: markerPositions.includes(markerPosition) ? markerPosition : 'outside',
+    list_indent: getDiviDesktopFieldValue(advanced.leftIndent, 'leftIndent', '2.5em'),
+    occurrence_gap: getDiviDesktopFieldValue(advanced.occurrenceGap, 'occurrenceGap', '0px'),
+    marker_color: getDiviDesktopFieldValue(advanced.markerColor, 'markerColor', ''),
+  };
+};
+
+const applyPreviewListStyle = (html, listOptions, documentRef = document) => {
+  if (html === '' || !documentRef?.createElement) {
+    return html;
+  }
+
+  const template = documentRef.createElement('template');
+  template.innerHTML = html;
+
+  const list = template.content.querySelector('.wp-seed-event-dates');
+
+  if (!list) {
+    return html;
+  }
+
+  const markerType = listOptions.list_marker_type;
+  const markerPosition = listOptions.list_marker_position;
+  const items = list.querySelectorAll(':scope > .wp-seed-event-date');
+
+  list.style.setProperty('list-style-type', markerType, 'important');
+  list.style.setProperty('list-style-position', markerPosition, 'important');
+
+  items.forEach((item) => {
+    item.style.setProperty('display', 'list-item', 'important');
+    item.style.setProperty('list-style-type', markerType, 'important');
+    item.style.setProperty('list-style-position', markerPosition, 'important');
+  });
+
+  if (markerType === 'none') {
+    list.style.setProperty('list-style', 'none', 'important');
+    items.forEach((item) => item.style.setProperty('list-style', 'none', 'important'));
+  }
+
+  return template.innerHTML;
+};
 
 const normalizeOptions = (attrs) => {
   const values = getContentValues(attrs);
@@ -95,29 +153,47 @@ const moduleClassnames = ({ classnamesInstance, attrs }) => {
   );
 };
 
-const EventDatesPreview = ({ attrs, id, name, elements }) => {
+const EventDatesPreview = (props) => {
+  const {
+    attrs,
+    id,
+    name,
+    elements,
+  } = props;
   const { fetch, response, isLoading } = useFetch({ html: '' });
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
   const options = normalizeOptions(attrs);
-  const optionsKey = JSON.stringify(options);
+  const listOptions = normalizeListOptions(attrs);
+  const optionsKey = JSON.stringify({ ...options, ...listOptions });
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
-  const postId = Number(currentPage?.id ?? 0);
-  const loopPostId = Number(attrs?.__loop_post_id ?? 0);
+  const currentPageId = Number(currentPage?.id ?? 0);
+  const parentId = typeof props.parentId === 'string' ? props.parentId : '';
+  const loopIndex = Number.isInteger(props.loopIndex) ? props.loopIndex : -1;
+  const storeContext = getEventLoopItemContext(data, parentId, loopIndex);
+  const storedLoopPostId = storeContext.eventId;
+  const attrLoopPostId = getDiviLoopPostId(attrs);
+  const loopPostId = storedLoopPostId > 0 ? storedLoopPostId : attrLoopPostId;
+  const postId = loopPostId > 0 ? loopPostId : currentPageId;
+  const loopContextKey = JSON.stringify({
+    parentId,
+    loopIndex,
+    loopPostId,
+  });
 
   const requestData = useMemo(
     () => ({
       post_id: postId,
       ...(loopPostId > 0 ? { loop_id: loopPostId } : {}),
       ...options,
+      ...listOptions,
     }),
-    [postId, loopPostId, optionsKey],
+    [postId, loopPostId, loopContextKey, optionsKey],
   );
   const restRoute = useMemo(
     () => `/wp-seed-events/v1/divi-event-dates-preview?${new URLSearchParams(requestData).toString()}`,
     [requestData],
   );
-
   useEffect(() => {
     if (abortRef.current) {
       abortRef.current.abort();
@@ -141,6 +217,10 @@ const EventDatesPreview = ({ attrs, id, name, elements }) => {
   }, [restRoute]);
 
   const html = typeof response?.html === 'string' ? response.html : '';
+  const previewHtml = useMemo(
+    () => applyPreviewListStyle(html, listOptions),
+    [html, optionsKey],
+  );
 
   return (
     <ModuleContainer
@@ -158,23 +238,35 @@ const EventDatesPreview = ({ attrs, id, name, elements }) => {
       <div className="et_pb_module_inner">
         {isLoading && <div role="status">Chargement des dates…</div>}
         {!isLoading && hasError && <div role="alert">L’aperçu des dates est indisponible.</div>}
-        {!isLoading && !hasError && html === '' && (
+        {!isLoading && !hasError && previewHtml === '' && (
           <div>Aucune date à afficher dans ce contexte.</div>
         )}
-        {!isLoading && !hasError && html !== '' && (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+        {!isLoading && !hasError && previewHtml !== '' && (
+          <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
         )}
       </div>
     </ModuleContainer>
   );
 };
 
+// Divi's loop wrapper injects the repeated event ID before React evaluates this child.
+const EventDatesEditRenderer = (props) => <EventDatesPreview {...props} />;
+
 const eventDatesModule = {
   renderers: {
-    edit: EventDatesPreview,
+    edit: EventDatesEditRenderer,
   },
   placeholderContent: {
     __loop_post_id: loopPostIdContext,
+    listStyle: {
+      advanced: {
+        markerType: { desktop: { value: 'none' } },
+        markerPosition: { desktop: { value: 'outside' } },
+        leftIndent: { desktop: { value: '0px' } },
+        occurrenceGap: { desktop: { value: '12px' } },
+        markerColor: { desktop: { value: '' } },
+      },
+    },
     content: {
       innerContent: {
         desktop: {
@@ -205,6 +297,14 @@ addFilter('divi.moduleLibrary.moduleMapping', 'wpSeedEvents.eventDatesFolder', (
   return modules;
 });
 
+if (!window.__wpSeedEventsEventDatesLoopPreviewRegistered) {
+  addFilter(
+    'divi.module.wrapper.render',
+    'wpSeedEvents.eventDatesLoopPreview',
+    createEventDatesPreviewFilter({ React, data }),
+  );
+  window.__wpSeedEventsEventDatesLoopPreviewRegistered = true;
+}
 addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.eventDates', () => {
   registerFolder({
     name: 'wp-seed-events',

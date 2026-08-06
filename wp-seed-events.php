@@ -150,11 +150,28 @@ function wp_seed_events_activate() {
 }
 
 function wp_seed_events_enqueue_public_visuals_style() {
+	$dates_stylesheet = __DIR__ . '/includes/public/event-dates.css';
+	$dates_version    = WP_SEED_EVENTS_VERSION;
+
+	if ( is_readable( $dates_stylesheet ) ) {
+		$dates_hash = hash_file( 'sha256', $dates_stylesheet );
+
+		if ( is_string( $dates_hash ) && '' !== $dates_hash ) {
+			$dates_version .= '-' . substr( $dates_hash, 0, 12 );
+		}
+	}
+
 	wp_enqueue_style(
 		'wp-seed-events-public-visuals',
 		plugins_url( 'includes/public/event-visuals.css', __FILE__ ),
 		array(),
 		WP_SEED_EVENTS_VERSION
+	);
+	wp_enqueue_style(
+		'wp-seed-events-public-dates',
+		plugins_url( 'includes/public/event-dates.css', __FILE__ ),
+		array(),
+		$dates_version
 	);
 }
 

@@ -315,7 +315,7 @@ check('Divi modules match the validated Loop Builder context builds', () => {
       'build',
       'wp-seed-events-event-dates.js',
     ),
-    'F8E1DA0A85A16776A20FA7AB19C28468993561E57DAB17A3F5B64DC71A2BC37D',
+    '567828045E60A9C1875C674366DEAD0C8262B5FC1E3DDC7DBF2F9C0DE9145441',
   );
   assert.strictEqual(
     hash(diviVisualsRoot, 'build', 'wp-seed-events-event-visuals.js'),

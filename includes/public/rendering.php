@@ -886,6 +886,30 @@ function wp_seed_events_event_practical_info_shortcode( $atts ) {
 	return wp_seed_events_render_public_event_practical_info_section( $event );
 }
 
+function wp_seed_events_public_date_list_marker_type_option( $value ) {
+	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+	return in_array( $value, array( 'none', 'disc', 'circle', 'square' ), true ) ? $value : 'disc';
+}
+
+function wp_seed_events_public_date_list_marker_position_option( $value ) {
+	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+	return in_array( $value, array( 'inside', 'outside' ), true ) ? $value : 'outside';
+}
+
+function wp_seed_events_public_date_list_dimension_option( $value, $default ) {
+	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+	return preg_match( '/^(?:0|(?:\d+(?:\.\d+)?|\.\d+)(?:px|em|rem|%|ch))$/', $value ) ? $value : $default;
+}
+
+function wp_seed_events_public_date_list_marker_color_option( $value ) {
+	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+	return preg_match( '/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/', $value ) ? $value : '';
+}
+
 function wp_seed_events_render_public_event_dates_section( $event, $options = array() ) {
 	if ( ! is_array( $event ) ) {
 		$event = wp_seed_events_public_event_data( absint( $event ) );
@@ -899,6 +923,9 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		$options['show_times'] = $options['show_time'];
 	}
 
+	$list_style_keys      = array( 'list_marker_type', 'list_marker_position', 'list_indent', 'occurrence_gap', 'marker_color' );
+	$list_style_requested = is_array( $options ) && array() !== array_intersect( $list_style_keys, array_keys( $options ) );
+
 	$options = wp_parse_args(
 		$options,
 		array(
@@ -909,7 +936,12 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 			'show_cancelled'      => true,
 			'show_times'          => true,
 			'show_calendar_links' => true,
-			'format'              => 'long',
+			'format'               => 'long',
+			'list_marker_type'     => 'disc',
+			'list_marker_position' => 'outside',
+			'list_indent'          => '2.5em',
+			'occurrence_gap'       => '0px',
+			'marker_color'         => '',
 		)
 	);
 
@@ -918,7 +950,12 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	$mode                      = wp_seed_events_public_date_mode_option( $options['mode'] );
 	$scope                     = wp_seed_events_public_date_scope_option( $options['scope'] );
 	$options['show_cancelled'] = wp_seed_events_public_boolean_option( $options['show_cancelled'], true );
-	$options['format']         = wp_seed_events_public_date_format_option( $options['format'] );
+	$options['format']               = wp_seed_events_public_date_format_option( $options['format'] );
+	$options['list_marker_type']     = wp_seed_events_public_date_list_marker_type_option( $options['list_marker_type'] );
+	$options['list_marker_position'] = wp_seed_events_public_date_list_marker_position_option( $options['list_marker_position'] );
+	$options['list_indent']          = wp_seed_events_public_date_list_dimension_option( $options['list_indent'], '2.5em' );
+	$options['occurrence_gap']       = wp_seed_events_public_date_list_dimension_option( $options['occurrence_gap'], '0px' );
+	$options['marker_color']         = wp_seed_events_public_date_list_marker_color_option( $options['marker_color'] );
 
 	if ( 'next' === $mode ) {
 		$scope                     = 'upcoming';
@@ -974,6 +1011,43 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	)
 		? wp_seed_events_render_event_calendar_link( $event, $occurrences )
 		: '';
+	$list_classes = array( 'wp-seed-event-dates' );
+	$list_style   = '';
+	$item_style   = '';
+
+	if ( $list_style_requested ) {
+		$list_indent    = $options['list_indent'];
+		$is_marker_none = 'none' === $options['list_marker_type'];
+
+		if ( $is_marker_none && '2.5em' === $list_indent ) {
+			$list_indent = '0px';
+		}
+
+		$list_classes[] = 'has-custom-list-style';
+		$list_classes[] = 'is-marker-' . $options['list_marker_type'];
+		$list_classes[] = 'is-marker-position-' . $options['list_marker_position'];
+		$list_properties = array(
+			'--wp-seed-event-dates-marker-type:' . $options['list_marker_type'],
+			'--wp-seed-event-dates-marker-position:' . $options['list_marker_position'],
+			'--wp-seed-event-dates-list-indent:' . $list_indent,
+			'--wp-seed-event-dates-occurrence-gap:' . $options['occurrence_gap'],
+		);
+
+		if ( '' !== $options['marker_color'] ) {
+			$list_properties[] = '--wp-seed-event-dates-marker-color:' . $options['marker_color'];
+		}
+
+		if ( $is_marker_none ) {
+			$list_properties[] = 'list-style:none';
+			$list_properties[] = 'list-style-type:none';
+			$list_properties[] = 'padding-inline-start:' . $list_indent;
+			$list_properties[] = 'margin-inline-start:0';
+			$item_style        = 'list-style:none;list-style-type:none';
+		}
+
+		$list_style = implode( ';', $list_properties );
+	}
+
 	$section_classes = array(
 		'wp-seed-event-section',
 		'wp-seed-event-section--dates',
@@ -990,7 +1064,7 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		<?php if ( '' !== $all_dates_link ) : ?>
 			<p class="wp-seed-event-calendar-all"><?php echo wp_kses_post( $all_dates_link ); ?></p>
 		<?php endif; ?>
-		<ul class="wp-seed-event-dates">
+		<ul class="<?php echo esc_attr( implode( ' ', $list_classes ) ); ?>"<?php echo '' !== $list_style ? ' style="' . esc_attr( $list_style ) . '"' : ''; ?>>
 			<?php foreach ( $occurrences as $occurrence ) : ?>
 				<?php
 				$date_line          = wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] );
@@ -1015,7 +1089,7 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 					$occurrence_classes[] = 'is-all-day';
 				}
 				?>
-				<li class="<?php echo esc_attr( implode( ' ', $occurrence_classes ) ); ?>">
+				<li class="<?php echo esc_attr( implode( ' ', $occurrence_classes ) ); ?>"<?php echo '' !== $item_style ? ' style="' . esc_attr( $item_style ) . '"' : ''; ?>>
 					<time class="wp-seed-event-date__date" datetime="<?php echo esc_attr( $occurrence['start_date'] ); ?>"><?php echo esc_html( $date_line ); ?></time>
 					<?php if ( $is_cancelled ) : ?>
 						<span class="wp-seed-event-date-status wp-seed-event-date__status wp-seed-event-single__cancelled">Annulée</span>

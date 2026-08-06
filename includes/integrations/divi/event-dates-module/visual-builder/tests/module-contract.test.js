@@ -127,4 +127,61 @@ assert.ok(resolverSource.includes('return wp_seed_events_divi_is_event( $loop_id
 assert.ok(bootstrap.includes("function_exists( 'et_builder_d5_enabled' )"));
 assert.ok(bootstrap.includes('PackageBuildManager::register_package_build'));
 
+const listStyle = metadata.attributes.listStyle;
+const listItems = listStyle.settings.advanced;
+assert.strictEqual(metadata.settings.groups.designDateList.panel, 'design');
+assert.strictEqual(metadata.settings.groups.designDateList.component.props.groupLabel, 'Liste des dates');
+assert.deepStrictEqual(Object.keys(listItems.markerType.item.component.props.options), [
+  'none',
+  'disc',
+  'circle',
+  'square',
+]);
+assert.deepStrictEqual(Object.keys(listItems.markerPosition.item.component.props.options), [
+  'outside',
+  'inside',
+]);
+[
+  'markerType',
+  'markerPosition',
+  'leftIndent',
+  'occurrenceGap',
+  'markerColor',
+].forEach((field) => assert.ok(listItems[field], `Missing list style field: ${field}`));
+assert.strictEqual(listStyle.default.advanced.markerType.desktop.value, 'disc');
+assert.ok(source.includes("markerType: { desktop: { value: 'none' } }"));
+assert.ok(source.includes("leftIndent: { desktop: { value: '0px' } }"));
+assert.ok(source.includes("'divi.module.wrapper.render'"));
+assert.ok(source.includes('createEventDatesPreviewFilter'));
+assert.ok(source.includes('const EventDatesEditRenderer = (props) => <EventDatesPreview {...props} />;'));
+assert.ok(source.includes('edit: EventDatesEditRenderer'));
+assert.ok(source.includes('getEventLoopItemContext(data, parentId, loopIndex)'));
+assert.ok(source.includes('const postId = loopPostId > 0 ? loopPostId : currentPageId'));
+assert.ok(source.includes('const loopContextKey = JSON.stringify({'));
+assert.ok(source.includes('parentId,'));
+assert.ok(source.includes('loopIndex,'));
+assert.ok(source.includes('loopPostId,'));
+assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
+[
+  'list_marker_type',
+  'list_marker_position',
+  'list_indent',
+  'occurrence_gap',
+  'marker_color',
+].forEach((field) => {
+  assert.ok(source.includes(field), `Visual Builder request omits ${field}`);
+  assert.ok(phpModule.includes(field), `PHP preview omits ${field}`);
+});
+[
+  "documentRef.createElement('template')",
+  "list.style.setProperty('list-style-type', markerType, 'important')",
+  "item.style.setProperty('display', 'list-item', 'important')",
+  "item.style.setProperty('list-style-type', markerType, 'important')",
+  "markerType === 'none'",
+  'dangerouslySetInnerHTML={{ __html: previewHtml }}',
+].forEach((contract) => assert.ok(source.includes(contract), `Missing Visual Builder marker contract: ${contract}`));
+
+assert.ok(bootstrap.includes("hash_file( 'sha256', $script_path )"));
+assert.ok(bootstrap.includes("$script_version .= '-' . substr( $script_hash, 0, 12 )"));
+assert.ok(bootstrap.includes("'version' => $script_version"));
 console.log('Divi event dates module contract: OK');

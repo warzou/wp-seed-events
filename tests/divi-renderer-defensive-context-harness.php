@@ -196,7 +196,7 @@ namespace {
 	}
 
 	function wp_seed_events_render_public_event_dates_section( $event, $options ) {
-		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '"></section>';
+		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '" data-marker="' . (string) ( $options['list_marker_type'] ?? '' ) . '" data-position="' . (string) ( $options['list_marker_position'] ?? '' ) . '" data-indent="' . (string) ( $options['list_indent'] ?? '' ) . '" data-gap="' . (string) ( $options['occurrence_gap'] ?? '' ) . '" data-color="' . (string) ( $options['marker_color'] ?? '' ) . '"></section>';
 	}
 
 	function wp_seed_events_render_public_event_visuals_section( $event, $options ) {
@@ -482,6 +482,72 @@ namespace {
 			array( 'id' => 'visuals-private', 'attrs' => array( '__loop_post_id' => 13 ) )
 		);
 		defensive_assert( '' === $result['html'], 'Private event rendered through the public Event Data contract.' );
+	} );
+
+	defensive_case( 'dates frontend unwraps Divi 5 nested list design values', function () {
+		foreach ( array( 'none', 'disc', 'circle', 'square' ) as $marker ) {
+			$attrs = array(
+				'__loop_post_id' => 10,
+				'listStyle'      => array(
+					'advanced' => array(
+						'markerType'     => array( 'desktop' => array( 'value' => array( 'markerType' => $marker ) ) ),
+						'markerPosition' => array( 'desktop' => array( 'value' => array( 'markerPosition' => 'inside' ) ) ),
+						'leftIndent'     => array( 'desktop' => array( 'value' => array( 'leftIndent' => '3rem' ) ) ),
+						'occurrenceGap'  => array( 'desktop' => array( 'value' => array( 'occurrenceGap' => '12px' ) ) ),
+						'markerColor'    => array( 'desktop' => array( 'value' => array( 'markerColor' => '#123456' ) ) ),
+					),
+				),
+			);
+			$result = defensive_render(
+				WP_Seed_Events_Divi_Event_Dates_Module::class,
+				array( 'id' => 'dates-marker-' . $marker ),
+				array(),
+				$attrs
+			);
+
+			defensive_assert( false !== strpos( $result['html'], 'data-marker="' . $marker . '"' ), 'Nested marker value was not forwarded.' );
+			defensive_assert( false !== strpos( $result['html'], 'data-position="inside"' ), 'Nested marker position was not forwarded.' );
+			defensive_assert( false !== strpos( $result['html'], 'data-indent="3rem"' ), 'Nested list indent was not forwarded.' );
+			defensive_assert( false !== strpos( $result['html'], 'data-gap="12px"' ), 'Nested occurrence gap was not forwarded.' );
+			defensive_assert( false !== strpos( $result['html'], 'data-color="#123456"' ), 'Nested marker color was not forwarded.' );
+		}
+	} );
+	defensive_case( 'dates Visual Builder preview uses each explicit loop item without leakage', function () {
+		$first  = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
+		$second = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 11 ) ) );
+		$again  = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
+
+		defensive_assert( false !== strpos( $first['html'], 'data-event="10"' ), 'First Dates preview item resolved incorrectly.' );
+		defensive_assert( false !== strpos( $second['html'], 'data-event="11"' ), 'Second Dates preview item resolved incorrectly.' );
+		defensive_assert( $first['html'] === $again['html'], 'Dates preview context leaked between loop items.' );
+	} );
+
+	defensive_case( 'dates Visual Builder preview forwards list design values', function () {
+		$result = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview(
+			new WP_REST_Request(
+				array(
+					'post_id'             => 20,
+					'loop_id'             => 11,
+					'list_marker_type'     => 'square',
+					'list_marker_position' => 'inside',
+					'list_indent'          => '3rem',
+					'occurrence_gap'       => '12px',
+					'marker_color'         => '#123456',
+				)
+			)
+		);
+
+		defensive_assert( false !== strpos( $result['html'], 'data-event="11"' ), 'Styled Dates preview lost its loop context.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-marker="square"' ), 'Marker type was not forwarded.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-position="inside"' ), 'Marker position was not forwarded.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-indent="3rem"' ), 'List indent was not forwarded.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-gap="12px"' ), 'Occurrence gap was not forwarded.' );
+		defensive_assert( false !== strpos( $result['html'], 'data-color="#123456"' ), 'Marker color was not forwarded.' );
+	} );
+
+	defensive_case( 'dates Visual Builder preview stays empty without a public occurrence context', function () {
+		$result = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 13 ) ) );
+		defensive_assert( '' === $result['html'], 'Dates preview rendered an event without public occurrence data.' );
 	} );
 	restore_error_handler();
 

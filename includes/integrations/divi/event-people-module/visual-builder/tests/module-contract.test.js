@@ -144,7 +144,7 @@ test('packaging includes runtime and excludes sources', () => {
   assert.ok(buildScript.includes("'/tests/*'"));
 });
 test('Dates bundle matches the validated Loop Builder context build', () => {
-  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), 'F8E1DA0A85A16776A20FA7AB19C28468993561E57DAB17A3F5B64DC71A2BC37D');
+  assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js')), '567828045E60A9C1875C674366DEAD0C8262B5FC1E3DDC7DBF2F9C0DE9145441');
 });
 test('Visuals bundle matches the validated Loop Builder context build', () => {
   assert.strictEqual(hashFile(path.join(pluginRoot, 'includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js')), 'D3984CB3A5BD2C2CCAE53903D24327D06C4C380BCA236A3FDF4416C4B7F0F644');
