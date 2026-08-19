@@ -10,6 +10,10 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'init', 'wp_seed_events_register_gutenberg_block_bindings_source' );
 add_action( 'rest_api_init', 'wp_seed_events_register_gutenberg_block_bindings_rest_field' );
 
+if ( function_exists( 'add_filter' ) ) {
+	add_filter( 'render_block', 'wp_seed_events_gutenberg_multiline_excerpt_block', 10, 2 );
+}
+
 function wp_seed_events_register_gutenberg_block_bindings_source() {
 	if ( ! function_exists( 'register_block_bindings_source' ) ) {
 		return;
@@ -36,6 +40,30 @@ function wp_seed_events_register_gutenberg_block_bindings_source() {
 
 function wp_seed_events_gutenberg_block_binding_preview_fields() {
 	return array( 'types', 'status', 'display_date', 'place', 'excerpt', 'url' );
+}
+
+function wp_seed_events_gutenberg_multiline_excerpt_block( $block_content, $block ) {
+	$binding = is_array( $block )
+		? ( $block['attrs']['metadata']['bindings']['content'] ?? array() )
+		: array();
+
+	if (
+		! is_array( $binding )
+		|| 'wp-seed-events/event-field' !== ( $binding['source'] ?? '' )
+		|| 'excerpt' !== ( $binding['args']['field'] ?? '' )
+		|| ! class_exists( 'WP_HTML_Tag_Processor' )
+	) {
+		return $block_content;
+	}
+
+	$processor = new WP_HTML_Tag_Processor( (string) $block_content );
+
+	if ( $processor->next_tag() ) {
+		$processor->add_class( 'wp-seed-events-multiline-text' );
+		return $processor->get_updated_html();
+	}
+
+	return $block_content;
 }
 
 function wp_seed_events_register_gutenberg_block_bindings_rest_field() {

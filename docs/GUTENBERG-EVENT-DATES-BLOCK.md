@@ -147,9 +147,9 @@ La route d'aperçu est distincte de l'API REST standard du CPT.
 
 ## REST du CPT événement
 
-`wp_seed_event` est déclaré avec `show_in_rest => true` afin d'être disponible dans le Query Loop natif. Le contrôleur REST WordPress standard est conservé : aucun contrôleur, champ REST ou base REST spécifique n'est ajouté.
+`wp_seed_event` est déclaré avec `show_in_rest => true` afin d'être disponible dans le Query Loop natif. Le contrôleur REST WordPress standard est conservé. Les seuls champs REST ajoutés par le contrat Description sont limités au contexte `edit` : `short_description` en lecture/écriture, puis `short_description_effective` et `excerpt` en lecture seule.
 
-Les supports, capacités et l'éditeur classique du CPT restent inchangés. Aucune meta métier privée n'est enregistrée pour l'exposition REST. Les lectures de collection, d'item, de recherche et de pagination suivent donc les permissions WordPress standard.
+Les supports, capacités et l'éditeur classique du CPT restent inchangés. La meta de description courte n'est jamais exposée en contexte public `view`. Les lectures de collection, d'item, de recherche et de pagination suivent donc les permissions WordPress standard.
 
 `wp_seed_place` reste déclaré avec `show_in_rest => false`.
 

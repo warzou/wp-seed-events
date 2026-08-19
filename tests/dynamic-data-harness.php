@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY', '_wp_seed_event_short_description' );
 
 $GLOBALS['d0_events']      = array();
 $GLOBALS['d0_types']       = array();
@@ -231,7 +232,7 @@ function d0_uncached_value( $field, $event_id ) {
 		case 'description':
 			return trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) ) ) );
 		case 'excerpt':
-			return trim( wp_strip_all_tags( (string) ( $event['excerpt'] ?? '' ) ) );
+			return wp_seed_events_dynamic_data_multiline_text( $event['excerpt'] ?? '' );
 		case 'practical_info':
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':
@@ -648,6 +649,24 @@ d0_case( 'all D3 fields share one cached Event Data result', function () {
 	d0_assert( 1 === $GLOBALS['d0_data_calls'] - $before, 'D3 fields bypassed request cache' );
 } );
 
+d0_case( 'short-description cache invalidates by event and meta key', function () {
+	d0_event( 99115, 'Before' );
+	d0_assert( 'Before' === wp_seed_events_dynamic_data_get_value( 'title', 99115 ), 'initial cached title differs' );
+	$GLOBALS['d0_events'][99115]['title'] = 'After';
+	d0_assert( 'Before' === wp_seed_events_dynamic_data_get_value( 'title', 99115 ), 'cache unexpectedly refreshed itself' );
+
+	wp_seed_events_dynamic_data_invalidate_description_meta_cache(
+		1,
+		99115,
+		WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY
+	);
+	d0_assert( 'After' === wp_seed_events_dynamic_data_get_value( 'title', 99115 ), 'description meta did not invalidate event cache' );
+
+	$GLOBALS['d0_events'][99115]['title'] = 'Ignored';
+	wp_seed_events_dynamic_data_invalidate_description_meta_cache( 2, 99115, '_unrelated' );
+	d0_assert( 'After' === wp_seed_events_dynamic_data_get_value( 'title', 99115 ), 'unrelated meta invalidated event cache' );
+} );
+
 d0_case( 'cache is isolated between PHP requests', function () {
 	d0_assert( function_exists( 'exec' ), 'exec unavailable' );
 	$results = array();
@@ -679,7 +698,6 @@ d0_case( 'cache needs no external object cache', function () use ( $registry_sou
 
 d0_case( 'D3 adapters do not read storage or write data', function () {
 	$paths = array(
-		dirname( __DIR__ ) . '/includes/public/event-data.php',
 		dirname( __DIR__ ) . '/includes/public/data-registry.php',
 		dirname( __DIR__ ) . '/includes/integrations/gutenberg/block-bindings.php',
 		dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php',

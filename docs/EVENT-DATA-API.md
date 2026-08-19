@@ -39,8 +39,10 @@ $event = wp_seed_events_get_event_data( 123 );
 | `place_address` | `string` | Projection texte de l'adresse. |
 | `place_url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
 | `people` | `array[]` | Personnes et coordonnees explicitement publiques seulement. |
-| `description` | `string` | Contenu WordPress stocke de l'evenement. Le consommateur choisit son rendu et son echappement. |
-| `excerpt` | `string` | Extrait public normalise. |
+| `description` | `string` | Contenu WordPress complet stocké de l'événement. Le consommateur choisit son rendu et son échappement. |
+| `short_description` | `string` | Description courte manuelle brute issue de la meta dédiée, ou chaîne vide. |
+| `short_description_effective` | `string` | Valeur calculée par priorité : manuelle, coupure `more`, fallback 40 mots. |
+| `excerpt` | `string` | Alias strict de `short_description_effective`, retours `\n` compris. |
 | `practical_info` | `string` | Informations pratiques publiques. |
 | `event_document_filename` | `string` | Nom public sur du document PDF. |
 | `event_document_url` | `string` | URL HTTP(S) du PDF public, ou chaine vide. |
@@ -90,3 +92,5 @@ Stockage WordPress
 ```
 
 Event Data ne produit pas de HTML, ne choisit pas une collection et ne depend d'aucun builder.
+
+Le contrat complet des descriptions, du legacy `post_excerpt` et du REST d'édition est documenté dans [Descriptions des événements](EVENT-DESCRIPTIONS.md).

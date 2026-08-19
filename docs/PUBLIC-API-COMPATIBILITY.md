@@ -32,6 +32,7 @@ Aucun hook PHP propre au plugin n'est actuellement declare comme extension publi
 | Alias | Cible ou comportement |
 | --- | --- |
 | `wp_seed_events_public_event_data()` | Alias de `wp_seed_events_get_event_data()`. |
+| `excerpt` | Alias Event Data strict de `short_description_effective` ; le legacy `post_excerpt` reste ignoré et intact. |
 | `wp_seed_events_get_event_collection()` | Retour simplifie de la collection canonique. |
 | `role` | Alias Personnes historique d'un filtre de role unique ; `roles` est le contrat fin. |
 | `details` | Booleen Personnes historique ; les options `show_*` et `link_*` sont prioritaires. |
@@ -72,6 +73,7 @@ Un consommateur externe utilise les APIs publiques et ne lit pas les metas, opti
 
 - [Classifications natives et tri](NATIVE-EVENT-CLASSIFICATIONS.md)
 - [Event Data API](EVENT-DATA-API.md)
+- [Descriptions des événements](EVENT-DESCRIPTIONS.md)
 - [Event Occurrences API](EVENT-OCCURRENCES-API.md)
 - [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md)
 - [Collections publiques](PUBLIC-COLLECTIONS.md)

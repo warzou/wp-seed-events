@@ -119,6 +119,12 @@ Le panneau **Document complémentaire** accepte un seul PDF. Choisissez,
 remplacez ou retirez le document, puis mettez à jour l'événement. Le retrait
 de la fiche ne supprime pas le fichier de la médiathèque.
 
+## Description courte facultative
+
+Dans la boîte **Description**, le contenu principal reste la description complète de la fiche. Le champ **Description courte (facultative)** alimente les listes et cartes. S'il est vide, WP Seed Events utilise d'abord une coupure **Lire la suite** placée dans la description complète, puis génère un texte limité à 40 mots.
+
+Les retours à la ligne saisis sont conservés. Vider le champ réactive immédiatement le fallback calculé ; aucun extrait automatique n'est stocké. L'ancien champ WordPress `post_excerpt` n'est pas affiché, migré ou modifié.
+
 ## Publier et vérifier la fiche
 
 Avant publication :

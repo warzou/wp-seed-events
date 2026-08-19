@@ -89,6 +89,8 @@ function wp_seed_events_get_event_data( $event_id ) {
 	);
 	$flyer_pdf_id       = absint( $media['event_document']['id'] ?? 0 );
 	$description        = trim( (string) $post->post_content );
+	$short_description  = (string) get_post_meta( $event_id, WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY, true );
+	$short_description_effective = wp_seed_events_resolve_short_description( $description, $short_description );
 	$place_address      = is_array( $place ) ? sanitize_text_field( (string) ( $place['address'] ?? '' ) ) : '';
 	$practical_info     = is_array( $place ) ? sanitize_textarea_field( (string) ( $place['details'] ?? '' ) ) : '';
 	$document_filename  = is_array( $media['event_document'] )
@@ -137,9 +139,11 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'place_address'      => $place_address,
 		'place_url'          => $place_url,
 		'people'             => wp_seed_events_public_event_people_data( $event_id ),
-		'description'        => $description,
-		'excerpt'            => wp_seed_events_public_event_excerpt( $description ),
-		'practical_info'     => $practical_info,
+		'description'                 => $description,
+		'short_description'           => $short_description,
+		'short_description_effective' => $short_description_effective,
+		'excerpt'                     => $short_description_effective,
+		'practical_info'              => $practical_info,
 		'event_document_filename' => $document_filename,
 		'event_document_url'      => $event_document_url,
 		'featured_image'          => $media['featured_image'],

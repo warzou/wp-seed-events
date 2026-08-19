@@ -169,6 +169,12 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 	 * @return string
 	 */
 	protected function prepare_resolved_value( $value ): string {
-		return esc_html( (string) $value );
+		$value = esc_html( (string) $value );
+
+		if ( 'excerpt' === $this->get_field() ) {
+			return '<span class="wp-seed-events-multiline-text">' . $value . '</span>';
+		}
+
+		return $value;
 	}
 }

@@ -52,6 +52,7 @@ require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
 require_once __DIR__ . '/includes/admin/github-updater.php';
 require_once __DIR__ . '/includes/public/media.php';
+require_once __DIR__ . '/includes/public/descriptions.php';
 require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/people.php';
 require_once __DIR__ . '/includes/public/calendar.php';
@@ -150,14 +151,24 @@ function wp_seed_events_activate() {
 }
 
 function wp_seed_events_enqueue_public_visuals_style() {
-	$dates_stylesheet = __DIR__ . '/includes/public/event-dates.css';
-	$dates_version    = WP_SEED_EVENTS_VERSION;
+	$dates_stylesheet       = __DIR__ . '/includes/public/event-dates.css';
+	$description_stylesheet = __DIR__ . '/includes/public/event-descriptions.css';
+	$dates_version          = WP_SEED_EVENTS_VERSION;
+	$description_version    = WP_SEED_EVENTS_VERSION;
 
 	if ( is_readable( $dates_stylesheet ) ) {
 		$dates_hash = hash_file( 'sha256', $dates_stylesheet );
 
 		if ( is_string( $dates_hash ) && '' !== $dates_hash ) {
 			$dates_version .= '-' . substr( $dates_hash, 0, 12 );
+		}
+	}
+
+	if ( is_readable( $description_stylesheet ) ) {
+		$description_hash = hash_file( 'sha256', $description_stylesheet );
+
+		if ( is_string( $description_hash ) && '' !== $description_hash ) {
+			$description_version .= '-' . substr( $description_hash, 0, 12 );
 		}
 	}
 
@@ -172,6 +183,12 @@ function wp_seed_events_enqueue_public_visuals_style() {
 		plugins_url( 'includes/public/event-dates.css', __FILE__ ),
 		array(),
 		$dates_version
+	);
+	wp_enqueue_style(
+		'wp-seed-events-public-descriptions',
+		plugins_url( 'includes/public/event-descriptions.css', __FILE__ ),
+		array(),
+		$description_version
 	);
 }
 
@@ -1250,18 +1267,6 @@ function wp_seed_events_render_event_card( $post_id ) {
 	return wp_seed_events_render_public_event_card( $post_id );
 }
 
-function wp_seed_events_event_card_excerpt( $post ) {
-	$content = $post instanceof WP_Post ? $post->post_content : '';
-	$content = wp_strip_all_tags( strip_shortcodes( $content ) );
-	$content = trim( preg_replace( '/\s+/', ' ', $content ) );
-
-	if ( '' === $content ) {
-		return '';
-	}
-
-	return wp_trim_words( $content, 28, '…' );
-}
-
 function wp_seed_events_render_settings_page() {
 	$template_page_id = wp_seed_events_event_template_page_id();
 	$render_mode      = wp_seed_events_event_render_mode();
@@ -1612,7 +1617,7 @@ function wp_seed_events_add_event_type_meta_box() {
 function wp_seed_events_add_description_meta_box() {
 	add_meta_box(
 		'wp_seed_events_description',
-		'Description de l’évènement (optionnel)',
+		'Description',
 		'wp_seed_events_render_description_meta_box',
 		'wp_seed_event',
 		'normal',
@@ -1630,6 +1635,8 @@ function wp_seed_events_render_description_meta_box( $post ) {
 			'media_buttons' => false,
 		)
 	);
+
+	wp_seed_events_render_short_description_field( $post );
 }
 
 function wp_seed_events_default_event_type_options() {

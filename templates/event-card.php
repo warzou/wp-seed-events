@@ -51,7 +51,7 @@ $time_line = wp_seed_events_public_event_display_time_line( $event );
 		<?php endif; ?>
 
 		<?php if ( ! empty( $event['excerpt'] ) ) : ?>
-			<p class="wp-seed-event-card__excerpt" style="margin:0 0 14px;"><?php echo esc_html( $event['excerpt'] ); ?></p>
+			<p class="wp-seed-event-card__excerpt" style="margin:0 0 14px;"><?php echo nl2br( esc_html( $event['excerpt'] ) ); ?></p>
 		<?php endif; ?>
 
 		<?php if ( ! empty( $event['url'] ) ) : ?>

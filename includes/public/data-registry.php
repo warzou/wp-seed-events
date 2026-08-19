@@ -7,6 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+add_action( 'save_post_wp_seed_event', 'wp_seed_events_dynamic_data_invalidate_event_cache', 100 );
+add_action( 'added_post_meta', 'wp_seed_events_dynamic_data_invalidate_description_meta_cache', 10, 3 );
+add_action( 'updated_post_meta', 'wp_seed_events_dynamic_data_invalidate_description_meta_cache', 10, 3 );
+add_action( 'deleted_post_meta', 'wp_seed_events_dynamic_data_invalidate_description_meta_cache', 10, 3 );
+
 function wp_seed_events_dynamic_data_fields() {
 	return array(
 		'title'       => array(
@@ -65,15 +70,15 @@ function wp_seed_events_dynamic_data_fields() {
 		),
 		'description' => array(
 			'key'         => 'description',
-			'label'       => 'Description',
+			'label'       => 'Description complète',
 			'type'        => 'text',
-			'description' => 'Description texte de l\'evenement.',
+			'description' => 'Description complète de l\'événement.',
 		),
 		'excerpt'     => array(
 			'key'         => 'excerpt',
-			'label'       => 'Extrait',
+			'label'       => 'Description courte effective',
 			'type'        => 'text',
-			'description' => 'Extrait texte public de l\'evenement.',
+			'description' => 'Description courte effective de l\'événement.',
 		),
 		'practical_info' => array(
 			'key'         => 'practical_info',
@@ -125,10 +130,15 @@ function wp_seed_events_dynamic_data_fields() {
  * @param int $event_id Event post ID.
  * @return array
  */
-function wp_seed_events_dynamic_data_get_event_data( $event_id ) {
+function &wp_seed_events_dynamic_data_event_cache() {
 	static $event_cache = array();
 
-	$event_id = absint( $event_id );
+	return $event_cache;
+}
+
+function wp_seed_events_dynamic_data_get_event_data( $event_id ) {
+	$event_cache =& wp_seed_events_dynamic_data_event_cache();
+	$event_id     = absint( $event_id );
 
 	if ( 0 === $event_id ) {
 		return array();
@@ -139,6 +149,26 @@ function wp_seed_events_dynamic_data_get_event_data( $event_id ) {
 	}
 
 	return $event_cache[ $event_id ];
+}
+
+function wp_seed_events_dynamic_data_invalidate_event_cache( $event_id = 0 ) {
+	$event_cache =& wp_seed_events_dynamic_data_event_cache();
+	$event_id     = absint( $event_id );
+
+	if ( 0 === $event_id ) {
+		$event_cache = array();
+		return;
+	}
+
+	unset( $event_cache[ $event_id ] );
+}
+
+function wp_seed_events_dynamic_data_invalidate_description_meta_cache( $meta_id, $event_id, $meta_key ) {
+	unset( $meta_id );
+
+	if ( WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY === (string) $meta_key ) {
+		wp_seed_events_dynamic_data_invalidate_event_cache( $event_id );
+	}
 }
 
 /**
@@ -268,7 +298,7 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			$description = wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) );
 			return trim( preg_replace( '/\s+/', ' ', $description ) );
 		case 'excerpt':
-			return trim( wp_strip_all_tags( (string) ( $event['excerpt'] ?? '' ) ) );
+			return wp_seed_events_dynamic_data_multiline_text( $event['excerpt'] ?? '' );
 		case 'practical_info':
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':

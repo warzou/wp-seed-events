@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY', '_wp_seed_event_short_description' );
 
 $GLOBALS['p1_assertions']       = 0;
 $GLOBALS['p1_posts']            = array();
@@ -234,8 +235,9 @@ function wp_seed_events_public_event_place_data( $event_id ) {
 	return array();
 }
 
-function wp_seed_events_public_event_excerpt( $content ) {
-	return sanitize_text_field( $content );
+function wp_seed_events_resolve_short_description( string $description, string $short_description = '', int $word_limit = 40 ): string {
+	unset( $word_limit );
+	return '' !== trim( $short_description ) ? $short_description : sanitize_text_field( $description );
 }
 
 function wp_seed_events_event_type_labels_for_event( $event_id ) {

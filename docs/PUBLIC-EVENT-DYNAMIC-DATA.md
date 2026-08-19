@@ -34,8 +34,8 @@ Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
 | `display_time` | Heure affichée | `text` | heure de `display_occurrence` | chaîne vide |
 | `place` | Lieu | `text` | `place.name` | chaîne vide |
 | `place_address` | Adresse du lieu | `text` | `place_address` | chaîne vide |
-| `description` | Description | `text` | `description` sans HTML ni shortcode | chaîne vide |
-| `excerpt` | Extrait | `text` | `excerpt` | chaîne vide |
+| `description` | Description complète | `text` | `description` sans HTML ni shortcode | chaîne vide |
+| `excerpt` | Description courte effective | `text` | `excerpt`, retours à la ligne conservés | chaîne vide |
 | `practical_info` | Informations pratiques | `text` | `practical_info`, retours à la ligne conservés | chaîne vide |
 | `event_document_filename` | Nom du document | `text` | `event_document_filename` | chaîne vide |
 | `url` | URL de l'événement | `url` | `url` canonique | chaîne vide |
@@ -58,7 +58,8 @@ Le cache :
 - est partagé par les résolveurs texte, URL et image ;
 - ne crée ni transient, ni option, ni cache objet persistant ;
 - ne modifie aucune donnée ;
-- conserve une entrée distincte par événement, sans contamination entre cartes.
+- conserve une entrée distincte par événement, sans contamination entre cartes ;
+- invalide l'événement lorsque son contenu ou sa meta de description courte est ajouté, modifié ou supprimé.
 
 Sur la recette de référence de sept événements et seize sources, le nombre
 d'appels Event Data est passé de 112 à 7 et les passes Occurrences de 560 à 35.

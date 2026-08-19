@@ -8,6 +8,7 @@
 define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['preview_actions']       = array();
+$GLOBALS['preview_filters']       = array();
 $GLOBALS['preview_sources']       = array();
 $GLOBALS['preview_rest_field']    = array();
 $GLOBALS['preview_can_edit']      = true;
@@ -17,6 +18,10 @@ $GLOBALS['preview_assertions']    = 0;
 
 function add_action( $hook, $callback ) {
 	$GLOBALS['preview_actions'][] = array( $hook, $callback );
+}
+
+function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['preview_filters'][] = array( $hook, $callback, $priority, $accepted_args );
 }
 
 function register_block_bindings_source( $name, $properties ) {
@@ -60,6 +65,26 @@ function preview_assert( $condition, $message ) {
 	}
 }
 
+class WP_HTML_Tag_Processor {
+	private $html;
+
+	public function __construct( $html ) {
+		$this->html = $html;
+	}
+
+	public function next_tag() {
+		return false !== strpos( $this->html, '<' );
+	}
+
+	public function add_class( $class ) {
+		$this->html = preg_replace( '/<([a-z0-9]+)([^>]*)>/i', '<$1$2 class="' . $class . '">', $this->html, 1 );
+	}
+
+	public function get_updated_html() {
+		return $this->html;
+	}
+}
+
 class Preview_Request {
 	private $context;
 
@@ -80,6 +105,11 @@ preview_assert(
 		array( 'rest_api_init', 'wp_seed_events_register_gutenberg_block_bindings_rest_field' ),
 	) === $GLOBALS['preview_actions'],
 	'Expected init and REST registration hooks.'
+);
+
+preview_assert(
+	array( array( 'render_block', 'wp_seed_events_gutenberg_multiline_excerpt_block', 10, 2 ) ) === $GLOBALS['preview_filters'],
+	'Expected bounded render_block filter.'
 );
 
 wp_seed_events_register_gutenberg_block_bindings_source();
@@ -120,7 +150,7 @@ $GLOBALS['preview_values'][914] = array(
 	'status'       => 'À venir',
 	'display_date' => 'Vendredi 31 juillet 2026',
 	'place'        => 'Centre Shania',
-	'excerpt'      => 'Un extrait public.',
+	'excerpt'      => "Une ligne\nUne autre ligne",
 	'url'          => 'https://example.test/atelier/exemple/',
 );
 $values = wp_seed_events_gutenberg_block_bindings_rest_values(
@@ -130,6 +160,30 @@ $values = wp_seed_events_gutenberg_block_bindings_rest_values(
 );
 preview_assert( $GLOBALS['preview_values'][914] === $values, 'Authorized preview values differ.' );
 preview_assert( 6 === $GLOBALS['preview_value_calls'], 'Each allowlisted value must be resolved once.' );
+preview_assert( "Une ligne\nUne autre ligne" === $values['excerpt'], 'REST preview flattened multiline excerpt.' );
+
+$excerpt_block = array(
+	'attrs' => array(
+		'metadata' => array(
+			'bindings' => array(
+				'content' => array(
+					'source' => 'wp-seed-events/event-field',
+					'args'   => array( 'field' => 'excerpt' ),
+				),
+			),
+		),
+	),
+);
+$rendered = wp_seed_events_gutenberg_multiline_excerpt_block( '<p>Une ligne' . "\n" . 'Une autre ligne</p>', $excerpt_block );
+preview_assert( false !== strpos( $rendered, 'wp-seed-events-multiline-text' ), 'Excerpt block lacks multiline class.' );
+preview_assert( false !== strpos( $rendered, "Une ligne\nUne autre ligne" ), 'Excerpt block flattened textual newline.' );
+
+$title_block = $excerpt_block;
+$title_block['attrs']['metadata']['bindings']['content']['args']['field'] = 'title';
+preview_assert(
+	'<p>Titre</p>' === wp_seed_events_gutenberg_multiline_excerpt_block( '<p>Titre</p>', $title_block ),
+	'Non-excerpt binding was modified.'
+);
 
 $GLOBALS['preview_value_calls'] = 0;
 preview_assert(

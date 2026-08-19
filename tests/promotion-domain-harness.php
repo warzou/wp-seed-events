@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'OBJECT', 'OBJECT' );
+define( 'WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY', '_wp_seed_event_short_description' );
 
 class WP_Post {
 	public $ID;
@@ -260,8 +261,9 @@ function wp_seed_events_public_event_people_data( $event_id ) {
 	return array();
 }
 
-function wp_seed_events_public_event_excerpt( $description ) {
-	return $description;
+function wp_seed_events_resolve_short_description( string $description, string $short_description = '', int $word_limit = 40 ): string {
+	unset( $word_limit );
+	return '' !== trim( $short_description ) ? $short_description : $description;
 }
 
 function get_permalink( $event_id ) {
