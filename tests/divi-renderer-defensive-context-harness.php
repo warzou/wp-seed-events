@@ -121,6 +121,10 @@ namespace {
 		return trim( strip_tags( (string) $value ) );
 	}
 
+	function wp_parse_args( $args, $defaults ) {
+		return array_merge( $defaults, is_array( $args ) ? $args : array() );
+	}
+
 	function get_post_type( $post_id ) {
 		return $GLOBALS['defensive_post_types'][ (int) $post_id ] ?? false;
 	}
@@ -157,6 +161,16 @@ namespace {
 			return $default;
 		}
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'true', 'yes' ), true );
+	}
+
+	function wp_seed_events_public_date_list_dimension_option( $value, $default ) {
+		$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+		return preg_match( '/^(?:0|(?:\d+(?:\.\d+)?|\.\d+)(?:px|em|rem|%|ch))$/', $value ) ? $value : $default;
+	}
+
+	function wp_seed_events_public_date_list_marker_color_option( $value ) {
+		$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+		return preg_match( '/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/', $value ) ? $value : '';
 	}
 
 	function wp_seed_events_public_people_role_option( $value ) {
@@ -226,6 +240,7 @@ namespace {
 	}
 
 	require dirname( __DIR__ ) . '/includes/integrations/divi/context.php';
+	require dirname( __DIR__ ) . '/includes/integrations/divi/module-contracts.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/class-event-dates-module.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/class-event-visuals-module.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/class-event-people-module.php';
@@ -354,6 +369,22 @@ namespace {
 			}
 		} );
 	}
+
+	defensive_case( 'event detail visuals accepts Divi responsive list attributes', function () use ( $full_metadata, $event_context ) {
+		$attrs = array(
+			'eventListStyle' => array(
+				'advanced' => array(
+					'markerType' => array(
+						'desktop' => array( 'value' => 'none' ),
+						'tablet'  => array( 'value' => array( 'markerType' => 'circle' ) ),
+					),
+					'leftIndent' => array( 'desktop' => array( 'value' => '0px' ) ),
+				),
+			),
+		);
+		$result = defensive_render( WP_Seed_Events_Divi_Event_Visuals_Module::class, $full_metadata, $event_context, $attrs );
+		defensive_assert( false !== strpos( $result['html'], 'data-kind="visuals"' ), 'Event detail Visuals module did not render.' );
+	} );
 
 	foreach ( $modules as $label => $class_name ) {
 		defensive_case( $label . ' resolves an ancestor Loop Builder event', function () use ( $class_name ) {
@@ -512,6 +543,48 @@ namespace {
 			defensive_assert( false !== strpos( $result['html'], 'data-color="#123456"' ), 'Nested marker color was not forwarded.' );
 		}
 	} );
+	defensive_case( 'dates list design values resolve responsive inheritance and nested states', function () {
+		$attrs = array(
+			'listStyle' => array(
+				'advanced' => array(
+					'markerType' => array(
+						'desktop' => array( 'value' => array( 'markerType' => 'none' ) ),
+						'tablet'  => array( 'value' => 'circle' ),
+						'phone'   => array( 'value' => array( 'markerType' => 'square' ) ),
+					),
+					'markerPosition' => array(
+						'desktop' => array( 'value' => 'outside' ),
+						'tablet'  => array( 'value' => array( 'markerPosition' => 'inside' ) ),
+					),
+					'leftIndent' => array(
+						'desktop' => array( 'value' => '2.5em' ),
+						'tablet'  => array( 'value' => array( 'leftIndent' => '3rem' ) ),
+					),
+					'occurrenceGap' => array(
+						'desktop' => array( 'value' => '0px' ),
+						'phone'   => array( 'value' => array( 'occurrenceGap' => '4px' ) ),
+					),
+					'markerColor' => array(
+						'desktop' => array( 'value' => '#123456' ),
+						'tablet'  => array( 'value' => array( 'markerColor' => '#654321' ) ),
+					),
+				),
+			),
+		);
+		$method = new ReflectionMethod( WP_Seed_Events_Divi_Event_Dates_Module::class, 'get_responsive_list_values' );
+		$styles = $method->invoke( null, $attrs );
+
+		defensive_assert( 'none' === $styles['desktop']['markerType'], 'Desktop nested marker failed.' );
+		defensive_assert( '0px' === $styles['desktop']['leftIndent'], 'None marker did not reset default indent.' );
+		defensive_assert( 'circle' === $styles['tablet']['markerType'], 'Tablet marker failed.' );
+		defensive_assert( 'inside' === $styles['tablet']['markerPosition'], 'Tablet nested position failed.' );
+		defensive_assert( '3rem' === $styles['tablet']['leftIndent'], 'Tablet nested indent failed.' );
+		defensive_assert( 'square' === $styles['phone']['markerType'], 'Phone nested marker failed.' );
+		defensive_assert( 'inside' === $styles['phone']['markerPosition'], 'Phone position inheritance failed.' );
+		defensive_assert( '4px' === $styles['phone']['occurrenceGap'], 'Phone nested gap failed.' );
+		defensive_assert( '#654321' === $styles['phone']['markerColor'], 'Phone color inheritance failed.' );
+	} );
+
 	defensive_case( 'dates Visual Builder preview uses each explicit loop item without leakage', function () {
 		$first  = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
 		$second = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 11 ) ) );

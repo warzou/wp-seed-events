@@ -16,6 +16,10 @@ const { useFetch } = window.divi.rest;
 
 import metadata from './module.json';
 import { resolveCurrentEventContext } from '../../../visual-builder-event-context';
+import {
+  normalizeListStyles,
+  styleSharedListHtml,
+} from '../../../event-dates-module/visual-builder/src/divi-style-values';
 
 const { data } = window.divi;
 
@@ -31,6 +35,7 @@ const normalizeOptions = (attrs) => {
 
   return {
     title: valueOrDefault(values.title, 'Visuels de communication'),
+    show_title: valueOrDefault(values.show_title, 'on'),
     heading_level: valueOrDefault(values.heading_level, 'h2'),
     show_flyer: valueOrDefault(values.show_flyer, 'on'),
     show_visuals: valueOrDefault(values.show_visuals, 'on'),
@@ -87,6 +92,8 @@ const EventVisualsPreview = (props) => {
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
   const options = normalizeOptions(attrs);
+  const listStyles = normalizeListStyles(attrs, 'eventListStyle');
+  const listStylesKey = JSON.stringify(listStyles);
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const parentId = typeof props.parentId === 'string' ? props.parentId : '';
@@ -131,6 +138,10 @@ const EventVisualsPreview = (props) => {
   }, [restRoute]);
 
   const html = typeof response?.html === 'string' ? response.html : '';
+  const styledHtml = useMemo(
+    () => styleSharedListHtml(html, '.wp-seed-event-visuals__list', listStyles),
+    [html, listStylesKey],
+  );
 
   return (
     <ModuleContainer
@@ -151,8 +162,8 @@ const EventVisualsPreview = (props) => {
         {!isLoading && !hasError && html === '' && (
           <div>Aucun visuel à afficher dans ce contexte.</div>
         )}
-        {!isLoading && !hasError && html !== '' && (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+        {!isLoading && !hasError && styledHtml !== '' && (
+          <div dangerouslySetInnerHTML={{ __html: styledHtml }} />
         )}
       </div>
     </ModuleContainer>
@@ -170,6 +181,7 @@ const eventVisualsModule = {
         desktop: {
           value: {
             title: 'Visuels de communication',
+            show_title: 'on',
             heading_level: 'h2',
             show_flyer: 'on',
             show_visuals: 'on',

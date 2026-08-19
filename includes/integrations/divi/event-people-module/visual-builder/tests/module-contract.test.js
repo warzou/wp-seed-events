@@ -31,11 +31,11 @@ test('French label and shared folder are configured', () => {
   assert.strictEqual((source.match(/registerFolder\(\{/g) || []).length, 1);
 });
 test('exact content fields are exposed', () => {
-  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'link_email', 'link_phone', 'link_url', 'role_information_contact', 'role_organizer', 'role_registration_contact', 'role_speaker', 'show_email', 'show_link', 'show_name', 'show_phone', 'show_roles', 'title']);
+  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'link_email', 'link_phone', 'link_url', 'role_information_contact', 'role_organizer', 'role_registration_contact', 'role_speaker', 'show_email', 'show_link', 'show_name', 'show_phone', 'show_roles', 'show_title', 'title']);
 });
 test('renderer defaults are preserved', () => {
   assert.deepStrictEqual(defaults, {
-    title: 'Contacts et intervenants', heading_level: 'h2', role: 'all', show_name: 'on', show_roles: 'on',
+    title: 'Contacts et intervenants', heading_level: 'h2', role: 'all', show_name: 'on', show_roles: 'on', show_title: 'on',
     show_email: 'on', show_phone: 'on', show_link: 'on', link_phone: 'on', link_email: 'on', link_url: 'on', layout: 'list',
   });
 });

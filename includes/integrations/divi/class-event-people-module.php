@@ -51,6 +51,11 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$options  = self::normalize_options( self::get_content_values( $attrs ) );
 		$html     = self::render_people( $event_id, $options );
+		$html     = wp_seed_events_divi_apply_list_styles(
+			$html,
+			wp_seed_events_divi_list_style_values( $attrs, 'eventListStyle' ),
+			'wp-seed-event-people__list'
+		);
 
 		if ( '' === $html ) {
 			return '';
@@ -134,7 +139,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		}
 
 		return array(
-			'title'         => array_key_exists( 'title', $values ) && is_scalar( $values['title'] ) ? (string) $values['title'] : 'Contacts et intervenants',
+			'title'         => wp_seed_events_divi_optional_title( $values, 'Contacts et intervenants' ),
 			'heading_level' => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
 			'roles'         => $roles,
 			'role'          => $legacy_role,

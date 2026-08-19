@@ -53,6 +53,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'loop_id'             => array( 'sanitize_callback' => 'absint' ),
 					'mode'                => array( 'sanitize_callback' => 'sanitize_key' ),
 					'title'               => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'show_title'          => array( 'sanitize_callback' => 'sanitize_key' ),
 					'heading_level'       => array( 'sanitize_callback' => 'sanitize_key' ),
 					'scope'               => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_cancelled'      => array( 'sanitize_callback' => 'sanitize_key' ),
@@ -90,6 +91,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		$options = self::normalize_options(
 			array(
 				'title'               => $request->get_param( 'title' ),
+				'show_title'          => $request->get_param( 'show_title' ),
 				'heading_level'       => $request->get_param( 'heading_level' ),
 				'mode'                => $request->get_param( 'mode' ),
 				'scope'               => $request->get_param( 'scope' ),
@@ -121,6 +123,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			array_merge( self::get_content_values( $attrs ), self::get_list_values( $attrs ) )
 		);
 		$html     = self::render_dates( $event_id, $options );
+		$html     = self::apply_responsive_list_styles( $html, self::get_responsive_list_values( $attrs ) );
 
 		if ( '' === $html ) {
 			return '';
@@ -189,44 +192,136 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	}
 
 	/**
-	 * Read the persistent list design values saved by Divi.
+	 * Read one scalar from the responsive/state shapes emitted by Divi 5.
 	 */
-	private static function get_list_values( $attrs ) {
-		$advanced = isset( $attrs['listStyle']['advanced'] ) && is_array( $attrs['listStyle']['advanced'] )
-			? $attrs['listStyle']['advanced']
-			: array();
-		$mapping  = array(
-			'markerType'     => 'list_marker_type',
-			'markerPosition' => 'list_marker_position',
-			'leftIndent'     => 'list_indent',
-			'occurrenceGap'  => 'occurrence_gap',
-			'markerColor'    => 'marker_color',
+	private static function resolve_divi_style_value( $attribute, $breakpoint, $state, $field, $fallback = '' ) {
+		$inheritance = array(
+			'desktop' => array( 'desktop' ),
+			'tablet'  => array( 'tablet', 'desktop' ),
+			'phone'   => array( 'phone', 'tablet', 'desktop' ),
 		);
-		$values   = array();
+		$breakpoints = $inheritance[ $breakpoint ] ?? array( $breakpoint, 'desktop' );
 
-		foreach ( $mapping as $attribute => $option ) {
-			$value = $advanced[ $attribute ]['desktop']['value'] ?? null;
+		foreach ( $breakpoints as $candidate_breakpoint ) {
+			$breakpoint_value = is_array( $attribute ) && isset( $attribute[ $candidate_breakpoint ] )
+				? $attribute[ $candidate_breakpoint ]
+				: null;
+			$states = 'value' === $state ? array( 'value' ) : array( $state, 'value' );
 
-			if ( is_array( $value ) && is_scalar( $value[ $attribute ] ?? null ) ) {
-				$value = $value[ $attribute ];
+			foreach ( $states as $candidate_state ) {
+				$value = is_array( $breakpoint_value ) && array_key_exists( $candidate_state, $breakpoint_value )
+					? self::scalar_divi_style_value( $breakpoint_value[ $candidate_state ], $field )
+					: null;
+
+				if ( null !== $value ) {
+					return $value;
+				}
 			}
 
-			if ( is_scalar( $value ) ) {
-				$values[ $option ] = (string) $value;
+			$value = self::scalar_divi_style_value( $breakpoint_value, $field );
+			if ( null !== $value ) {
+				return $value;
 			}
 		}
 
-		return $values;
+		if ( is_array( $attribute ) && array_key_exists( $state, $attribute ) ) {
+			$value = self::scalar_divi_style_value( $attribute[ $state ], $field );
+			if ( null !== $value ) {
+				return $value;
+			}
+		}
+
+		$value = self::scalar_divi_style_value( $attribute, $field );
+		return null !== $value ? $value : $fallback;
 	}
 
+	/**
+	 * Unwrap scalar and nested custom-field values without property-specific branches.
+	 */
+	private static function scalar_divi_style_value( $value, $field ) {
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return null;
+		}
+
+		if ( '' !== $field && is_scalar( $value[ $field ] ?? null ) ) {
+			return (string) $value[ $field ];
+		}
+
+		return array_key_exists( 'value', $value )
+			? self::scalar_divi_style_value( $value['value'], $field )
+			: null;
+	}
+
+	/**
+	 * Normalize all custom list controls for each Divi breakpoint.
+	 */
+	private static function get_responsive_list_values( $attrs ) {
+		return wp_seed_events_divi_list_style_values( $attrs, 'listStyle' );
+	}
+
+	/**
+	 * Read desktop list values for the shared public renderer contract.
+	 */
+	private static function get_list_values( $attrs ) {
+		$desktop = self::get_responsive_list_values( $attrs )['desktop'];
+
+		return array(
+			'list_marker_type'     => $desktop['markerType'],
+			'list_marker_position' => $desktop['markerPosition'],
+			'list_indent'          => $desktop['leftIndent'],
+			'occurrence_gap'       => $desktop['occurrenceGap'],
+			'marker_color'         => $desktop['markerColor'],
+		);
+	}
+
+	/**
+	 * Add per-module responsive variables without changing the shared renderer API.
+	 */
+	private static function apply_responsive_list_styles( $html, $styles ) {
+		if ( '' === $html || ! class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			return $html;
+		}
+
+		$processor = new WP_HTML_Tag_Processor( $html );
+		if ( ! $processor->next_tag( array( 'class_name' => 'wp-seed-event-dates' ) ) ) {
+			return $html;
+		}
+
+		$property_map = array(
+			'markerType'     => 'marker-type',
+			'markerPosition' => 'marker-position',
+			'leftIndent'     => 'list-indent',
+			'occurrenceGap'  => 'occurrence-gap',
+			'markerColor'    => 'marker-color',
+		);
+		$declarations = array();
+
+		foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
+			foreach ( $property_map as $field => $property ) {
+				$value = $styles[ $breakpoint ][ $field ];
+				if ( 'markerColor' === $field && '' === $value ) {
+					$value = 'currentColor';
+				}
+				$declarations[] = '--wp-seed-event-dates-' . $property . '-' . $breakpoint . ':' . $value;
+			}
+		}
+
+		$existing_style = trim( (string) $processor->get_attribute( 'style' ), " \t\n\r\0\x0B;" );
+		$style = ( '' !== $existing_style ? $existing_style . ';' : '' ) . implode( ';', $declarations );
+		$processor->set_attribute( 'style', $style );
+
+		return $processor->get_updated_html();
+	}
 	/**
 	 * Convert Divi field values to the shared renderer contract.
 	 */
 	private static function normalize_options( $values ) {
 		$values = is_array( $values ) ? $values : array();
-		$title  = array_key_exists( 'title', $values ) && null !== $values['title']
-			? (string) $values['title']
-			: 'Dates';
+		$title  = wp_seed_events_divi_optional_title( $values, 'Dates' );
 		$mode   = wp_seed_events_public_date_mode_option( $values['mode'] ?? 'all' );
 		$scope  = wp_seed_events_public_date_scope_option( $values['scope'] ?? 'all' );
 		$choice = is_scalar( $values['date_selection'] ?? null )
@@ -259,9 +354,9 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'show_times'          => self::is_enabled( $values['show_times'] ?? 'on' ),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
 			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
-			'list_marker_type'     => $values['list_marker_type'] ?? 'disc',
+			'list_marker_type'     => $values['list_marker_type'] ?? 'none',
 			'list_marker_position' => $values['list_marker_position'] ?? 'outside',
-			'list_indent'          => $values['list_indent'] ?? '2.5em',
+			'list_indent'          => $values['list_indent'] ?? '0px',
 			'occurrence_gap'       => $values['occurrence_gap'] ?? '0px',
 			'marker_color'         => $values['marker_color'] ?? '',
 		);

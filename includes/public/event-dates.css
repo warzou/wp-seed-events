@@ -2,51 +2,62 @@
 	padding-block-end: 0;
 }
 
+.wp-seed-event-section--dates .wp-seed-event-dates__title,
+.wp-seed-event-section--dates .wp-seed-event-date__date,
+.wp-seed-event-section--dates .wp-seed-event-date__time,
+.wp-seed-event-section--dates .wp-seed-event-date__status,
+.wp-seed-event-section--dates .wp-seed-event-calendar-link {
+	display: block;
+	inline-size: 100%;
+}
+
 .wp-seed-event-dates.has-custom-list-style {
-	list-style-position: var(--wp-seed-event-dates-marker-position, outside) !important;
-	list-style-type: var(--wp-seed-event-dates-marker-type, disc) !important;
-	padding-inline-start: var(--wp-seed-event-dates-list-indent, 2.5em) !important;
-}
-
-.wp-seed-event-dates.has-custom-list-style.is-marker-none {
-	list-style: none !important;
-	list-style-type: none !important;
-	margin-inline-start: 0 !important;
-}
-
-.wp-seed-event-dates.has-custom-list-style.is-marker-none > .wp-seed-event-date {
-	list-style: none !important;
-	list-style-type: none !important;
+	--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-desktop, var(--wp-seed-event-dates-marker-type, none));
+	--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-desktop, var(--wp-seed-event-dates-marker-position, outside));
+	--wp-seed-event-dates-current-list-indent: var(--wp-seed-event-dates-list-indent-desktop, var(--wp-seed-event-dates-list-indent, 0px));
+	--wp-seed-event-dates-current-occurrence-gap: var(--wp-seed-event-dates-occurrence-gap-desktop, var(--wp-seed-event-dates-occurrence-gap, 0));
+	--wp-seed-event-dates-current-marker-color: var(--wp-seed-event-dates-marker-color-desktop, var(--wp-seed-event-dates-marker-color, currentColor));
+	list-style-position: var(--wp-seed-event-dates-current-marker-position) !important;
+	list-style-type: var(--wp-seed-event-dates-current-marker-type) !important;
+	padding-inline-start: var(--wp-seed-event-dates-current-list-indent) !important;
 	margin-inline-start: 0;
 }
 
-.wp-seed-event-dates.has-custom-list-style.is-marker-none > .wp-seed-event-date::marker {
-	content: "" !important;
-	color: transparent !important;
-	font-size: 0 !important;
+.wp-seed-event-dates.has-custom-list-style > .wp-seed-event-date {
+	display: list-item !important;
+	list-style-position: var(--wp-seed-event-dates-current-marker-position) !important;
+	list-style-type: var(--wp-seed-event-dates-current-marker-type) !important;
 }
 
-.wp-seed-event-dates.has-custom-list-style.is-marker-none > .wp-seed-event-date::before {
+.wp-seed-event-dates.has-custom-list-style > .wp-seed-event-date::before {
 	content: none !important;
 	display: none !important;
 }
 
-.wp-seed-event-dates.has-custom-list-style.is-marker-disc > .wp-seed-event-date {
-	list-style-type: disc !important;
-}
-
-.wp-seed-event-dates.has-custom-list-style.is-marker-circle > .wp-seed-event-date {
-	list-style-type: circle !important;
-}
-
-.wp-seed-event-dates.has-custom-list-style.is-marker-square > .wp-seed-event-date {
-	list-style-type: square !important;
-}
-
 .wp-seed-event-dates.has-custom-list-style > .wp-seed-event-date + .wp-seed-event-date {
-	margin-block-start: var(--wp-seed-event-dates-occurrence-gap, 0);
+	margin-block-start: var(--wp-seed-event-dates-current-occurrence-gap);
 }
 
 .wp-seed-event-dates.has-custom-list-style > .wp-seed-event-date::marker {
-	color: var(--wp-seed-event-dates-marker-color, currentColor);
+	color: var(--wp-seed-event-dates-current-marker-color);
+}
+
+@media (max-width: 980px) {
+	.wp-seed-event-dates.has-custom-list-style {
+		--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-tablet, var(--wp-seed-event-dates-marker-type-desktop, none));
+		--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-tablet, var(--wp-seed-event-dates-marker-position-desktop, outside));
+		--wp-seed-event-dates-current-list-indent: var(--wp-seed-event-dates-list-indent-tablet, var(--wp-seed-event-dates-list-indent-desktop, 0px));
+		--wp-seed-event-dates-current-occurrence-gap: var(--wp-seed-event-dates-occurrence-gap-tablet, var(--wp-seed-event-dates-occurrence-gap-desktop, 0));
+		--wp-seed-event-dates-current-marker-color: var(--wp-seed-event-dates-marker-color-tablet, var(--wp-seed-event-dates-marker-color-desktop, currentColor));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-seed-event-dates.has-custom-list-style {
+		--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-phone, var(--wp-seed-event-dates-marker-type-tablet, none));
+		--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-phone, var(--wp-seed-event-dates-marker-position-tablet, outside));
+		--wp-seed-event-dates-current-list-indent: var(--wp-seed-event-dates-list-indent-phone, var(--wp-seed-event-dates-list-indent-tablet, 0px));
+		--wp-seed-event-dates-current-occurrence-gap: var(--wp-seed-event-dates-occurrence-gap-phone, var(--wp-seed-event-dates-occurrence-gap-tablet, 0));
+		--wp-seed-event-dates-current-marker-color: var(--wp-seed-event-dates-marker-color-phone, var(--wp-seed-event-dates-marker-color-tablet, currentColor));
+	}
 }

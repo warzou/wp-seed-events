@@ -23,26 +23,16 @@ import {
   toPlainObject,
 } from './loop-preview-context';
 
+import {
+  applyListStyleVariables,
+  normalizeListStyles,
+  previewListStyleCss,
+  previewListStyleScope,
+} from './divi-style-values';
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
-const getContentValues = (attrs) => attrs?.content?.innerContent?.desktop?.value ?? {};
-const normalizeListOptions = (attrs) => {
-  const advanced = toPlainObject(attrs?.listStyle)?.advanced ?? {};
-  const markerTypes = ['none', 'disc', 'circle', 'square'];
-  const markerPositions = ['outside', 'inside'];
-  const markerType = getDiviDesktopFieldValue(advanced.markerType, 'markerType', 'disc');
-  const markerPosition = getDiviDesktopFieldValue(advanced.markerPosition, 'markerPosition', 'outside');
-
-  return {
-    list_marker_type: markerTypes.includes(markerType) ? markerType : 'disc',
-    list_marker_position: markerPositions.includes(markerPosition) ? markerPosition : 'outside',
-    list_indent: getDiviDesktopFieldValue(advanced.leftIndent, 'leftIndent', '2.5em'),
-    occurrence_gap: getDiviDesktopFieldValue(advanced.occurrenceGap, 'occurrenceGap', '0px'),
-    marker_color: getDiviDesktopFieldValue(advanced.markerColor, 'markerColor', ''),
-  };
-};
-
-const applyPreviewListStyle = (html, listOptions, documentRef = document) => {
+const getContentValues = (attrs) => toPlainObject(attrs)?.content?.innerContent?.desktop?.value ?? {};
+const applyPreviewListStyle = (html, listStyles, documentRef = document) => {
   if (html === '' || !documentRef?.createElement) {
     return html;
   }
@@ -56,24 +46,33 @@ const applyPreviewListStyle = (html, listOptions, documentRef = document) => {
     return html;
   }
 
-  const markerType = listOptions.list_marker_type;
-  const markerPosition = listOptions.list_marker_position;
   const items = list.querySelectorAll(':scope > .wp-seed-event-date');
+  const scope = previewListStyleScope(listStyles);
+  const previewStyle = documentRef.createElement('style');
 
-  list.style.setProperty('list-style-type', markerType, 'important');
-  list.style.setProperty('list-style-position', markerPosition, 'important');
+  Array.from(list.classList).forEach((className) => {
+    if (className.startsWith('is-marker-')) list.classList.remove(className);
+  });
+  list.classList.add(
+    'has-custom-list-style',
+    `is-marker-${listStyles.desktop.markerType}`,
+    `is-marker-position-${listStyles.desktop.markerPosition}`,
+    scope,
+  );
+  previewStyle.setAttribute('data-wp-seed-event-dates-preview-style', scope);
+  previewStyle.textContent = previewListStyleCss(scope);
+  template.content.prepend(previewStyle);
+
+  applyListStyleVariables(list, listStyles);
+  list.style.setProperty('list-style-type', 'var(--wp-seed-event-dates-current-marker-type)', 'important');
+  list.style.setProperty('list-style-position', 'var(--wp-seed-event-dates-current-marker-position)', 'important');
   list.style.setProperty('padding-block-end', '0', 'important');
 
   items.forEach((item) => {
     item.style.setProperty('display', 'list-item', 'important');
-    item.style.setProperty('list-style-type', markerType, 'important');
-    item.style.setProperty('list-style-position', markerPosition, 'important');
+    item.style.setProperty('list-style-type', 'var(--wp-seed-event-dates-current-marker-type)', 'important');
+    item.style.setProperty('list-style-position', 'var(--wp-seed-event-dates-current-marker-position)', 'important');
   });
-
-  if (markerType === 'none') {
-    list.style.setProperty('list-style', 'none', 'important');
-    items.forEach((item) => item.style.setProperty('list-style', 'none', 'important'));
-  }
 
   return template.innerHTML;
 };
@@ -110,6 +109,7 @@ const normalizeOptions = (attrs) => {
 
   return {
     title: typeof values.title === 'string' ? values.title : 'Dates',
+    show_title: values.show_title === 'off' ? 'off' : 'on',
     heading_level: headingLevels.includes(values.heading_level) ? values.heading_level : 'h2',
     mode,
     scope,
@@ -164,8 +164,9 @@ const EventDatesPreview = (props) => {
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
   const options = normalizeOptions(attrs);
-  const listOptions = normalizeListOptions(attrs);
-  const optionsKey = JSON.stringify({ ...options, ...listOptions });
+  const listStyles = normalizeListStyles(attrs);
+  const listStylesKey = JSON.stringify(listStyles);
+  const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const parentId = typeof props.parentId === 'string' ? props.parentId : '';
   const loopIndex = Number.isInteger(props.loopIndex) ? props.loopIndex : -1;
@@ -179,7 +180,6 @@ const EventDatesPreview = (props) => {
       post_id: postId,
       ...(loopPostId > 0 ? { loop_id: loopPostId } : {}),
       ...options,
-      ...listOptions,
     }),
     [postId, loopPostId, loopContextKey, optionsKey],
   );
@@ -211,8 +211,8 @@ const EventDatesPreview = (props) => {
 
   const html = typeof response?.html === 'string' ? response.html : '';
   const previewHtml = useMemo(
-    () => applyPreviewListStyle(html, listOptions),
-    [html, optionsKey],
+    () => applyPreviewListStyle(html, listStyles),
+    [html, listStylesKey],
   );
 
   const previewContent = !isLoading && !hasError && previewHtml !== '';
@@ -268,6 +268,7 @@ const eventDatesModule = {
         desktop: {
           value: {
             title: 'Dates',
+            show_title: 'on',
             heading_level: 'h2',
             mode: 'all',
             scope: 'all',

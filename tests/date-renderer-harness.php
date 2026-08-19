@@ -693,8 +693,8 @@ wp_seed_events_harness_case(
 			)
 		);
 
-		wp_seed_events_harness_contains( 'is-marker-disc is-marker-position-outside', $html, 'Invalid marker values did not use safe defaults.' );
-		wp_seed_events_harness_contains( '--wp-seed-event-dates-list-indent:2.5em', $html, 'Invalid indent did not use its safe default.' );
+		wp_seed_events_harness_contains( 'is-marker-none is-marker-position-outside', $html, 'Invalid marker values did not use safe defaults.' );
+		wp_seed_events_harness_contains( '--wp-seed-event-dates-list-indent:0px', $html, 'Invalid indent did not use its safe default.' );
 		wp_seed_events_harness_contains( '--wp-seed-event-dates-occurrence-gap:0px', $html, 'Invalid gap did not use its safe default.' );
 		wp_seed_events_harness_not_contains( 'javascript', $html, 'Unsafe marker content leaked into HTML.' );
 		wp_seed_events_harness_not_contains( 'background:url', $html, 'Unsafe color content leaked into HTML.' );
@@ -702,15 +702,18 @@ wp_seed_events_harness_case(
 );
 
 wp_seed_events_harness_case(
-	'date list stylesheet removes markers and spacing without changing semantics',
+	'date list stylesheet keeps typography targets intrinsic and list styles responsive',
 	function () {
 		$css = file_get_contents( dirname( __DIR__ ) . '/includes/public/event-dates.css' );
-		wp_seed_events_harness_contains( 'list-style: none !important', $css, 'Cascade-safe none marker rule is missing.' );
-		wp_seed_events_harness_contains( '.is-marker-none > .wp-seed-event-date::marker', $css, 'Native marker suppression is missing.' );
-		wp_seed_events_harness_contains( '.is-marker-none > .wp-seed-event-date::before', $css, 'Theme pseudo-marker suppression is missing.' );
-		wp_seed_events_harness_contains( '.is-marker-disc > .wp-seed-event-date', $css, 'Disc marker rule is missing.' );
-		wp_seed_events_harness_contains( '.is-marker-circle > .wp-seed-event-date', $css, 'Circle marker rule is missing.' );
-		wp_seed_events_harness_contains( '.is-marker-square > .wp-seed-event-date', $css, 'Square marker rule is missing.' );
+		foreach ( array( 'wp-seed-event-dates__title', 'wp-seed-event-date__date', 'wp-seed-event-date__time', 'wp-seed-event-date__status', 'wp-seed-event-calendar-link' ) as $target ) {
+			wp_seed_events_harness_contains( '.wp-seed-event-section--dates .' . $target, $css, 'Scoped typography target is missing: ' . $target );
+		}
+		wp_seed_events_harness_contains( 'display: block', $css, 'Inline typography targets do not expose alignment and intrinsic line boxes.' );
+		wp_seed_events_harness_contains( 'inline-size: 100%', $css, 'Typography targets do not own their alignment width.' );
+		wp_seed_events_harness_contains( '--wp-seed-event-dates-current-marker-type', $css, 'Responsive marker variable is missing.' );
+		wp_seed_events_harness_contains( '@media (max-width: 980px)', $css, 'Tablet list styles are missing.' );
+		wp_seed_events_harness_contains( '@media (max-width: 767px)', $css, 'Phone list styles are missing.' );
+		wp_seed_events_harness_contains( '> .wp-seed-event-date::before', $css, 'Theme pseudo-marker neutralization is missing.' );
 		wp_seed_events_harness_contains( '.wp-seed-event-date + .wp-seed-event-date', $css, 'Occurrence gap selector is missing.' );
 		wp_seed_events_harness_contains( '.wp-seed-event-section--dates > .wp-seed-event-dates', $css, 'Frontend date list scope is missing.' );
 		wp_seed_events_harness_contains( 'padding-block-end: 0', $css, 'Divi list bottom padding is not normalized.' );
@@ -723,5 +726,26 @@ wp_seed_events_harness_case(
 		wp_seed_events_harness_not_contains( "\nul {", $css, 'Stylesheet contains an unscoped list selector.' );
 	}
 );
+wp_seed_events_harness_case(
+	'marker color normalization matches Visual Builder CSS values',
+	function () use ( $future ) {
+		$colors = array(
+			'#ABCDEF80'          => '#ABCDEF80',
+			'rgb(12, 34, 56)'    => 'rgb(12, 34, 56)',
+			'rgba(1, 2, 3, .5)'  => 'rgba(1, 2, 3, .5)',
+			'hsl(120, 50%, 40%)' => 'hsl(120, 50%, 40%)',
+			'var(--EventMarker)' => 'var(--EventMarker)',
+		);
 
+		foreach ( $colors as $input => $expected ) {
+			wp_seed_events_harness_assert( $expected === wp_seed_events_public_date_list_marker_color_option( $input ), 'Valid marker color diverges from the Visual Builder: ' . $input );
+			$html = wp_seed_events_render_public_event_dates_section( wp_seed_events_harness_event( array( $future ) ), array( 'marker_color' => $input ) );
+			wp_seed_events_harness_contains( '--wp-seed-event-dates-marker-color:' . $expected, $html, 'Valid marker color is missing from frontend HTML.' );
+		}
+
+		foreach ( array( 'red', 'var(color)', 'rgb(1,2,3);display:none', 'url(x)' ) as $invalid ) {
+			wp_seed_events_harness_assert( '' === wp_seed_events_public_date_list_marker_color_option( $invalid ), 'Unsafe marker color was accepted.' );
+		}
+	}
+);
 echo sprintf( '%d test groups passed.%s', $GLOBALS['wp_seed_events_harness_case_count'], PHP_EOL );

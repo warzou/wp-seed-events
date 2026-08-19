@@ -6,6 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once __DIR__ . '/context.php';
 require_once __DIR__ . '/collection-query.php';
+require_once __DIR__ . '/event-results-condition.php';
+require_once __DIR__ . '/module-contracts.php';
 
 /**
  * Load the Divi 5 Dynamic Content sources when its public API exists.
@@ -197,14 +199,20 @@ function wp_seed_events_divi_enqueue_event_dates_module_assets() {
 	}
 
 	$script_path    = __DIR__ . '/event-dates-module/visual-builder/build/wp-seed-events-event-dates.js';
+	$style_path     = dirname( __DIR__, 2 ) . '/public/event-dates.css';
 	$script_version = WP_SEED_EVENTS_VERSION;
+	$asset_hashes   = array();
 
-	if ( is_readable( $script_path ) ) {
-		$script_hash = hash_file( 'sha256', $script_path );
+	foreach ( array( $script_path, $style_path ) as $asset_path ) {
+		$asset_hash = is_readable( $asset_path ) ? hash_file( 'sha256', $asset_path ) : '';
 
-		if ( is_string( $script_hash ) && '' !== $script_hash ) {
-			$script_version .= '-' . substr( $script_hash, 0, 12 );
+		if ( is_string( $asset_hash ) && '' !== $asset_hash ) {
+			$asset_hashes[] = $asset_hash;
 		}
+	}
+
+	if ( ! empty( $asset_hashes ) ) {
+		$script_version .= '-' . substr( hash( 'sha256', implode( '|', $asset_hashes ) ), 0, 12 );
 	}
 
 	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
@@ -218,6 +226,12 @@ function wp_seed_events_divi_enqueue_event_dates_module_assets() {
 					'divi-vendor-wp-hooks',
 					'divi-rest',
 				),
+				'enqueue_top_window' => false,
+				'enqueue_app_window' => true,
+			),
+			'style'   => array(
+				'src'                => plugins_url( 'includes/public/event-dates.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
+				'deps'               => array(),
 				'enqueue_top_window' => false,
 				'enqueue_app_window' => true,
 			),
@@ -251,6 +265,12 @@ function wp_seed_events_divi_enqueue_event_visuals_module_assets() {
 					'divi-vendor-wp-hooks',
 					'divi-rest',
 				),
+				'enqueue_top_window' => false,
+				'enqueue_app_window' => true,
+			),
+			'style'   => array(
+				'src'                => plugins_url( 'includes/public/event-lists.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
+				'deps'               => array(),
 				'enqueue_top_window' => false,
 				'enqueue_app_window' => true,
 			),
@@ -367,6 +387,12 @@ function wp_seed_events_divi_enqueue_event_people_module_assets() {
 					'divi-vendor-wp-hooks',
 					'divi-rest',
 				),
+				'enqueue_top_window' => false,
+				'enqueue_app_window' => true,
+			),
+			'style'   => array(
+				'src'                => plugins_url( 'includes/public/event-lists.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
+				'deps'               => array(),
 				'enqueue_top_window' => false,
 				'enqueue_app_window' => true,
 			),

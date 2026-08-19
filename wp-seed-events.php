@@ -51,6 +51,7 @@ require_once __DIR__ . '/includes/admin/lifecycle-index.php';
 require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
 require_once __DIR__ . '/includes/admin/github-updater.php';
+require_once __DIR__ . '/includes/admin/people-suggestions.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/descriptions.php';
 require_once __DIR__ . '/includes/public/event-data.php';
@@ -152,8 +153,10 @@ function wp_seed_events_activate() {
 
 function wp_seed_events_enqueue_public_visuals_style() {
 	$dates_stylesheet       = __DIR__ . '/includes/public/event-dates.css';
+	$lists_stylesheet       = __DIR__ . '/includes/public/event-lists.css';
 	$description_stylesheet = __DIR__ . '/includes/public/event-descriptions.css';
 	$dates_version          = WP_SEED_EVENTS_VERSION;
+	$lists_version          = WP_SEED_EVENTS_VERSION;
 	$description_version    = WP_SEED_EVENTS_VERSION;
 
 	if ( is_readable( $dates_stylesheet ) ) {
@@ -172,6 +175,13 @@ function wp_seed_events_enqueue_public_visuals_style() {
 		}
 	}
 
+	if ( is_readable( $lists_stylesheet ) ) {
+		$lists_hash = hash_file( 'sha256', $lists_stylesheet );
+		if ( is_string( $lists_hash ) && '' !== $lists_hash ) {
+			$lists_version .= '-' . substr( $lists_hash, 0, 12 );
+		}
+	}
+
 	wp_enqueue_style(
 		'wp-seed-events-public-visuals',
 		plugins_url( 'includes/public/event-visuals.css', __FILE__ ),
@@ -183,6 +193,12 @@ function wp_seed_events_enqueue_public_visuals_style() {
 		plugins_url( 'includes/public/event-dates.css', __FILE__ ),
 		array(),
 		$dates_version
+	);
+	wp_enqueue_style(
+		'wp-seed-events-public-lists',
+		plugins_url( 'includes/public/event-lists.css', __FILE__ ),
+		array(),
+		$lists_version
 	);
 	wp_enqueue_style(
 		'wp-seed-events-public-descriptions',
@@ -2208,6 +2224,10 @@ function wp_seed_events_handle_event_types_admin_form() {
 		delete_option( 'wp_seed_events_removed_default_event_type_keys' );
 	}
 
+	foreach ( wp_seed_events_event_type_options() as $active_type_key => $active_type_label ) {
+		wp_seed_events_ensure_native_event_type_term( $active_type_key, $active_type_label );
+	}
+
 	if ( $rewrite_needs_flush ) {
 		flush_rewrite_rules( false );
 		update_option( 'wp_seed_events_rewrite_version', WP_SEED_EVENTS_REWRITE_VERSION, false );
@@ -2280,28 +2300,6 @@ function wp_seed_events_render_event_type_box( $post ) {
 			<span class="description">Si les URL par type sont activées, ce type sera également utilisé dans l'adresse publique.</span>
 		</p>
 
-		<p>
-			<button type="button" class="button" data-wp-seed-event-type-add>+ Créer un nouveau type</button>
-		</p>
-		<div data-wp-seed-event-type-new-panel hidden>
-			<p>
-				<label>
-					Nouveau type<br />
-					<input type="text" data-wp-seed-event-type-new-label value="" />
-				</label>
-				<input type="hidden" name="wp_seed_new_event_type" data-wp-seed-event-type-new-value value="" />
-				<button type="button" class="button" data-wp-seed-event-type-save-new>Ajouter</button>
-			</p>
-			<p>
-				<strong>Types existants</strong><br />
-				<span data-wp-seed-event-type-existing-list>
-					<?php foreach ( $event_type_options as $type_key => $type_label ) : ?>
-						<button type="button" class="button-link" data-wp-seed-event-type-existing-choice="<?php echo esc_attr( $type_key ); ?>"><?php echo esc_html( $type_label ); ?></button><br />
-					<?php endforeach; ?>
-				</span>
-			</p>
-		</div>
-
 		<hr />
 
 		<details data-wp-seed-event-secondary-types>
@@ -2356,26 +2354,10 @@ function wp_seed_events_save_event_type( $post_id ) {
 		return;
 	}
 
-	$new_type_label = isset( $_POST['wp_seed_new_event_type'] ) ? sanitize_text_field( wp_unslash( $_POST['wp_seed_new_event_type'] ) ) : '';
 	$options        = wp_seed_events_event_type_options();
 	$selected_types = isset( $_POST['wp_seed_event_types'] ) && is_array( $_POST['wp_seed_event_types'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['wp_seed_event_types'] ) ) : array();
 	$primary_type   = isset( $_POST['wp_seed_event_primary_type'] ) ? sanitize_key( wp_unslash( $_POST['wp_seed_event_primary_type'] ) ) : '';
 	$default_type   = wp_seed_events_default_event_type_key();
-
-	if ( '' !== $new_type_label ) {
-		$type_key = wp_seed_events_event_type_key_from_label( $new_type_label, $options );
-
-		if ( '' !== $type_key ) {
-			if ( ! isset( $options[ $type_key ] ) ) {
-				$custom_types              = wp_seed_events_custom_event_type_options();
-				$custom_types[ $type_key ] = $new_type_label;
-				update_option( 'wp_seed_events_custom_event_types', $custom_types, false );
-				$options = wp_seed_events_event_type_options();
-			}
-
-			$selected_types[] = $type_key;
-		}
-	}
 
 	$selected_types = array_values(
 		array_unique(
@@ -3870,11 +3852,6 @@ function wp_seed_events_limit_reusable_items( $items, $label_key, $limit ) {
 	return $unique_items;
 }
 
-function wp_seed_events_get_contact_suggestions( $current_post_id, $limit = 8 ) {
-	unset( $current_post_id );
-
-	return array_slice( array_values( wp_seed_events_people() ), 0, $limit );
-}
 function wp_seed_events_render_contacts_meta_box( $post ) {
 	$contacts      = get_post_meta( $post->ID, '_wp_seed_event_contacts', true );
 	$roles         = wp_seed_events_contact_roles();
@@ -3961,14 +3938,14 @@ function wp_seed_events_render_contacts_meta_box( $post ) {
 				<label>
 					Nom<br />
 					<input type="hidden" data-wp-seed-person-panel-field="person_key" />
-					<input type="text" data-wp-seed-person-panel-field="name" />
+					<input type="search" data-wp-seed-person-panel-field="name" data-wp-seed-person-autocomplete autocomplete="off" />
 				</label>
 			</p>
 			<?php if ( array() !== $suggestions ) : ?>
 				<p>Suggestions</p>
-				<ul>
+				<ul data-wp-seed-person-suggestions>
 					<?php foreach ( $suggestions as $suggestion ) : ?>
-						<li>
+						<li data-wp-seed-person-suggestion-item>
 							<button
 								type="button"
 								class="button-link"
@@ -4915,28 +4892,6 @@ JS
 		'jquery',
 		<<<'JS'
 jQuery(function($){
-	function normalizeTypeLabel(label){
-		return String(label||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-	}
-
-	function existingTypeKey(root,label,key){
-		var normalizedLabel=normalizeTypeLabel(label);
-		var existingKey='';
-
-		root.find('[data-wp-seed-event-primary-type] option').each(function(){
-			var option=$(this);
-			var optionKey=String(option.val()||'');
-			var optionLabel=String(option.attr('data-normalized-label')||normalizeTypeLabel(option.text()));
-
-			if((normalizedLabel&&optionLabel===normalizedLabel)||(key&&optionKey===key)){
-				existingKey=optionKey;
-				return false;
-			}
-		});
-
-		return existingKey;
-	}
-
 	function syncSecondaryTypes(root,previousPrimary){
 		var defaultType=String(root.attr('data-default-type')||'');
 		var primary=String(root.find('[data-wp-seed-event-primary-type]').val()||'');
@@ -4972,87 +4927,6 @@ jQuery(function($){
 		syncSecondaryTypes(root,String(root.data('wpSeedPreviousPrimary')||''));
 	});
 
-	$(document).on('click','[data-wp-seed-event-type-add]',function(e){
-		e.preventDefault();
-		var root=$(this).closest('[data-wp-seed-event-type]');
-		root.find('[data-wp-seed-event-type-new-panel]').prop('hidden',false);
-		root.find('[data-wp-seed-event-type-new-label]').trigger('focus');
-	});
-
-	$(document).on('click','[data-wp-seed-event-type-existing-choice]',function(e){
-		e.preventDefault();
-		var choice=$(this);
-		var key=String(choice.attr('data-wp-seed-event-type-existing-choice')||'');
-		var root=choice.closest('[data-wp-seed-event-type]');
-		var primarySelect=root.find('[data-wp-seed-event-primary-type]');
-		var currentPrimary=String(primarySelect.val()||'');
-
-		if(!key){
-			return;
-		}
-
-		primarySelect.val(key);
-		root.find('[data-wp-seed-event-type-new-value]').val('');
-		root.find('[data-wp-seed-event-type-new-label]').val('');
-		root.find('[data-wp-seed-event-type-new-panel]').prop('hidden',true);
-		syncSecondaryTypes(root,currentPrimary);
-	});
-
-	$(document).on('click','[data-wp-seed-event-type-save-new]',function(e){
-		e.preventDefault();
-		var root=$(this).closest('[data-wp-seed-event-type]');
-		var input=root.find('[data-wp-seed-event-type-new-label]');
-		var label=String(input.val()||'').trim();
-
-		if(!label){
-			input.trigger('focus');
-			return;
-		}
-
-		var normalizedLabel=normalizeTypeLabel(label);
-		var key=normalizedLabel;
-		var options=root.find('[data-wp-seed-event-type-options]');
-		var primarySelect=root.find('[data-wp-seed-event-primary-type]');
-		var currentPrimary=String(primarySelect.val()||'');
-		var existingKey=existingTypeKey(root,label,key);
-
-		if(existingKey){
-			primarySelect.val(existingKey);
-			root.find('[data-wp-seed-event-type-new-value]').val('');
-			root.find('[data-wp-seed-event-type-new-panel]').prop('hidden',true);
-			input.val('');
-			syncSecondaryTypes(root,currentPrimary);
-			return;
-		}
-
-		if(!key){
-			key='type_'+Date.now();
-		}
-
-		while(options.find('input[value="'+key+'"]').length){
-			key=key+'_'+Date.now();
-		}
-
-		options.append(
-			$('<p data-wp-seed-event-type-option></p>')
-				.attr('data-type-key',key)
-				.attr('data-normalized-label',normalizedLabel)
-				.append(
-					$('<label></label>')
-						.append($('<input type="checkbox" name="wp_seed_event_types[]" checked />').val(key))
-						.append(' '+label)
-				)
-		);
-		primarySelect.append($('<option></option>').val(key).attr('data-normalized-label',normalizedLabel).text(label));
-		root.find('[data-wp-seed-event-type-existing-list]').append($('<button type="button" class="button-link" data-wp-seed-event-type-existing-choice></button>').attr('data-wp-seed-event-type-existing-choice',key).text(label)).append('<br />');
-
-		primarySelect.val(key);
-
-		root.find('[data-wp-seed-event-type-new-value]').val(label);
-		root.find('[data-wp-seed-event-type-new-panel]').prop('hidden',true);
-		input.val('');
-		syncSecondaryTypes(root,currentPrimary);
-	});
 });
 JS
 	);
@@ -5314,6 +5188,7 @@ jQuery(function($){
 		field(personPanel,'phone').val(data.phone||'');
 		field(personPanel,'email').val(data.email||'');
 		field(personPanel,'link').val(data.link||'');
+		personPanel.data('wpSeedSelectedPersonName',data.person_key?String(data.name||''):'');
 	}
 
 	function writePanelPublication(personPanel,data){
@@ -5380,6 +5255,7 @@ jQuery(function($){
 		writePanelRoles(personPanel,data.roles||[]);
 		writePanelPublication(personPanel,data);
 		refreshPublicationControls(personPanel);
+		refreshSuggestionAvailability(peopleRoot,personPanel,item);
 		personPanel.prop('hidden',false);
 		field(personPanel,'name').trigger('focus');
 	}
@@ -5415,6 +5291,55 @@ jQuery(function($){
 		}
 		personPanel.data('wpSeedPublicationRevoked',{});
 		refreshPublicationControls(personPanel);
+	});
+
+	function normalizeSuggestionText(value){
+		return String(value||'')
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g,'')
+			.toLocaleLowerCase();
+	}
+
+	function filterSuggestionList(personPanel){
+		var query=normalizeSuggestionText(field(personPanel,'name').val());
+		personPanel.find('[data-wp-seed-person-suggestion-item]').each(function(){
+			var item=$(this);
+			var button=item.find('[data-wp-seed-reusable-suggestion]');
+			var searchable=[
+				button.attr('data-wp-seed-suggestion-name'),
+				button.attr('data-wp-seed-suggestion-email'),
+				button.attr('data-wp-seed-suggestion-phone')
+			].join(' ');
+			var attached=item.attr('data-wp-seed-suggestion-attached')==='1';
+			item.prop('hidden',attached||(query&&normalizeSuggestionText(searchable).indexOf(query)===-1));
+		});
+	}
+
+	function refreshSuggestionAvailability(peopleRoot,personPanel,currentItem){
+		var currentKey=currentItem?String(readItem(currentItem).person_key||''):'';
+		var attached={};
+		peopleRoot.find('[data-wp-seed-person-item]').each(function(){
+			var key=String(readItem($(this)).person_key||'');
+			if(key&&key!==currentKey){
+				attached[key]=true;
+			}
+		});
+		personPanel.find('[data-wp-seed-person-suggestion-item]').each(function(){
+			var item=$(this);
+			var key=String(item.find('[data-wp-seed-reusable-suggestion]').attr('data-wp-seed-suggestion-key')||'');
+			item.attr('data-wp-seed-suggestion-attached',key&&attached[key]?'1':'0');
+		});
+		filterSuggestionList(personPanel);
+	}
+
+	$(document).on('input','[data-wp-seed-person-autocomplete]',function(){
+		var personPanel=$(this).closest('[data-wp-seed-person-panel]');
+		var selectedName=String(personPanel.data('wpSeedSelectedPersonName')||'');
+		if(field(personPanel,'person_key').val()&&String($(this).val()).trim()!==selectedName.trim()){
+			field(personPanel,'person_key').val('');
+			personPanel.data('wpSeedSelectedPersonName','');
+		}
+		filterSuggestionList(personPanel);
 	});
 
 	$(document).on('input change','[data-wp-seed-person-panel-field="phone"],[data-wp-seed-person-panel-field="email"],[data-wp-seed-person-panel-field="link"]',function(){

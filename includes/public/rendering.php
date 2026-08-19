@@ -879,7 +879,7 @@ function wp_seed_events_event_practical_info_shortcode( $atts ) {
 function wp_seed_events_public_date_list_marker_type_option( $value ) {
 	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
 
-	return in_array( $value, array( 'none', 'disc', 'circle', 'square' ), true ) ? $value : 'disc';
+	return in_array( $value, array( 'none', 'disc', 'circle', 'square' ), true ) ? $value : 'none';
 }
 
 function wp_seed_events_public_date_list_marker_position_option( $value ) {
@@ -895,9 +895,9 @@ function wp_seed_events_public_date_list_dimension_option( $value, $default ) {
 }
 
 function wp_seed_events_public_date_list_marker_color_option( $value ) {
-	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+	$value = is_scalar( $value ) ? trim( (string) $value ) : '';
 
-	return preg_match( '/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/', $value ) ? $value : '';
+	return preg_match( '/^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^;{}]+\)|var\(--[a-z0-9_-]+\))$/i', $value ) ? $value : '';
 }
 
 function wp_seed_events_render_public_event_dates_section( $event, $options = array() ) {
@@ -927,9 +927,9 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 			'show_times'          => true,
 			'show_calendar_links' => true,
 			'format'               => 'long',
-			'list_marker_type'     => 'disc',
+			'list_marker_type'     => 'none',
 			'list_marker_position' => 'outside',
-			'list_indent'          => '2.5em',
+			'list_indent'          => '0px',
 			'occurrence_gap'       => '0px',
 			'marker_color'         => '',
 		)
@@ -943,7 +943,7 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	$options['format']               = wp_seed_events_public_date_format_option( $options['format'] );
 	$options['list_marker_type']     = wp_seed_events_public_date_list_marker_type_option( $options['list_marker_type'] );
 	$options['list_marker_position'] = wp_seed_events_public_date_list_marker_position_option( $options['list_marker_position'] );
-	$options['list_indent']          = wp_seed_events_public_date_list_dimension_option( $options['list_indent'], '2.5em' );
+	$options['list_indent']          = wp_seed_events_public_date_list_dimension_option( $options['list_indent'], '0px' );
 	$options['occurrence_gap']       = wp_seed_events_public_date_list_dimension_option( $options['occurrence_gap'], '0px' );
 	$options['marker_color']         = wp_seed_events_public_date_list_marker_color_option( $options['marker_color'] );
 
@@ -1085,10 +1085,10 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 						<span class="wp-seed-event-date-status wp-seed-event-date__status wp-seed-event-single__cancelled">Annulée</span>
 					<?php endif; ?>
 					<?php if ( '' !== $time_line ) : ?>
-						<br /><span class="wp-seed-event-date__time"><?php echo esc_html( $time_line ); ?></span>
+						<span class="wp-seed-event-date__time"><?php echo esc_html( $time_line ); ?></span>
 					<?php endif; ?>
 					<?php if ( '' !== $calendar_link ) : ?>
-						<br /><?php echo wp_kses_post( $calendar_link ); ?>
+						<?php echo wp_kses_post( $calendar_link ); ?>
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
@@ -1599,7 +1599,7 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		}
 
 		$item = '<li class=' . $quote . esc_attr( 'wp-seed-event-person wp-seed-event-people__item' ) . $quote . '>';
-		$item .= '<strong class=' . $quote . esc_attr( implode( ' ', $name_classes ) ) . $quote . '>' . esc_html( $name ) . '</strong>';
+		$item .= '<span class=' . $quote . esc_attr( implode( ' ', $name_classes ) ) . $quote . '>' . esc_html( $name ) . '</span>';
 
 		if ( array() !== $roles ) {
 			$rendered_roles = array();

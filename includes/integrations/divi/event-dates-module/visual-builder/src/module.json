@@ -37,6 +37,7 @@
         },
         "decoration": {
           "background": {},
+          "layout": {},
           "sizing": {},
           "spacing": {},
           "border": {},
@@ -67,7 +68,8 @@
               "show_cancelled": "on",
               "show_times": "on",
               "format": "long",
-              "show_calendar_links": "on"
+              "show_calendar_links": "on",
+              "show_title": "on"
             }
           }
         }
@@ -265,6 +267,29 @@
                   }
                 }
               }
+            },
+            "showTitle": {
+              "groupSlug": "contentDates",
+              "priority": 5,
+              "render": true,
+              "subName": "show_title",
+              "label": "Afficher le titre",
+              "features": {
+                "sticky": false,
+                "responsive": false,
+                "hover": false,
+                "dynamicContent": false
+              },
+              "component": {
+                "name": "divi/toggle",
+                "type": "field",
+                "props": {
+                  "options": {
+                    "off": "Non",
+                    "on": "Oui"
+                  }
+                }
+              }
             }
           }
         }
@@ -382,7 +407,7 @@
         "advanced": {
           "markerType": {
             "desktop": {
-              "value": "disc"
+              "value": "none"
             }
           },
           "markerPosition": {
@@ -392,7 +417,7 @@
           },
           "leftIndent": {
             "desktop": {
-              "value": "2.5em"
+              "value": "0px"
             }
           },
           "occurrenceGap": {

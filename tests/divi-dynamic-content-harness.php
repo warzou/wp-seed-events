@@ -335,6 +335,24 @@ namespace {
 			);
 		}
 	} );
+	d1_divi_case( 'serialized Divi tokens resolve without leaking their storage contract', function () use ( $sources ) {
+		$fields = array( 'title', 'excerpt', 'place', 'url' );
+
+		foreach ( $fields as $field ) {
+			$name   = 'wp_seed_events_' . $field;
+			$token  = '$variable({"type":"content","value":{"name":"' . $name . '","settings":{}}})$';
+			$output = $sources[ $name ]->render_callback(
+				$token,
+				array( 'name' => $name, 'post_id' => 914 )
+			);
+
+			d1_divi_assert( false === strpos( $output, '$variable(' ), 'serialized token leaked for ' . $field );
+			d1_divi_assert( false === stripos( $output, '\u0022' ), 'escaped quote leaked for ' . $field );
+			d1_divi_assert( false === stripos( $output, '\u003c' ), 'escaped markup leaked for ' . $field );
+			$expected = (string) wp_seed_events_dynamic_data_get_value( $field, 914 );
+			d1_divi_assert( false !== strpos( $output, esc_html( $expected ) ), 'resolved value missing for ' . $field );
+		}
+	} );
 	d1_divi_case( 'communication visual uses one generic public image provider', function () use ( $sources ) {
 		$name   = 'wp_seed_events_communication_visual';
 		$source = $sources[ $name ];

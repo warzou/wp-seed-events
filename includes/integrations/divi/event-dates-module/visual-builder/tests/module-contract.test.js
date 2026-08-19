@@ -6,6 +6,9 @@ const root = path.resolve(__dirname, '..');
 const pluginRoot = path.resolve(root, '..', '..', '..', '..', '..');
 const metadata = JSON.parse(fs.readFileSync(path.join(root, 'src', 'module.json'), 'utf8'));
 const source = fs.readFileSync(path.join(root, 'src', 'index.jsx'), 'utf8');
+const styleValues = fs.readFileSync(path.join(root, 'src', 'divi-style-values.js'), 'utf8');
+const publicCss = fs.readFileSync(path.join(pluginRoot, 'includes', 'public', 'event-dates.css'), 'utf8');
+const renderer = fs.readFileSync(path.join(pluginRoot, 'includes', 'public', 'rendering.php'), 'utf8');
 const phpModule = fs.readFileSync(
   path.join(pluginRoot, 'includes', 'integrations', 'divi', 'class-event-dates-module.php'),
   'utf8',
@@ -126,6 +129,13 @@ assert.ok(resolverSource.indexOf('$loop_id =') < resolverSource.indexOf('$post_i
 assert.ok(resolverSource.includes('return wp_seed_events_divi_is_event( $loop_id ) ? $loop_id : 0;'));
 assert.ok(bootstrap.includes("function_exists( 'et_builder_d5_enabled' )"));
 assert.ok(bootstrap.includes('PackageBuildManager::register_package_build'));
+assert.ok(bootstrap.includes("'style'   => array("));
+assert.ok(bootstrap.includes("plugins_url( 'includes/public/event-dates.css'"));
+assert.ok(bootstrap.includes("'enqueue_top_window' => false"));
+assert.ok(bootstrap.includes("'enqueue_app_window' => true"));
+assert.ok(bootstrap.includes("array( $script_path, $style_path )"));
+const buildScript = fs.readFileSync(path.join(pluginRoot, 'build-dev-zip.ps1'), 'utf8');
+assert.ok(buildScript.includes('$moduleRuntimeRoot/src/divi-style-values.js'));
 
 const listStyle = metadata.attributes.listStyle;
 const listItems = listStyle.settings.advanced;
@@ -148,9 +158,23 @@ assert.deepStrictEqual(Object.keys(listItems.markerPosition.item.component.props
   'occurrenceGap',
   'markerColor',
 ].forEach((field) => assert.ok(listItems[field], `Missing list style field: ${field}`));
-assert.strictEqual(listStyle.default.advanced.markerType.desktop.value, 'disc');
+assert.strictEqual(listStyle.default.advanced.markerType.desktop.value, 'none');
+Object.values(listItems).forEach((field) => assert.strictEqual(field.item.features.responsive, true));
 assert.ok(source.includes("markerType: { desktop: { value: 'none' } }"));
 assert.ok(source.includes("leftIndent: { desktop: { value: '0px' } }"));
+assert.ok(source.includes('normalizeListStyles(attrs)'));
+assert.ok(!source.includes('listRequestOptions(listStyles)'));
+assert.ok(!source.includes('...listOptions'));
+assert.ok(source.includes('const optionsKey = JSON.stringify(options)'));
+assert.ok(styleValues.includes('resolveDiviStyleValue'));
+assert.ok(source.includes('applyListStyleVariables,'));
+assert.ok(source.includes('previewListStyleCss,'));
+assert.ok(source.includes('previewListStyleScope,'));
+assert.ok(source.includes('normalizeListStyles,'));
+assert.ok(source.includes("from './divi-style-values'"));
+assert.ok(styleValues.includes("desktop: ['desktop']"));
+assert.ok(styleValues.includes("tablet: ['tablet', 'desktop']"));
+assert.ok(styleValues.includes("phone: ['phone', 'tablet', 'desktop']"));
 assert.ok(source.includes("'divi.module.wrapper.render'"));
 assert.ok(source.includes('createEventDatesPreviewFilter'));
 assert.ok(source.includes('const EventDatesEditRenderer = (props) => <EventDatesPreview {...props} />;'));
@@ -168,25 +192,54 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
   'occurrence_gap',
   'marker_color',
 ].forEach((field) => {
-  assert.ok(source.includes(field), `Visual Builder request omits ${field}`);
+  assert.ok(styleValues.includes(field), `List style contract omits ${field}`);
   assert.ok(phpModule.includes(field), `PHP preview omits ${field}`);
 });
 [
   "documentRef.createElement('template')",
-  "list.style.setProperty('list-style-type', markerType, 'important')",
+  'applyListStyleVariables(list, listStyles)',
+  'list.classList.add(',
+  "'has-custom-list-style'",
+  'previewStyle.textContent = previewListStyleCss(scope)',
+  "previewStyle.setAttribute('data-wp-seed-event-dates-preview-style', scope)",
+  "list.style.setProperty('list-style-type', 'var(--wp-seed-event-dates-current-marker-type)', 'important')",
   "list.style.setProperty('padding-block-end', '0', 'important')",
   "item.style.setProperty('display', 'list-item', 'important')",
-  "item.style.setProperty('list-style-type', markerType, 'important')",
-  "markerType === 'none'",
   'className="et_pb_module_inner" dangerouslySetInnerHTML={{ __html: previewHtml }}',
-].forEach((contract) => assert.ok(source.includes(contract), `Missing Visual Builder marker contract: ${contract}`));
-assert.ok(source.includes("const previewContent = !isLoading && !hasError && previewHtml !== '';"));
+].forEach((contract) => assert.ok(source.includes(contract), 'Missing Visual Builder marker contract: ' + contract));
+[
+  'titleStyle',
+  'dateStyle',
+  'timeStyle',
+  'statusStyle',
+  'calendarLinkStyle',
+  'occurrenceStyle',
+].forEach((attrName) => {
+  assert.ok(source.includes("elements.style({ attrName: '" + attrName + "' })"), 'React style pipeline omits ' + attrName);
+  assert.ok(phpModule.includes("'" + attrName + "'"), 'PHP style pipeline omits ' + attrName);
+});
+[
+  'wp-seed-event-dates__title',
+  'wp-seed-event-date__date',
+  'wp-seed-event-date__time',
+  'wp-seed-event-date__status',
+  'wp-seed-event-calendar-link',
+].forEach((target) => assert.ok(publicCss.includes('.wp-seed-event-section--dates .' + target), 'Block style target missing: ' + target));
+assert.ok(!renderer.includes('<br /><span class="wp-seed-event-date__time">'));
+assert.ok(!renderer.includes('<br /><?php echo wp_kses_post( $calendar_link ); ?>'));
+assert.ok(phpModule.includes('resolve_divi_style_value'));
+assert.ok(phpModule.includes('get_responsive_list_values'));
+assert.ok(phpModule.includes('WP_HTML_Tag_Processor'));
+assert.ok(phpModule.includes('apply_responsive_list_styles( $html, self::get_responsive_list_values( $attrs ) )'));
+assert.ok(publicCss.includes('@media (max-width: 980px)'));
+assert.ok(publicCss.includes('@media (max-width: 767px)'));assert.ok(source.includes("const previewContent = !isLoading && !hasError && previewHtml !== '';"));
 assert.ok(
   !source.includes('<div dangerouslySetInnerHTML={{ __html: previewHtml }} />'),
   'The REST renderer must not be wrapped in an extra anonymous preview row.',
 );
 
-assert.ok(bootstrap.includes("hash_file( 'sha256', $script_path )"));
-assert.ok(bootstrap.includes("$script_version .= '-' . substr( $script_hash, 0, 12 )"));
+assert.ok(bootstrap.includes("foreach ( array( $script_path, $style_path ) as $asset_path )"));
+assert.ok(bootstrap.includes("hash_file( 'sha256', $asset_path )"));
+assert.ok(bootstrap.includes("hash( 'sha256', implode( '|', $asset_hashes ) )"));
 assert.ok(bootstrap.includes("'version' => $script_version"));
 console.log('Divi event dates module contract: OK');

@@ -16,7 +16,7 @@
         "meta": {"adminLabel": {}},
         "advanced": {"htmlAttributes": {}},
         "decoration": {
-          "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {},
+          "background": {}, "layout": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {},
           "filters": {}, "transform": {}, "animation": {}, "overflow": {}, "disabledOn": {},
           "transition": {}, "position": {}, "zIndex": {}, "scroll": {}, "sticky": {}
         }

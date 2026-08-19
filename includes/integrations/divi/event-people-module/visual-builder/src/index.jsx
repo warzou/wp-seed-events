@@ -13,6 +13,10 @@ const { data } = window.divi;
 
 import metadata from './module.json';
 import { resolveCurrentEventContext } from '../../../visual-builder-event-context';
+import {
+  normalizeListStyles,
+  styleSharedListHtml,
+} from '../../../event-dates-module/visual-builder/src/divi-style-values';
 
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
@@ -54,6 +58,8 @@ const EventPeoplePreview = (props) => {
   const abortRef = useRef();
   const [hasError, setHasError] = useState(false);
   const values = attrs?.content?.innerContent?.desktop?.value ?? {};
+  const listStyles = normalizeListStyles(attrs, 'eventListStyle');
+  const listStylesKey = JSON.stringify(listStyles);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const context = resolveCurrentEventContext({ data, attrs, parentId: props.parentId, loopIndex: props.loopIndex, currentPage });
   const requestData = useMemo(() => ({ post_id: context.eventId, ...(context.eventId > 0 ? { loop_id: context.eventId } : {}), ...values }), [context.cacheKey, JSON.stringify(values)]);
@@ -67,6 +73,10 @@ const EventPeoplePreview = (props) => {
     return () => controller.abort();
   }, [restRoute]);
   const html = typeof response?.html === 'string' ? response.html : '';
+  const styledHtml = useMemo(
+    () => styleSharedListHtml(html, '.wp-seed-event-people__list', listStyles),
+    [html, listStylesKey],
+  );
   return (
     <ModuleContainer attrs={attrs} elements={elements} id={id} moduleClassName='wp_seed_events_divi_event_people' name={name} scriptDataComponent={ModuleScriptData} stylesComponent={ModuleStyles} classnamesFunction={moduleClassnames}>
       {elements.styleComponents({ attrName: 'module' })}
@@ -74,7 +84,7 @@ const EventPeoplePreview = (props) => {
       <div className='et_pb_module_inner'>
         {isLoading && <div role='status'>Chargement des personnes…</div>}
         {!isLoading && hasError && <div role='alert'>L’aperçu des personnes est indisponible.</div>}
-        {!isLoading && !hasError && html !== '' && <div dangerouslySetInnerHTML={{ __html: html }} />}
+        {!isLoading && !hasError && styledHtml !== '' && <div dangerouslySetInnerHTML={{ __html: styledHtml }} />}
       </div>
     </ModuleContainer>
   );
@@ -89,6 +99,7 @@ const eventPeopleModule = {
         desktop: {
           value: {
             title: 'Contacts et intervenants',
+            show_title: 'on',
             heading_level: 'h2',
             role: 'all',
             role_organizer: 'off',

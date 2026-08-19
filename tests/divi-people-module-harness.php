@@ -166,6 +166,7 @@ namespace {
 
 	require dirname( __DIR__ ) . '/includes/public/rendering.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/context.php';
+	require dirname( __DIR__ ) . '/includes/integrations/divi/module-contracts.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/class-event-people-module.php';
 
 	function p4_person( $name, $role_key, $role, $coordinates = array() ) {

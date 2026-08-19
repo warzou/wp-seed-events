@@ -52,6 +52,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 					'post_id'        => array( 'sanitize_callback' => 'absint' ),
 					'loop_id'        => array( 'sanitize_callback' => 'absint' ),
 					'title'          => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'show_title'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'heading_level'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_flyer'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_visuals'   => array( 'sanitize_callback' => 'sanitize_key' ),
@@ -96,6 +97,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 		$options = self::normalize_options(
 			array(
 				'title'          => $request->get_param( 'title' ),
+				'show_title'     => $request->get_param( 'show_title' ),
 				'heading_level'  => $request->get_param( 'heading_level' ),
 				'show_flyer'     => $request->get_param( 'show_flyer' ),
 				'show_visuals'   => $request->get_param( 'show_visuals' ),
@@ -121,6 +123,11 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$options  = self::normalize_options( self::get_content_values( $attrs ) );
 		$html     = self::render_visuals( $event_id, $options );
+		$html     = wp_seed_events_divi_apply_list_styles(
+			$html,
+			wp_seed_events_divi_list_style_values( $attrs, 'eventListStyle' ),
+			'wp-seed-event-visuals__list'
+		);
 
 		if ( '' === $html ) {
 			return '';
@@ -211,6 +218,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				? (string) $values[ $key ]
 				: $default;
 		}
+		$options['title'] = wp_seed_events_divi_optional_title( $values, 'Visuels de communication' );
 
 		return $options;
 	}
@@ -252,6 +260,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				'sectionStyle',
 				'titleStyle',
 				'listStyle',
+				'eventListStyle',
 				'gridStyle',
 				'listLayoutStyle',
 				'itemStyle',

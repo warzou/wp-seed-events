@@ -179,7 +179,8 @@ p2_case( '4 nameless person is filtered', function () {
 
 p2_case( '5 name-only person is rendered safely', function () {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( array( p2_person( '<b>Alice</b>' ) ) ) );
-	p2_contains( '>Alice</strong>', $html, 'Sanitized name is missing.' );
+	p2_contains( '>Alice</span>', $html, 'Sanitized name is missing.' );
+	p2_not_contains( '<strong class="wp-seed-event-people__name"', $html, 'Default Divi Normal weight is overridden semantically.' );
 	p2_not_contains( '<b>', $html, 'Name HTML was preserved.' );
 	p2_not_contains( 'wp-seed-event-people__contacts', $html, 'Empty contacts container rendered.' );
 } );

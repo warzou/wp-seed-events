@@ -70,6 +70,7 @@ test('content options are exact and image sizes are constrained', () => {
       'show_captions',
       'show_document',
       'show_flyer',
+      'show_title',
       'show_visuals',
       'title',
     ].sort(),
@@ -83,6 +84,7 @@ test('content options are exact and image sizes are constrained', () => {
 test('content defaults match the shared renderer contract', () => {
   assert.deepStrictEqual(defaults, {
     title: 'Visuels de communication',
+    show_title: 'on',
     heading_level: 'h2',
     show_flyer: 'on',
     show_visuals: 'on',
