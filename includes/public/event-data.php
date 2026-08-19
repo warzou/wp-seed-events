@@ -8,6 +8,37 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Collapse historical contact role names to the single canonical role.
+ *
+ * @param mixed $role Stored or consumer-facing role.
+ * @return string
+ */
+function wp_seed_events_canonical_contact_role( $role ) {
+	$role = is_scalar( $role ) ? sanitize_key( (string) $role ) : '';
+
+	if ( in_array( $role, array( 'registration_contact', 'information_contact', 'contact_inscription', 'contact_information' ), true ) ) {
+		return 'contact';
+	}
+
+	return $role;
+}
+
+function wp_seed_events_public_event_contacts( $people ) {
+	$contacts = array();
+
+	foreach ( is_array( $people ) ? $people : array() as $person ) {
+		$roles = is_array( $person['role_keys'] ?? null ) ? $person['role_keys'] : array();
+		$roles = array_map( 'wp_seed_events_canonical_contact_role', $roles );
+
+		if ( in_array( 'contact', $roles, true ) ) {
+			$contacts[] = $person;
+		}
+	}
+
+	return $contacts;
+}
+
+/**
  * Keep only absolute public HTTP or HTTPS URLs.
  *
  * Relative URLs are rejected deliberately: Dynamic Data consumers need a
@@ -117,6 +148,9 @@ function wp_seed_events_get_event_data( $event_id ) {
 		? wp_seed_events_event_is_pinned( $event_id )
 		: false;
 
+	$people  = wp_seed_events_public_event_people_data( $event_id );
+	$contact = wp_seed_events_public_event_contacts( $people );
+
 	return array(
 		'id'                => $event_id,
 		'slug'              => (string) $post->post_name,
@@ -138,7 +172,12 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'place'              => $place,
 		'place_address'      => $place_address,
 		'place_url'          => $place_url,
-		'people'             => wp_seed_events_public_event_people_data( $event_id ),
+		'people'             => $people,
+		'contact'            => $contact,
+
+		// Read-only compatibility aliases. New consumers must use contact.
+		'registration_contact' => $contact,
+		'information_contact'  => $contact,
 		'description'                 => $description,
 		'short_description'           => $short_description,
 		'short_description_effective' => $short_description_effective,

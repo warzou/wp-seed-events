@@ -36,6 +36,7 @@
         "all",
         "organizer",
         "speaker",
+        "contact",
         "registration_contact",
         "information_contact"
       ]

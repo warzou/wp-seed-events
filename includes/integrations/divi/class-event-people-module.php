@@ -117,8 +117,11 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		$role_toggles = array(
 			'role_organizer'            => 'organizer',
 			'role_speaker'              => 'speaker',
-			'role_registration_contact' => 'registration_contact',
-			'role_information_contact'  => 'information_contact',
+			'role_contact'              => 'contact',
+
+			// Saved Divi modules can still carry either historical toggle.
+			'role_registration_contact' => 'contact',
+			'role_information_contact'  => 'contact',
 		);
 		$has_role_toggles = false;
 		$roles            = array();
@@ -129,7 +132,9 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 			}
 
 			if ( wp_seed_events_public_boolean_option( $values[ $field ] ?? false, false ) ) {
-				$roles[] = $role;
+				if ( ! in_array( $role, $roles, true ) ) {
+					$roles[] = $role;
+				}
 			}
 		}
 

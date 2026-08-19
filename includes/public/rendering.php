@@ -202,10 +202,11 @@ function wp_seed_events_public_people_role_option( $value ) {
 		'organizer'           => 'organizer',
 		'intervenant'         => 'speaker',
 		'speaker'             => 'speaker',
-		'contact_inscription' => 'registration_contact',
-		'registration_contact' => 'registration_contact',
-		'contact_information' => 'information_contact',
-		'information_contact' => 'information_contact',
+		'contact'             => 'contact',
+		'contact_inscription' => 'contact',
+		'registration_contact' => 'contact',
+		'contact_information' => 'contact',
+		'information_contact' => 'contact',
 	);
 
 	return $aliases[ $value ] ?? 'all';
@@ -1478,7 +1479,7 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		)
 	);
 
-	$known_roles = array( 'organizer', 'speaker', 'registration_contact', 'information_contact' );
+	$known_roles = array( 'organizer', 'speaker', 'contact' );
 	$title       = wp_seed_events_public_event_person_text( $options['title'] );
 	$role_source = array_key_exists( 'roles', $options ) && array() !== $options['roles'] ? $options['roles'] : $options['role'];
 	$role_filters = wp_seed_events_public_people_roles_option( $role_source );
@@ -1510,7 +1511,8 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		$role_keys = array();
 
 		foreach ( isset( $person['role_keys'] ) && is_array( $person['role_keys'] ) ? $person['role_keys'] : array() as $role_key ) {
-			$role_key = is_scalar( $role_key ) ? sanitize_key( (string) $role_key ) : '';
+			$role_key = is_scalar( $role_key ) ? wp_seed_events_public_people_role_option( $role_key ) : '';
+			$role_key = 'all' === $role_key ? '' : $role_key;
 
 			if ( in_array( $role_key, $known_roles, true ) && ! in_array( $role_key, $role_keys, true ) ) {
 				$role_keys[] = $role_key;

@@ -68,6 +68,12 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Adresse seule du lieu de l\'evenement.',
 		),
+		'contact'     => array(
+			'key'         => 'contact',
+			'label'       => 'Contact',
+			'type'        => 'text',
+			'description' => 'Contact public de l\'événement.',
+		),
 		'description' => array(
 			'key'         => 'description',
 			'label'       => 'Description complète',
@@ -190,6 +196,31 @@ function wp_seed_events_dynamic_data_multiline_text( $value ) {
 	return trim( implode( "\n", $lines ) );
 }
 
+function wp_seed_events_dynamic_data_contact_text( $contacts ) {
+	$lines = array();
+
+	foreach ( is_array( $contacts ) ? $contacts : array() as $contact ) {
+		if ( ! is_array( $contact ) ) {
+			continue;
+		}
+
+		$parts = array_filter(
+			array(
+				trim( wp_strip_all_tags( (string) ( $contact['name'] ?? '' ) ) ),
+				wp_seed_events_normalize_person_phone( $contact['public_phone'] ?? '' ),
+				wp_seed_events_normalize_person_email( $contact['public_email'] ?? '' ),
+				wp_seed_events_normalize_person_link( $contact['public_url'] ?? '' ),
+			)
+		);
+
+		if ( array() !== $parts ) {
+			$lines[] = implode( ' · ', $parts );
+		}
+	}
+
+	return implode( "\n", $lines );
+}
+
 /**
  * Validate and normalize a public image object supplied by Event Data.
  *
@@ -294,6 +325,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return empty( $event['place']['name'] ) ? '' : trim( wp_strip_all_tags( (string) $event['place']['name'] ) );
 		case 'place_address':
 			return trim( wp_strip_all_tags( (string) ( $event['place_address'] ?? '' ) ) );
+		case 'contact':
+			return wp_seed_events_dynamic_data_contact_text( $event['contact'] ?? array() );
 		case 'description':
 			$description = wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) );
 			return trim( preg_replace( '/\s+/', ' ', $description ) );

@@ -259,8 +259,8 @@ namespace {
 	p4_case( '15 role all', fn() => p4_assert( 6 === substr_count( p4_render( 10, array( 'role' => 'all' ) ), 'wp-seed-event-people__item' ), 'All filter failed.' ) );
 	p4_case( '16 organizer filter', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'organizer' ) ), 'wp-seed-event-people__item' ), 'Organizer failed.' ) );
 	p4_case( '17 speaker filter', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'speaker' ) ), 'wp-seed-event-people__item' ), 'Speaker failed.' ) );
-	p4_case( '18 registration filter', fn() => p4_assert( 1 === substr_count( p4_render( 10, array( 'role' => 'registration_contact' ) ), 'wp-seed-event-people__item' ), 'Registration failed.' ) );
-	p4_case( '19 information filter', fn() => p4_assert( 1 === substr_count( p4_render( 10, array( 'role' => 'information_contact' ) ), 'wp-seed-event-people__item' ), 'Information failed.' ) );
+	p4_case( '18 registration alias resolves canonical contacts', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'registration_contact' ) ), 'wp-seed-event-people__item' ), 'Registration alias failed.' ) );
+	p4_case( '19 information alias resolves canonical contacts', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'information_contact' ) ), 'wp-seed-event-people__item' ), 'Information alias failed.' ) );
 	p4_case( '20 invalid role falls back to all', fn() => p4_assert( 6 === substr_count( p4_render( 10, array( 'role' => 'bad' ) ), 'wp-seed-event-people__item' ), 'Invalid role failed.' ) );
 	p4_case( '21 default title', fn() => p4_assert( p4_contains( 'Contacts et intervenants', p4_render( 13, p4_invoke( 'normalize_options', array() ) ) ), 'Default title missing.' ) );
 	p4_case( '22 custom title', fn() => p4_assert( p4_contains( '>Equipe</h2>', p4_render( 13, array( 'title' => 'Equipe' ) ) ), 'Custom title missing.' ) );

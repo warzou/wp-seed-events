@@ -240,13 +240,13 @@ p2_case( '13 speaker filter uses canonical role keys', function () use ( $role_p
 p2_case( '14 registration contact filter uses canonical role keys', function () use ( $role_people ) {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( $role_people ), array( 'role' => 'registration_contact' ) );
 	p2_contains( 'Claire Petit', $html, 'Registration contact missing.' );
-	p2_assert( 1 === p2_count( 'wp-seed-event-people__item', $html ), 'Registration filter leaked another person.' );
+	p2_assert( 2 === p2_count( 'wp-seed-event-people__item', $html ), 'Registration alias did not expose all canonical contacts.' );
 } );
 
 p2_case( '15 information contact filter uses canonical role keys', function () use ( $role_people ) {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( $role_people ), array( 'role' => 'information_contact' ) );
 	p2_contains( 'David Robert', $html, 'Information contact missing.' );
-	p2_assert( 1 === p2_count( 'wp-seed-event-people__item', $html ), 'Information filter leaked another person.' );
+	p2_assert( 2 === p2_count( 'wp-seed-event-people__item', $html ), 'Information alias did not expose all canonical contacts.' );
 } );
 
 p2_case( '16 invalid role follows the historical all-people fallback', function () use ( $role_people ) {

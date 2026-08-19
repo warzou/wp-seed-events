@@ -62,7 +62,7 @@ Elle consomme uniquement une Event Data publique deja filtree et n'accede ni aux
 | `details` | compatible | alias historique des options de detail |
 | `layout` | `list` | `list` ou `grid` |
 
-Les roles canoniques sont `organizer`, `speaker`, `registration_contact` et `information_contact`. Plusieurs roles utilisent une logique OU. `all` est exclusif dans les interfaces ; une liste explicite ne combine jamais un second mode de filtrage.
+Les roles canoniques sont `organizer`, `speaker` et `contact`. Plusieurs roles utilisent une logique OU. `all` est exclusif dans les interfaces ; une liste explicite ne combine jamais un second mode de filtrage. `registration_contact` et `information_contact` restent des alias de lecture pour les contenus historiques.
 
 `details` reste accepte pour les contenus historiques. Les nouvelles integrations doivent utiliser les options `show_*` et `link_*`.
 

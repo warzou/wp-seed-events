@@ -7,6 +7,151 @@
 
 defined( 'ABSPATH' ) || exit;
 
+if ( function_exists( 'add_action' ) ) {
+	add_action( 'rest_api_init', 'wp_seed_events_register_contact_rest_fields' );
+}
+
+/**
+ * Normalize writable contact associations through the existing people model.
+ *
+ * @param mixed $raw_contacts      Submitted contact rows.
+ * @param mixed $existing_contacts Existing stored rows.
+ * @return array
+ */
+function wp_seed_events_normalize_contact_rest_value( $raw_contacts, $existing_contacts = array() ) {
+	$raw_contacts      = is_array( $raw_contacts ) ? $raw_contacts : array();
+	$existing_contacts = is_array( $existing_contacts ) ? $existing_contacts : array();
+	$normalized        = array();
+
+	foreach ( $raw_contacts as $index => $raw_contact ) {
+		if ( ! is_array( $raw_contact ) ) {
+			continue;
+		}
+
+		$name = sanitize_text_field( $raw_contact['name'] ?? '' );
+		if ( '' === $name ) {
+			continue;
+		}
+
+		$person_key = sanitize_key( $raw_contact['person_key'] ?? '' );
+		$person_key = '' !== $person_key ? $person_key : wp_seed_events_person_key_from_name( $name );
+		$existing   = is_array( $existing_contacts[ $index ] ?? null ) ? $existing_contacts[ $index ] : array();
+		$submitted  = array_merge( $raw_contact, array( 'person_key' => $person_key, 'name' => $name ) );
+		$publication = wp_seed_events_normalize_contact_publication_for_storage(
+			$submitted,
+			$existing,
+			wp_seed_events_contacts_identify_same_association( $submitted, $existing )
+		);
+
+		$normalized[] = array(
+			'person_key'    => $person_key,
+			'role'          => 'contact',
+			'roles'         => array( 'contact' ),
+			'name'          => $name,
+			'phone'         => $publication['phone'],
+			'email'         => $publication['email'],
+			'link'          => $publication['link'],
+			'publish_email' => $publication['publish_email'],
+			'publish_phone' => $publication['publish_phone'],
+			'publish_link'  => $publication['publish_link'],
+		);
+	}
+
+	return $normalized;
+}
+
+function wp_seed_events_contact_rest_get( $object, $field_name, $request ) {
+	unset( $field_name );
+	$event_id = absint( $object['id'] ?? 0 );
+	$context  = is_object( $request ) && is_callable( array( $request, 'get_param' ) ) ? $request->get_param( 'context' ) : 'view';
+
+	if ( 'edit' === $context && current_user_can( 'edit_post', $event_id ) ) {
+		$contacts = get_post_meta( $event_id, '_wp_seed_event_contacts', true );
+		$contacts = array_values(
+			array_filter(
+				is_array( $contacts ) ? $contacts : array(),
+				static function ( $contact ) {
+					$roles = wp_seed_events_contact_role_keys( $contact, wp_seed_events_contact_roles() );
+					return in_array( 'contact', $roles, true );
+				}
+			)
+		);
+		return wp_seed_events_normalize_contact_rest_value( $contacts, $contacts );
+	}
+
+	$event = wp_seed_events_get_event_data( $event_id );
+	return $event['contact'] ?? array();
+}
+
+function wp_seed_events_contact_rest_update( $value, $object ) {
+	$event_id = is_object( $object ) ? absint( $object->ID ?? 0 ) : absint( $object['id'] ?? 0 );
+
+	if ( 0 === $event_id || ! current_user_can( 'edit_post', $event_id ) ) {
+		return new WP_Error( 'rest_cannot_update', __( 'Vous ne pouvez pas modifier ce contact.', 'wp-seed-events' ), array( 'status' => 403 ) );
+	}
+
+	if ( ! is_array( $value ) ) {
+		return new WP_Error( 'rest_invalid_contact', __( 'Le contact doit être une liste de personnes.', 'wp-seed-events' ), array( 'status' => 400 ) );
+	}
+
+	$existing          = get_post_meta( $event_id, '_wp_seed_event_contacts', true );
+	$existing          = is_array( $existing ) ? $existing : array();
+	$preserved         = array();
+	$existing_contacts = array();
+	foreach ( $existing as $association ) {
+		$roles = wp_seed_events_contact_role_keys( $association, wp_seed_events_contact_roles() );
+		if ( in_array( 'contact', $roles, true ) ) {
+			$existing_contacts[] = $association;
+		} else {
+			$preserved[] = $association;
+		}
+	}
+	$contacts = array_merge( $preserved, wp_seed_events_normalize_contact_rest_value( $value, $existing_contacts ) );
+
+	if ( function_exists( 'wp_seed_events_stored_people' ) && function_exists( 'wp_seed_events_save_people' ) ) {
+		$people = wp_seed_events_stored_people();
+		foreach ( $contacts as $contact ) {
+			if ( ! in_array( 'contact', wp_seed_events_contact_role_keys( $contact, wp_seed_events_contact_roles() ), true ) ) {
+				continue;
+			}
+			$person_key = sanitize_key( $contact['person_key'] ?? '' );
+			if ( '' !== $person_key ) {
+				$people[ $person_key ] = wp_seed_events_sanitize_person( $contact, $person_key );
+			}
+		}
+		wp_seed_events_save_people( $people );
+	}
+
+	if ( array() === $contacts ) {
+		delete_post_meta( $event_id, '_wp_seed_event_contacts' );
+	} else {
+		update_post_meta( $event_id, '_wp_seed_event_contacts', $contacts );
+	}
+
+	wp_seed_events_dynamic_data_invalidate_event_cache( $event_id );
+	return true;
+}
+
+function wp_seed_events_register_contact_rest_fields() {
+	if ( ! function_exists( 'register_rest_field' ) ) {
+		return;
+	}
+
+	register_rest_field(
+		'wp_seed_event',
+		'contact',
+		array(
+			'get_callback'    => 'wp_seed_events_contact_rest_get',
+			'update_callback' => 'wp_seed_events_contact_rest_update',
+			'schema'          => array(
+				'description' => 'Canonical event contact associations.',
+				'type'        => 'array',
+				'items'       => array( 'type' => 'object' ),
+			),
+		)
+	);
+}
+
 /**
  * Accept only the explicit stored values that authorize publication.
  *

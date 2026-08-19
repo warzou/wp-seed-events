@@ -27,10 +27,15 @@ const ROLE_OPTIONS = [
   { label: __( 'Tous les rôles', 'wp-seed-events' ), value: 'all' },
   { label: __( 'Organisateur', 'wp-seed-events' ), value: 'organizer' },
   { label: __( 'Intervenant', 'wp-seed-events' ), value: 'speaker' },
-  { label: __( 'Contact inscription', 'wp-seed-events' ), value: 'registration_contact' },
-  { label: __( 'Contact information', 'wp-seed-events' ), value: 'information_contact' },
+  { label: __( 'Contact', 'wp-seed-events' ), value: 'contact' },
 ];
 const ROLE_FILTER_OPTIONS = ROLE_OPTIONS.filter( ( option ) => option.value !== 'all' );
+
+function canonicalRole( role ) {
+  return [ 'registration_contact', 'information_contact' ].includes( role )
+    ? 'contact'
+    : role;
+}
 
 
 const LAYOUT_OPTIONS = [
@@ -52,7 +57,7 @@ function normalizedRoles( attributes ) {
     return [];
   }
 
-  const roles = rawRoles.filter(
+  const roles = rawRoles.map( canonicalRole ).filter(
     ( role, index, values ) =>
       ROLE_FILTER_OPTIONS.some( ( option ) => option.value === role ) &&
       values.indexOf( role ) === index,
@@ -62,7 +67,7 @@ function normalizedRoles( attributes ) {
     return roles;
   }
 
-  const legacyRole = validOption( ROLE_OPTIONS, attributes.role, 'all' );
+  const legacyRole = validOption( ROLE_OPTIONS, canonicalRole( attributes.role ), 'all' );
 
   return legacyRole === 'all' ? [] : [ legacyRole ];
 }

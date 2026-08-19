@@ -80,9 +80,12 @@ check('role and layout enums are exact', () => {
     'all',
     'organizer',
     'speaker',
+    'contact',
     'registration_contact',
     'information_contact',
   ]);
+  assert.ok(source.includes("{ label: __( 'Contact', 'wp-seed-events' ), value: 'contact' }"));
+  assert.ok(source.includes("[ 'registration_contact', 'information_contact' ]"));
   assert.deepStrictEqual(metadata.attributes.layout.enum, ['list', 'grid']);
 });
 

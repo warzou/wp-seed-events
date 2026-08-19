@@ -30,8 +30,8 @@ test('French label and shared folder are configured', () => {
   assert.strictEqual(metadata.folder, 'wp-seed-events');
   assert.strictEqual((source.match(/registerFolder\(\{/g) || []).length, 1);
 });
-test('exact content fields are exposed', () => {
-  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'link_email', 'link_phone', 'link_url', 'role_information_contact', 'role_organizer', 'role_registration_contact', 'role_speaker', 'show_email', 'show_link', 'show_name', 'show_phone', 'show_roles', 'show_title', 'title']);
+test('exact content fields expose one canonical contact role', () => {
+  assert.deepStrictEqual(fields, ['heading_level', 'layout', 'link_email', 'link_phone', 'link_url', 'role_contact', 'role_organizer', 'role_speaker', 'show_email', 'show_link', 'show_name', 'show_phone', 'show_roles', 'show_title', 'title']);
 });
 test('renderer defaults are preserved', () => {
   assert.deepStrictEqual(defaults, {
@@ -39,12 +39,14 @@ test('renderer defaults are preserved', () => {
     show_email: 'on', show_phone: 'on', show_link: 'on', link_phone: 'on', link_email: 'on', link_url: 'on', layout: 'list',
   });
 });
-test('role toggles expose the four canonical roles with OR semantics', () => {
+test('role toggles expose the three canonical roles with OR semantics', () => {
   assert.deepStrictEqual(
-    ['roleOrganizer', 'roleSpeaker', 'roleRegistrationContact', 'roleInformationContact'].map((key) => items[key].subName),
-    ['role_organizer', 'role_speaker', 'role_registration_contact', 'role_information_contact'],
+    ['roleOrganizer', 'roleSpeaker', 'roleContact'].map((key) => items[key].subName),
+    ['role_organizer', 'role_speaker', 'role_contact'],
   );
   assert.ok(phpModule.includes('$has_role_toggles'));
+  assert.ok(phpModule.includes("'role_registration_contact' => 'contact'"));
+  assert.ok(phpModule.includes("'role_information_contact'  => 'contact'"));
   assert.ok(phpModule.includes("'roles'         => $roles"));
   assert.ok(defaults.role === 'all');
 });

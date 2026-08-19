@@ -101,7 +101,7 @@ p3a_case( '9 explicit page ID', function () { $GLOBALS['wp_seed_events_public_ev
 p3a_case( '10 draft', function () { p3a_assert( '' === wp_seed_events_event_people_shortcode( array( 'id' => 999 ) ), 'Draft rendered.' ); } );
 p3a_case( '11 public model context', function () { $GLOBALS['wp_seed_events_public_event_id'] = 914; $GLOBALS['p3a_post_id'] = 998; $GLOBALS['p3a_post_types'][998] = 'page'; p3a_contains( 'Alice', wp_seed_events_event_people_shortcode( array() ), 'Public context failed.' ); } );
 
-foreach ( array( 'all' => 4, 'organizer' => 1, 'speaker' => 1, 'registration_contact' => 1, 'information_contact' => 1, 'invalid-role' => 4 ) as $role => $count ) {
+foreach ( array( 'all' => 4, 'organizer' => 1, 'speaker' => 1, 'registration_contact' => 2, 'information_contact' => 2, 'invalid-role' => 4 ) as $role => $count ) {
 	p3a_case( 'role ' . $role, function () use ( $role, $count ) { p3a_assert( $count === p3a_count_people( wp_seed_events_event_people_shortcode( array( 'id' => 914, 'role' => $role ) ) ), 'Role failed.' ); } );
 }
 

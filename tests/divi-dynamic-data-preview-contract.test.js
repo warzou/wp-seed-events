@@ -6,10 +6,10 @@ const token = (name) => `$variable({"type":"content","value":{"name":"${name}","
 const moduleUtils = { parseDynamicData: (value) => ({ value: { name: JSON.parse(value.slice(10, -2)).value.name } }) };
 const registryFields = [
   'title', 'types', 'status', 'next_date', 'next_time', 'display_date', 'display_time',
-  'place', 'place_address', 'description', 'excerpt', 'practical_info',
+  'place', 'place_address', 'contact', 'description', 'excerpt', 'practical_info',
   'event_document_filename', 'url', 'place_url', 'event_document_url', 'communication_visual',
 ];
-assert.strictEqual(registryFields.length, 17);
+assert.strictEqual(registryFields.length, 18);
 registryFields.forEach((field) => {
   assert.strictEqual(preview.parseSourceName(token(`wp_seed_events_${field}`), moduleUtils), `wp_seed_events_${field}`);
   assert.strictEqual(preview.parseSourceName(token(`loop_wp_seed_events_${field}`), moduleUtils), `wp_seed_events_${field}`);
@@ -36,4 +36,4 @@ assert.strictEqual(contextApi.resolveCurrentEventContext({ data, parentId: 'loop
 assert.strictEqual(contextApi.resolveCurrentEventContext({ data, parentId: 'loop-a', loopIndex: 2 }).eventId, 0);
 assert.strictEqual(contextApi.resolveCurrentEventContext({ currentPage: { id: 1901, postType: 'page' } }).eventId, 0);
 assert.strictEqual(contextApi.resolveCurrentEventContext({ currentPage: { id: 2414, postType: 'wp_seed_event' } }).eventId, 2414);
-console.log('Divi generic dynamic data preview contract: 17/17 tokens PASS');
+console.log('Divi generic dynamic data preview contract: 18/18 tokens PASS');

@@ -52,6 +52,7 @@ require_once __DIR__ . '/includes/admin/lifecycle-index-backfill.php';
 require_once __DIR__ . '/includes/admin/lifecycle-filter.php';
 require_once __DIR__ . '/includes/admin/github-updater.php';
 require_once __DIR__ . '/includes/admin/people-suggestions.php';
+require_once __DIR__ . '/includes/admin/contact-migration.php';
 require_once __DIR__ . '/includes/public/media.php';
 require_once __DIR__ . '/includes/public/descriptions.php';
 require_once __DIR__ . '/includes/public/event-data.php';
@@ -1562,6 +1563,7 @@ function wp_seed_events_handle_display_settings_form() {
 		delete_option( 'wp_seed_events_event_render_mode' );
 	}
 
+	$default_roles = array_map( 'wp_seed_events_canonical_contact_role', $default_roles );
 	$default_roles = array_values(
 		array_filter(
 			array_unique( $default_roles ),
@@ -3387,10 +3389,9 @@ function wp_seed_events_save_place_address( $post_id ) {
 
 function wp_seed_events_contact_roles() {
 	return array(
-		'organizer'            => 'Organisateur',
-		'speaker'              => 'Intervenant',
-		'registration_contact' => 'Contact inscription',
-		'information_contact'  => 'Contact information',
+		'organizer' => 'Organisateur',
+		'speaker'   => 'Intervenant',
+		'contact'   => 'Contact',
 	);
 }
 
@@ -3402,6 +3403,7 @@ function wp_seed_events_default_contact_roles() {
 		$default_roles = array( 'speaker' );
 	}
 
+	$default_roles = array_map( 'wp_seed_events_canonical_contact_role', $default_roles );
 	$default_roles = array_values(
 		array_filter(
 			array_unique( array_map( 'sanitize_key', $default_roles ) ),
@@ -3796,7 +3798,7 @@ function wp_seed_events_contact_role_keys( $contact, $available_roles ) {
 	}
 
 	foreach ( $raw_roles as $raw_role ) {
-		$role = sanitize_key( $raw_role );
+		$role = wp_seed_events_canonical_contact_role( $raw_role );
 
 		if ( isset( $available_roles[ $role ] ) && ! in_array( $role, $role_keys, true ) ) {
 			$role_keys[] = $role;
@@ -4078,7 +4080,7 @@ function wp_seed_events_save_contacts( $post_id ) {
 		$contact_roles = array();
 
 		foreach ( $raw_roles as $raw_role ) {
-			$role = sanitize_key( $raw_role );
+			$role = wp_seed_events_canonical_contact_role( $raw_role );
 
 			if ( isset( $available_roles[ $role ] ) && ! in_array( $role, $contact_roles, true ) ) {
 				$contact_roles[] = $role;

@@ -58,6 +58,10 @@ function wp_seed_events_sanitize_public_http_url( $url ) {
 	return $url;
 }
 
+function wp_seed_events_normalize_person_phone( $value ) { return trim( (string) $value ); }
+function wp_seed_events_normalize_person_email( $value ) { return trim( (string) $value ); }
+function wp_seed_events_normalize_person_link( $value ) { return wp_seed_events_sanitize_public_http_url( $value ); }
+
 function get_the_ID() {
 	return (int) $GLOBALS['d0_current_id'];
 }
@@ -156,6 +160,14 @@ function d0_event( $event_id, $title = '' ) {
 		'display_time_value'      => '10:00 - 12:00',
 		'place'                   => array( 'name' => 'Place ' . (string) $event_id ),
 		'place_address'           => 'Address ' . (string) $event_id,
+		'contact'                 => array(
+			array(
+				'name' => 'Claire ' . (string) $event_id,
+				'public_phone' => '+33 1 23 45 67 89',
+				'public_email' => 'claire@example.test',
+				'public_url' => 'https://example.test/claire',
+			),
+		),
 		'description'             => '<p>Description ' . (string) $event_id . '</p>',
 		'excerpt'                 => 'Excerpt ' . (string) $event_id,
 		'practical_info'          => "Line one\nLine two",
@@ -229,6 +241,8 @@ function d0_uncached_value( $field, $event_id ) {
 			return empty( $event['place']['name'] ) ? '' : trim( wp_strip_all_tags( (string) $event['place']['name'] ) );
 		case 'place_address':
 			return trim( wp_strip_all_tags( (string) ( $event['place_address'] ?? '' ) ) );
+		case 'contact':
+			return wp_seed_events_dynamic_data_contact_text( $event['contact'] ?? array() );
 		case 'description':
 			return trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) ) ) );
 		case 'excerpt':
@@ -402,7 +416,7 @@ d0_case( 'cache preserves all existing values', function () {
 d0_case( 'registry declares the exact D3 keys once', function () {
 	$expected = array(
 		'title', 'types', 'status', 'next_date', 'next_time', 'display_date', 'display_time',
-		'place', 'place_address', 'description', 'excerpt', 'practical_info',
+		'place', 'place_address', 'contact', 'description', 'excerpt', 'practical_info',
 		'event_document_filename', 'url', 'place_url', 'event_document_url',
 		'communication_visual',
 	);
@@ -422,6 +436,14 @@ d0_case( 'registry declares the exact D3 keys once', function () {
 			: ( in_array( $key, $image_fields, true ) ? 'image' : 'text' );
 		d0_assert( $expected_type === $definition['type'], 'wrong registry type: ' . $key );
 	}
+} );
+
+d0_case( 'contact uses the canonical public projection', function () {
+	d0_event( 99114 );
+	d0_assert(
+		"Claire 99114 · +33 1 23 45 67 89 · claire@example.test · https://example.test/claire" === wp_seed_events_dynamic_data_get_value( 'contact', 99114 ),
+		'contact projection differs'
+	);
 } );
 
 d0_case( 'new D1 values are present and use their exact projections', function () {
@@ -778,7 +800,9 @@ d0_case( 'guard event Query Loop exposes every text binding', function () {
 	d0_assert( array(
 		'title' => 'Loop', 'types' => 'Atelier, Stage', 'status' => 'À venir', 'next_date' => 'Next 306',
 		'next_time' => '10:00', 'display_date' => 'Display 306', 'display_time' => '10:00 - 12:00',
-		'place' => 'Place 306', 'place_address' => 'Address 306', 'description' => 'Description 306',
+		'place' => 'Place 306', 'place_address' => 'Address 306',
+		'contact' => 'Claire 306 · +33 1 23 45 67 89 · claire@example.test · https://example.test/claire',
+		'description' => 'Description 306',
 		'excerpt' => 'Excerpt 306', 'practical_info' => "Line one\nLine two",
 		'event_document_filename' => 'programme-306.pdf',
 		'url' => 'https://example.test/events/event-306/',
