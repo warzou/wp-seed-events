@@ -11,6 +11,13 @@ function wp_seed_events_public_event_data( $post_id ) {
 	return wp_seed_events_get_event_data( $post_id );
 }
 
+function wp_seed_events_place_url_is_visible( $place_id ) {
+	$stored = get_post_meta( $place_id, '_wp_seed_place_link_visible', true );
+
+	// Existing places predate the visibility setting and keep their public URL.
+	return '' === $stored || '1' === (string) $stored;
+}
+
 function wp_seed_events_public_event_place_data( $post_id ) {
 	$place_id = (int) get_post_meta( $post_id, '_wp_seed_event_place_id', true );
 
@@ -24,11 +31,14 @@ function wp_seed_events_public_event_place_data( $post_id ) {
 		return array();
 	}
 
+	$link         = (string) get_post_meta( $place_id, '_wp_seed_place_link', true );
+	$link_visible = wp_seed_events_place_url_is_visible( $place_id );
+
 	return array(
 		'id'      => $place_id,
 		'name'    => get_the_title( $place_id ),
 		'address' => (string) get_post_meta( $place_id, '_wp_seed_place_address', true ),
-		'link'    => (string) get_post_meta( $place_id, '_wp_seed_place_link', true ),
+		'link'    => $link_visible ? $link : '',
 		'details' => (string) get_post_meta( $post_id, '_wp_seed_event_place_details', true ),
 	);
 }
