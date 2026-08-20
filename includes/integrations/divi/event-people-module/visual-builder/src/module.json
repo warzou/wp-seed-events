@@ -18,14 +18,7 @@
         "meta": {"adminLabel": {}},
         "advanced": {"htmlAttributes": {}, "loop": {}},
         "decoration": {
-          "background": {}, "sizing": {}, "spacing": {}, "border": {}, "boxShadow": {},
-          "filters": {}, "transform": {}, "animation": {}, "overflow": {}, "disabledOn": {},
-          "transition": {},
-          "position": {},
-          "zIndex": {},
-          "scroll": {},
-          "sticky": {},
-          "layout": {}
+          "layout": {"component": {"props": {"groupLabel": "Module"}}}
         }
       }
     },
@@ -38,14 +31,20 @@
               "title": "Contacts et intervenants",
               "heading_level": "h2",
               "role": "all",
+			  "people_contract": "composable-v3",
               "show_name": "on",
-              "show_roles": "on",
+              "show_roles": "off",
               "show_email": "on",
               "show_phone": "on",
               "show_link": "on",
-              "link_phone": "on",
-              "link_email": "on",
-              "link_url": "on",
+			  "email_clickable": "on",
+			  "phone_clickable": "on",
+			  "site_clickable": "on",
+			  "contact_layout": "stacked",
+			  "show_contact_separator": "off",
+			  "contact_separator": "\u2014",
+			  "show_name_contact_separator": "off",
+			  "name_contact_separator": "\u2014",
               "layout": "list",
               "show_title": "on"
             }
@@ -57,13 +56,13 @@
           "groupType": "group-items",
           "items": {
             "title": {
-              "groupSlug": "contentPeople", "priority": 10, "render": true, "subName": "title",
+              "groupSlug": "contentPeopleTitle", "priority": 20, "render": true, "subName": "title",
               "label": "Titre", "description": "Laissez vide pour masquer le titre.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/text", "type": "field"}
             },
             "headingLevel": {
-              "groupSlug": "contentPeople", "priority": 20, "render": true, "subName": "heading_level",
+              "groupSlug": "contentPeopleTitle", "priority": 30, "render": true, "subName": "heading_level",
               "label": "Niveau du titre",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/select", "type": "field", "props": {"options": {
@@ -71,86 +70,87 @@
                 "h5": {"label": "H5"}, "h6": {"label": "H6"}
               }}}
             },
-            "roleOrganizer": {
-              "groupSlug": "contentPeople", "priority": 30, "render": true, "subName": "role_organizer",
-              "label": "Organisateurs", "description": "Activez un ou plusieurs r\u00f4les. Sans s\u00e9lection, tous les r\u00f4les sont affich\u00e9s.",
-              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
-            },
-            "roleSpeaker": {
-              "groupSlug": "contentPeople", "priority": 31, "render": true, "subName": "role_speaker",
-              "label": "Intervenants",
-              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
-            },
-            "roleContact": {
-              "groupSlug": "contentPeople", "priority": 32, "render": true, "subName": "role_contact",
-              "label": "Contacts",
-              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
-            },
             "showName": {
-              "groupSlug": "contentPeople", "priority": 35, "render": true, "subName": "show_name",
+              "groupSlug": "contentPeopleName", "priority": 10, "render": true, "subName": "show_name",
               "label": "Afficher le nom",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
             },
-            "showRoles": {
-              "groupSlug": "contentPeople", "priority": 40, "render": true, "subName": "show_roles",
-              "label": "Afficher les rôles",
-              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}
-            },
             "showEmail": {
-              "groupSlug": "contentPeople", "priority": 50, "render": true, "subName": "show_email",
+              "groupSlug": "contentPeopleEmail", "priority": 10, "render": true, "subName": "show_email",
               "label": "Afficher les emails autorisés",
               "description": "Les coordonnées sont privées par défaut. Divi ne peut afficher que les emails autorisés dans l’événement.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}
             },
             "showPhone": {
-              "groupSlug": "contentPeople", "priority": 60, "render": true, "subName": "show_phone",
+              "groupSlug": "contentPeoplePhone", "priority": 10, "render": true, "subName": "show_phone",
               "label": "Afficher les téléphones autorisés",
               "description": "Masquer ce champ dans Divi ne modifie pas son autorisation de publication.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}
             },
             "showLink": {
-              "groupSlug": "contentPeople", "priority": 70, "render": true, "subName": "show_link",
+              "groupSlug": "contentPeopleLinks", "priority": 10, "render": true, "subName": "show_link",
               "label": "Afficher les liens autorisés",
               "description": "Une coordonnée non autorisée dans l’événement ne peut jamais être rendue publique par Divi.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}
             },
-            "linkPhone": {
-              "groupSlug": "contentPeople", "priority": 65, "render": true, "subName": "link_phone",
-              "label": "T\u00e9l\u00e9phone cliquable",
-              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
-              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
-            },
-            "linkEmail": {
-              "groupSlug": "contentPeople", "priority": 66, "render": true, "subName": "link_email",
+            "emailClickable": {
+              "groupSlug": "contentPeopleEmail", "priority": 20, "render": true, "subName": "email_clickable",
               "label": "Email cliquable",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
             },
-            "linkUrl": {
-              "groupSlug": "contentPeople", "priority": 75, "render": true, "subName": "link_url",
-              "label": "Lien cliquable",
+            "phoneClickable": {
+              "groupSlug": "contentPeoplePhone", "priority": 20, "render": true, "subName": "phone_clickable",
+              "label": "Téléphone cliquable",
+              "description": "Activé, le module respecte l’action Aucun, Appel ou SMS définie pour cette personne dans l’événement. Désactivé, le numéro reste en texte simple.",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
             },
-            "layout": {
-              "groupSlug": "contentPeople", "priority": 80, "render": true, "subName": "layout",
-              "label": "Mise en page",
+            "siteClickable": {
+              "groupSlug": "contentPeopleLinks", "priority": 20, "render": true, "subName": "site_clickable",
+              "label": "Liens cliquables",
               "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "contactLayout": {
+              "groupSlug": "contentPeopleLayout", "priority": 10, "render": true, "subName": "contact_layout",
+              "label": "Disposition des coordonn\u00e9es",
+              "features": {"sticky": false, "responsive": true, "hover": false, "dynamicContent": false},
               "component": {"name": "divi/select", "type": "field", "props": {"options": {
-                "list": {"label": "Liste"}, "grid": {"label": "Grille"}
+                "stacked": {"label": "En dessous"}, "inline": {"label": "En ligne"}, "with_name": {"label": "Avec le nom"}
               }}}
             },
+            "showContactSeparator": {
+              "groupSlug": "contentPeopleSeparators", "priority": 10, "render": true, "subName": "show_contact_separator",
+              "label": "Afficher le s\u00e9parateur en ligne",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "contactSeparator": {
+              "groupSlug": "contentPeopleSeparators", "priority": 20, "render": true, "subName": "contact_separator",
+              "label": "Caract\u00e8re du s\u00e9parateur",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/text", "type": "field"}
+            },
+            "showNameContactSeparator": {
+              "groupSlug": "contentPeopleSeparators", "priority": 30, "render": true, "subName": "show_name_contact_separator",
+              "label": "Afficher le s\u00e9parateur Nom / Coordonn\u00e9es",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Non", "on": "Oui"}}}
+            },
+            "nameContactSeparator": {
+              "groupSlug": "contentPeopleSeparators", "priority": 40, "render": true, "subName": "name_contact_separator",
+              "label": "Caract\u00e8re Nom / Coordonn\u00e9es",
+              "features": {"sticky": false, "responsive": false, "hover": false, "dynamicContent": false},
+              "component": {"name": "divi/text", "type": "field"}
+            },
             "showTitle": {
-              "groupSlug": "contentPeople",
-              "priority": 5,
+              "groupSlug": "contentPeopleTitle",
+              "priority": 10,
               "render": true,
               "subName": "show_title",
               "label": "Afficher le titre",
@@ -175,50 +175,72 @@
         }
       }
     },
-    "sectionStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people-section", "settings": {"decoration": {
-      "background": {"component": {"props": {"groupLabel": "Section"}}},
-      "sizing": {"component": {"props": {"groupLabel": "Dimensions de la section"}}},
-      "spacing": {"component": {"props": {"groupLabel": "Espacement de la section"}}},
-      "border": {"component": {"props": {"groupLabel": "Bordure de la section"}}},
-      "boxShadow": {"component": {"props": {"groupLabel": "Ombre de la section"}}}
-    }}},
+    "sectionStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people-section"},
     "titleStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__title", "settings": {"decoration": {
-      "font": {"component": {"props": {"groupLabel": "Titre", "fieldLabel": "Titre"}}},
-      "spacing": {"component": {"props": {"groupLabel": "Espacement du titre"}}}
+      "font": {"component": {"props": {"groupLabel": "Titre", "fieldLabel": "Titre"}}}
     }}},
-    "listStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__list", "settings": {"decoration": {
-      "sizing": {"component": {"props": {"groupLabel": "Liste"}}},
-      "spacing": {"component": {"props": {"groupLabel": "Espacement de la liste"}}}
-    }}},
+    "listStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__list"},
     "itemStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__item", "settings": {"decoration": {
-      "background": {"component": {"props": {"groupLabel": "Personne"}}},
-      "sizing": {"component": {"props": {"groupLabel": "Dimensions de la personne"}}},
-      "spacing": {"component": {"props": {"groupLabel": "Espacement de la personne"}}},
-      "border": {"component": {"props": {"groupLabel": "Bordure de la personne"}}},
-      "boxShadow": {"component": {"props": {"groupLabel": "Ombre de la personne"}}}
+      "background": {"component": {"props": {"groupLabel": "Personne"}}}
     }}},
     "nameStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__name", "settings": {"decoration": {
       "font": {"component": {"props": {"groupLabel": "Nom", "fieldLabel": "Nom"}}}
     }}},
-    "rolesStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__roles", "settings": {"decoration": {
-      "spacing": {"component": {"props": {"groupLabel": "Liste des rôles"}}}
+    "rolesStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__roles"},
+    "roleStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__role"},
+    "contactsStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__contacts, {{selector}} .wp-seed-event-people__email-link, {{selector}} .wp-seed-event-people__email-text, {{selector}} .wp-seed-event-people__phone-link, {{selector}} .wp-seed-event-people__phone-text, {{selector}} .wp-seed-event-people__link-anchor, {{selector}} .wp-seed-event-people__link-text", "settings": {"decoration": {
+	  "font": {"component": {"props": {"groupLabel": "Coordonnées", "fieldLabel": "Coordonnées"}}}
     }}},
-    "roleStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__role", "settings": {"decoration": {
-      "font": {"component": {"props": {"groupLabel": "Rôle", "fieldLabel": "Rôle"}}}
-    }}},
-    "contactsStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__contacts", "settings": {"decoration": {
-      "spacing": {"component": {"props": {"groupLabel": "Coordonnées publiques"}}}
-    }}},
-    "emailLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__email-link, {{selector}} .wp-seed-event-people__email-text", "settings": {"decoration": {
-      "font": {"component": {"props": {"groupLabel": "Email autorisé", "fieldLabel": "Email"}}}
-    }}},
-    "phoneLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__phone-link, {{selector}} .wp-seed-event-people__phone-text", "settings": {"decoration": {
-      "font": {"component": {"props": {"groupLabel": "Téléphone autorisé", "fieldLabel": "Téléphone"}}}
-    }}},
-    "publicLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__link-anchor, {{selector}} .wp-seed-event-people__link-text", "settings": {"decoration": {
-      "font": {"component": {"props": {"groupLabel": "Lien autorisé", "fieldLabel": "Lien"}}}
-    }
-  }
+    "emailLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__email-link, {{selector}} .wp-seed-event-people__email-text"},
+    "phoneLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__phone-link, {{selector}} .wp-seed-event-people__phone-text"},
+    "publicLinkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-people__link-anchor, {{selector}} .wp-seed-event-people__link-text"},
+"contactSeparatorStyle": {
+  "type": "object",
+  "selector": "{{selector}} .wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name)",
+  "supportsCustomAttributes": true,
+  "default": {"advanced": {
+    "color": {"desktop": {"value": ""}},
+    "fontSize": {"desktop": {"value": "1em"}},
+    "spaceBefore": {"desktop": {"value": "0.35em"}},
+    "spaceAfter": {"desktop": {"value": "0.35em"}}
+  }}
+},
+"nameContactSeparatorStyle": {
+  "type": "object",
+  "selector": "{{selector}} .wp-seed-event-people__contact-separator--name",
+  "supportsCustomAttributes": true,
+  "default": {"advanced": {
+    "color": {"desktop": {"value": ""}},
+    "fontSize": {"desktop": {"value": "1em"}},
+    "spaceBefore": {"desktop": {"value": "0.35em"}},
+    "spaceAfter": {"desktop": {"value": "0.35em"}}
+  }},
+  "settings": {"advanced": {
+    "color": {"groupType": "group-item", "item": {
+      "groupSlug": "designPeopleNameSeparator", "attrName": "nameContactSeparatorStyle.advanced.color", "subName": "color",
+      "label": "Couleur", "priority": 10, "render": true,
+      "features": {"dynamicContent": false, "responsive": true, "hover": false, "sticky": false, "preset": ["style"]},
+      "component": {"type": "field", "name": "divi/color-picker"}
+    }},
+    "fontSize": {"groupType": "group-item", "item": {
+      "groupSlug": "designPeopleNameSeparator", "attrName": "nameContactSeparatorStyle.advanced.fontSize", "subName": "fontSize",
+      "label": "Taille", "priority": 20, "render": true,
+      "features": {"dynamicContent": false, "responsive": true, "hover": false, "sticky": false, "preset": ["style"]},
+      "component": {"type": "field", "name": "divi/range", "props": {"cssProperty": "font-size", "min": 0, "max": 120}}
+    }},
+    "spaceBefore": {"groupType": "group-item", "item": {
+      "groupSlug": "designPeopleNameSeparator", "attrName": "nameContactSeparatorStyle.advanced.spaceBefore", "subName": "spaceBefore",
+      "label": "Espacement avant", "priority": 30, "render": true,
+      "features": {"dynamicContent": false, "responsive": true, "hover": false, "sticky": false, "preset": ["style"]},
+      "component": {"type": "field", "name": "divi/range", "props": {"cssProperty": "margin-inline-start", "min": 0, "max": 120}}
+    }},
+    "spaceAfter": {"groupType": "group-item", "item": {
+      "groupSlug": "designPeopleNameSeparator", "attrName": "nameContactSeparatorStyle.advanced.spaceAfter", "subName": "spaceAfter",
+      "label": "Espacement apr\u00e8s", "priority": 40, "render": true,
+      "features": {"dynamicContent": false, "responsive": true, "hover": false, "sticky": false, "preset": ["style"]},
+      "component": {"type": "field", "name": "divi/range", "props": {"cssProperty": "margin-inline-end", "min": 0, "max": 120}}
+    }}
+  }}
 },
 "eventListStyle": {
   "type": "object",
@@ -419,10 +441,14 @@
   "settings": {
     "content": "auto", "design": "auto", "advanced": "auto",
     "groups": {
-      "contentPeople": {
-        "panel": "content", "priority": 10, "groupName": "contentPeople", "multiElements": true,
-        "component": {"name": "divi/composite", "props": {"groupLabel": "Personnes de l’événement"}}
-      },
+      "contentPeopleTitle": {"panel": "content", "priority": 10, "groupName": "contentPeopleTitle", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Titre"}}},
+      "contentPeopleFilter": {"panel": "content", "priority": 20, "groupName": "contentPeopleFilter", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Filtrage"}}},
+      "contentPeopleName": {"panel": "content", "priority": 30, "groupName": "contentPeopleName", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Nom"}}},
+      "contentPeopleEmail": {"panel": "content", "priority": 40, "groupName": "contentPeopleEmail", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Email"}}},
+      "contentPeoplePhone": {"panel": "content", "priority": 50, "groupName": "contentPeoplePhone", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Téléphone"}}},
+      "contentPeopleLinks": {"panel": "content", "priority": 60, "groupName": "contentPeopleLinks", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Liens"}}},
+      "contentPeopleLayout": {"panel": "content", "priority": 70, "groupName": "contentPeopleLayout", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Disposition"}}},
+      "contentPeopleSeparators": {"panel": "content", "priority": 80, "groupName": "contentPeopleSeparators", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Séparateurs"}}},
       "designPeopleList": {
         "panel": "design",
         "priority": 15,
@@ -430,11 +456,15 @@
         "component": {
           "name": "divi/composite",
           "props": {
-            "groupLabel": "Liste des personnes",
+            "groupLabel": "Liste",
             "clipboardCategory": "style",
             "dynamicSubgroupHost": true
           }
         }
+      },
+      "designPeopleNameSeparator": {
+        "panel": "design", "priority": 21, "groupName": "designPeopleNameSeparator",
+        "component": {"name": "divi/composite", "props": {"groupLabel": "Séparateur Nom / Coordonnées", "clipboardCategory": "style", "dynamicSubgroupHost": true}}
       }
     }
   }

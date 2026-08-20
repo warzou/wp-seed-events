@@ -191,6 +191,7 @@ namespace {
 		array(
 			'public_email' => 'public@example.test', 'public_phone' => '+33 1 23 45 67 89',
 			'public_url' => 'https://example.test/contact', 'email' => 'private@example.test',
+			'website_url' => 'https://example.test/contact', 'website_label' => 'Découvrir le site',
 			'phone' => '+33 9 99 99 99 99', 'link' => 'https://private.example.test/',
 		)
 	);
@@ -202,6 +203,7 @@ namespace {
 		12 => array( 'id' => 12, 'people' => array() ),
 		13 => array( 'id' => 13, 'people' => array( $organizer ) ),
 		14 => array( 'id' => 14, 'people' => array( $speaker, $register, $organizer ) ),
+		15 => array( 'id' => 15, 'people' => array( array_merge( $public, array( 'phone_action' => 'sms' ) ) ) ),
 	);
 
 	function p4_assert( $condition, $message ) {
@@ -304,6 +306,130 @@ namespace {
 		p4_assert( ! p4_contains( 'mailto:', $html ) && ! p4_contains( 'tel:', $html ) && ! p4_contains( '__link-anchor', $html ), 'Divi link toggles were ignored.' );
 		p4_assert( ! p4_contains( 'secret@example.test', $html ), 'Private coordinate leaked.' );
 	} );
+	p4_case( '53 composable coordinate options reach the renderer', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v1', 'phone_action' => 'sms', 'email_clickable' => 'off',
+			'site_clickable' => 'on', 'site_label' => 'Site internet',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( 'href="sms:', $html ), 'SMS action was not normalized.' );
+		p4_assert( ! p4_contains( 'mailto:', $html ), 'Email clickability was ignored.' );
+		p4_assert( p4_contains( '>Site internet</a>', $html ), 'Site label was ignored.' );
+	} );
+	p4_case( '54 contact layouts preserve responsive inheritance', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v1', 'contact_layout' => 'inline',
+			'contact_layout_tablet' => 'stacked', 'contact_layout_phone' => 'inline',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( 'is-contact-layout-desktop-inline', $html ), 'Desktop layout missing.' );
+		p4_assert( p4_contains( 'is-contact-layout-tablet-stacked', $html ), 'Tablet layout missing.' );
+		p4_assert( p4_contains( 'is-contact-layout-phone-inline', $html ), 'Phone layout missing.' );
+	} );
+	p4_case( '55 separators are opt-in and neutral', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v1', 'contact_layout' => 'inline',
+			'show_contact_separator' => 'on', 'contact_separator' => '|',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( '__contact-separator', $html ), 'Separator is missing.' );
+		p4_assert( p4_contains( 'aria-hidden="true"', $html ), 'Separator is not semantically neutral.' );
+	} );
+	p4_case( '56 missing contract preserves historical behavior', function () {
+		$options = p4_invoke( 'normalize_options', array( 'link_phone' => 'off', 'link_email' => 'off', 'link_url' => 'off' ) );
+		$html = p4_render( 10, $options );
+		p4_assert( ! p4_contains( 'is-people-composable', $html ), 'Legacy instance received the new contract.' );
+		p4_assert( ! p4_contains( '__contact-separator', $html ), 'Legacy instance received a separator.' );
+	} );
+	p4_case( '57 composable v2 consumes canonical website data without module label', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v2', 'site_clickable' => 'on', 'site_label' => 'Ignored module label',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( '>Découvrir le site</a>', $html ), 'Canonical person website label was not rendered.' );
+		p4_assert( ! p4_contains( 'Ignored module label', $html ), 'V2 still consumes the removed module label.' );
+	} );
+	p4_case( '58 composable v2 consumes association phone action without module override', function () {
+		$options = p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v2', 'phone_action' => 'none' ) );
+		$html = p4_render( 15, $options );
+		p4_assert( p4_contains( 'href="sms:', $html ), 'Canonical SMS action was not rendered.' );
+		p4_assert( ! p4_contains( 'href="tel:', $html ), 'Legacy module action overrode association data.' );
+	} );
+	p4_case( '59 role visibility defaults only change for new composable modules', function () {
+		$new_default = p4_render( 13, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v2' ) ) );
+		$new_explicit = p4_render( 13, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v2', 'show_roles' => 'on' ) ) );
+		$legacy = p4_render( 13, p4_invoke( 'normalize_options', array() ) );
+		p4_assert( ! p4_contains( 'wp-seed-event-people__roles', $new_default ), 'New composable module exposed roles by default.' );
+		p4_assert( p4_contains( 'wp-seed-event-people__roles', $new_explicit ), 'Explicit historical role visibility was ignored.' );
+		p4_assert( p4_contains( 'wp-seed-event-people__roles', $legacy ), 'Legacy role visibility default changed.' );
+	} );
+	p4_case( '60 composable v3 normalizes the visible with-name value', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v3',
+			'contact_layout'  => 'with-name',
+			'contact_layout_tablet' => 'inline',
+			'contact_layout_phone'  => 'stacked',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( 'is-contact-layout-desktop-with_name', $html ), 'Visible with-name option was not normalized.' );
+		p4_assert( p4_contains( 'wp-seed-event-people__identity-contact-flow', $html ), 'With-name lacks a real shared flow wrapper.' );
+		p4_assert( p4_contains( 'is-contact-layout-tablet-inline', $html ), 'Tablet layout was not preserved.' );
+		p4_assert( p4_contains( 'is-contact-layout-phone-stacked', $html ), 'Phone layout was not preserved.' );
+	} );
+	p4_case( '61 composable v3 keeps name and contact separators independent', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract'             => 'composable-v3',
+			'contact_layout'              => 'with-name',
+			'show_contact_separator'      => 'on',
+			'contact_separator'           => '|',
+			'show_name_contact_separator' => 'on',
+			'name_contact_separator'      => ':',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( p4_contains( '>:</span>', $html ), 'Name separator character is missing.' );
+		p4_assert( p4_contains( '>|</span>', $html ), 'Contact separator character is missing.' );
+	} );
+	p4_case( '62 explicit with-name overrides a missing historical contract', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'contact_layout'              => 'with_name',
+			'contact_layout_tablet'       => 'inline',
+			'contact_layout_phone'        => 'stacked',
+			'show_contact_separator'      => 'on',
+			'show_name_contact_separator' => 'on',
+			'name_contact_separator'      => ':',
+		) );
+		$html = p4_render( 10, $options );
+		p4_assert( 'legacy' === $options['contract'], 'Historical fixture unexpectedly gained a contract.' );
+		p4_assert( p4_contains( 'is-contact-layout-desktop-with_name', $html ), 'Explicit historical with-name was not authoritative.' );
+		p4_assert( p4_contains( 'wp-seed-event-people__identity-contact-flow', $html ), 'Historical with-name did not create a shared flow.' );
+	} );
+	p4_case( '63 canonical role filters support all, single roles and OR combinations', function () {
+		$all = p4_render( 10, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3' ) ) );
+		$organizers = p4_render( 10, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'role_organizer' => 'on' ) ) );
+		$speakers = p4_render( 10, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'role_speaker' => 'on' ) ) );
+		$contacts = p4_render( 10, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'role_contact' => 'on' ) ) );
+		$mixed = p4_render( 10, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'role_organizer' => 'on', 'role_contact' => 'on' ) ) );
+		p4_assert( 6 === substr_count( $all, 'wp-seed-event-people__item' ), 'No selected role did not preserve All.' );
+		p4_assert( 2 === substr_count( $organizers, 'wp-seed-event-people__item' ), 'Organizer filter failed.' );
+		p4_assert( 2 === substr_count( $speakers, 'wp-seed-event-people__item' ), 'Speaker filter failed.' );
+		p4_assert( 2 === substr_count( $contacts, 'wp-seed-event-people__item' ), 'Contact filter failed.' );
+		p4_assert( 4 === substr_count( $mixed, 'wp-seed-event-people__item' ), 'Role filter OR semantics failed.' );
+	} );
+	p4_case( '64 phone clickability only changes presentation', function () {
+		$clickable = p4_render( 15, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'phone_clickable' => 'on' ) ) );
+		$plain = p4_render( 15, p4_invoke( 'normalize_options', array( 'people_contract' => 'composable-v3', 'phone_clickable' => 'off' ) ) );
+		p4_assert( p4_contains( 'href="sms:', $clickable ), 'Clickable phone did not respect canonical SMS action.' );
+		p4_assert( p4_contains( '__phone-text', $plain ), 'Non-clickable phone did not render as text.' );
+		p4_assert( ! p4_contains( 'href="sms:', $plain ) && ! p4_contains( 'href="tel:', $plain ), 'Presentation toggle introduced another phone action.' );
+	} );
+	p4_case( '65 dynamic and retired person type keys stay readable', function () {
+		$options = p4_invoke( 'normalize_options', array(
+			'people_contract' => 'composable-v3',
+			'role_facilitator' => 'on',
+			'role_retired-type' => 'on',
+		) );
+		p4_assert( array( 'facilitator', 'retired-type' ) === $options['roles'], 'Dynamic person type keys were remapped or discarded.' );
+	} );
 
 	$benchmarks = array();
 	foreach ( array( 'zero' => 12, 'one' => 13, 'three' => 14 ) as $name => $id ) {
@@ -315,7 +441,7 @@ namespace {
 	for ( $i = 0; $i < 100; $i++ ) { foreach ( array( 10, 12, 13, 14, 10, 13, 12 ) as $id ) { p4_render( $id ); } }
 	$benchmarks['seven_event_loop_700_ms'] = round( ( hrtime( true ) - $start ) / 1000000, 3 );
 
-	p4_assert( 52 === $GLOBALS['p4_cases'], 'Harness case count differs.' );
-	echo '[OK] Divi people module: 52/52 cases passed.' . PHP_EOL;
+	p4_assert( 65 === $GLOBALS['p4_cases'], 'Harness case count differs.' );
+	echo '[OK] Divi people module: 65/65 cases passed.' . PHP_EOL;
 	echo '[PERF] ' . json_encode( $benchmarks, JSON_UNESCAPED_SLASHES ) . PHP_EOL;
 }

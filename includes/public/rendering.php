@@ -219,7 +219,12 @@ function wp_seed_events_public_people_role_option( $value ) {
 		'information_contact' => 'contact',
 	);
 
-	return $aliases[ $value ] ?? 'all';
+	if ( isset( $aliases[ $value ] ) ) {
+		return $aliases[ $value ];
+	}
+
+	$value = sanitize_key( $value );
+	return '' === $value ? 'all' : $value;
 }
 
 function wp_seed_events_public_people_roles_option( $value ) {
@@ -911,6 +916,23 @@ function wp_seed_events_public_date_list_marker_color_option( $value ) {
 	return preg_match( '/^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^;{}]+\)|var\(--[a-z0-9_-]+\))$/i', $value ) ? $value : '';
 }
 
+function wp_seed_events_public_date_component_layout_option( $value ) {
+	$value = is_scalar( $value ) ? strtolower( trim( (string) $value ) ) : '';
+
+	return 'inline' === $value ? 'inline' : 'below';
+}
+
+function wp_seed_events_public_date_separator_character_option( $value ) {
+	$value = is_scalar( $value ) ? wp_strip_all_tags( (string) $value ) : '';
+	$value = trim( preg_replace( '/[\x00-\x1F\x7F]/u', '', $value ) );
+
+	if ( '' === $value ) {
+		return "\u{2014}";
+	}
+
+	return function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 8 ) : substr( $value, 0, 8 );
+}
+
 function wp_seed_events_render_public_event_dates_section( $event, $options = array() ) {
 	if ( ! is_array( $event ) ) {
 		$event = wp_seed_events_public_event_data( absint( $event ) );
@@ -1448,12 +1470,67 @@ function wp_seed_events_public_event_person_coordinate( $person, $canonical_key,
 	return $value === trim( wp_strip_all_tags( $value, true ) ) ? $value : '';
 }
 
+function wp_seed_events_public_people_contact_layout_option( $value ) {
+	$value = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+	$value = 'with-name' === $value ? 'with_name' : $value;
+
+	return in_array( $value, array( 'inline', 'with_name' ), true ) ? $value : 'stacked';
+}
+
+function wp_seed_events_public_people_separator_style_option( $raw_styles, $variable_prefix = 'separator' ) {
+	$raw_styles = is_array( $raw_styles ) ? $raw_styles : array();
+	$styles     = array();
+	foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
+		$inherited = 'desktop' === $breakpoint ? array() : $styles[ 'tablet' === $breakpoint ? 'desktop' : 'tablet' ];
+		$candidate = is_array( $raw_styles[ $breakpoint ] ?? null ) ? $raw_styles[ $breakpoint ] : array();
+		$styles[ $breakpoint ] = array(
+			'color'       => wp_seed_events_public_date_list_marker_color_option( $candidate['color'] ?? ( $inherited['color'] ?? '' ) ),
+			'fontSize'    => wp_seed_events_public_date_list_dimension_option( $candidate['fontSize'] ?? ( $inherited['fontSize'] ?? '1em' ), '1em' ),
+			'spaceBefore' => wp_seed_events_public_date_list_dimension_option( $candidate['spaceBefore'] ?? ( $inherited['spaceBefore'] ?? '0.35em' ), '0.35em' ),
+			'spaceAfter'  => wp_seed_events_public_date_list_dimension_option( $candidate['spaceAfter'] ?? ( $inherited['spaceAfter'] ?? '0.35em' ), '0.35em' ),
+		);
+	}
+
+	$declarations = array();
+	foreach ( $styles as $breakpoint => $style ) {
+		$declarations[] = '--wp-seed-event-people-' . $variable_prefix . '-color-' . $breakpoint . ':' . ( '' !== $style['color'] ? $style['color'] : 'currentColor' );
+		$declarations[] = '--wp-seed-event-people-' . $variable_prefix . '-size-' . $breakpoint . ':' . $style['fontSize'];
+		$declarations[] = '--wp-seed-event-people-' . $variable_prefix . '-before-' . $breakpoint . ':' . $style['spaceBefore'];
+		$declarations[] = '--wp-seed-event-people-' . $variable_prefix . '-after-' . $breakpoint . ':' . $style['spaceAfter'];
+	}
+
+	return implode( ';', $declarations );
+}
+
+function wp_seed_events_public_people_phone_action_option( $value, $fallback = 'call' ) {
+	$value    = is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+	$fallback = in_array( $fallback, array( 'none', 'call', 'sms' ), true ) ? $fallback : 'call';
+
+	return in_array( $value, array( 'none', 'call', 'sms' ), true ) ? $value : $fallback;
+}
+
+function wp_seed_events_public_people_site_label_option( $value ) {
+	return wp_seed_events_public_event_person_text( $value );
+}
+
 function wp_seed_events_render_public_event_people_section( $event, $options = array() ) {
 	if ( ! is_array( $event ) || empty( $event['people'] ) || ! is_array( $event['people'] ) ) {
 		return '';
 	}
 
 	$options        = is_array( $options ) ? $options : array();
+	$has_name_separator_option = array_key_exists( 'show_name_contact_separator', $options );
+	$has_name_separator_character = array_key_exists( 'name_contact_separator', $options );
+	$has_name_separator_styles = array_key_exists( 'name_contact_separator_styles', $options );
+	$legacy_phone_action = null;
+	if ( array_key_exists( 'phone_action', $options ) && '' !== (string) $options['phone_action'] ) {
+		$legacy_phone_action = wp_seed_events_public_people_phone_action_option( $options['phone_action'], 'call' );
+	} elseif ( array_key_exists( 'link_phone', $options ) ) {
+		$legacy_phone_action = wp_seed_events_public_boolean_option( $options['link_phone'], true ) ? 'call' : 'none';
+	}
+	if ( array_key_exists( 'legacy_phone_action', $options ) && null !== $options['legacy_phone_action'] ) {
+		$legacy_phone_action = wp_seed_events_public_people_phone_action_option( $options['legacy_phone_action'], 'call' );
+	}
 	$legacy_details = array_key_exists( 'details', $options )
 		? wp_seed_events_public_boolean_option( $options['details'], true )
 		: null;
@@ -1486,6 +1563,20 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 			'link_email'    => true,
 			'link_url'      => true,
 			'layout'        => 'list',
+			'contract'      => 'legacy',
+			'contact_layouts' => array(),
+			'show_contact_separator' => false,
+			'contact_separator' => "\u{2014}",
+			'contact_separator_styles' => array(),
+			'show_name_contact_separator' => false,
+			'name_contact_separator' => "\u{2014}",
+			'name_contact_separator_styles' => array(),
+			'phone_action'  => '',
+			'legacy_phone_action' => null,
+			'email_clickable' => null,
+			'phone_clickable' => null,
+			'site_clickable' => null,
+			'site_label'    => '',
 		)
 	);
 
@@ -1504,6 +1595,41 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 	$link_email    = wp_seed_events_public_boolean_option( $options['link_email'], true );
 	$link_url      = wp_seed_events_public_boolean_option( $options['link_url'], true );
 	$layout        = wp_seed_events_public_event_people_layout_option( $options['layout'] );
+	$people_contract = is_scalar( $options['contract'] ) ? (string) $options['contract'] : '';
+	$is_composable = in_array( $people_contract, array( 'composable-v1', 'composable-v2', 'composable-v3' ), true );
+	if ( in_array( $people_contract, array( 'composable-v2', 'composable-v3' ), true ) && null === $options['legacy_phone_action'] ) {
+		$legacy_phone_action = null;
+	}
+	$email_clickable = null === $options['email_clickable']
+		? $link_email
+		: wp_seed_events_public_boolean_option( $options['email_clickable'], true );
+	$phone_clickable = null === $options['phone_clickable']
+		? true
+		: wp_seed_events_public_boolean_option( $options['phone_clickable'], true );
+	$site_clickable = null === $options['site_clickable']
+		? $link_url
+		: wp_seed_events_public_boolean_option( $options['site_clickable'], true );
+	$site_label = wp_seed_events_public_people_site_label_option( $options['site_label'] );
+	$show_contact_separator = wp_seed_events_public_boolean_option( $options['show_contact_separator'], false );
+	$contact_separator = wp_seed_events_public_date_separator_character_option( $options['contact_separator'] );
+	$is_v3 = 'composable-v3' === $people_contract;
+	$show_name_contact_separator = wp_seed_events_public_boolean_option(
+		( $is_v3 || $has_name_separator_option ) ? $options['show_name_contact_separator'] : $show_contact_separator,
+		false
+	);
+	$name_contact_separator = wp_seed_events_public_date_separator_character_option(
+		( $is_v3 || $has_name_separator_character ) ? $options['name_contact_separator'] : $contact_separator
+	);
+	$raw_contact_layouts = is_array( $options['contact_layouts'] ) ? $options['contact_layouts'] : array();
+	$contact_layouts = array();
+	foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
+		$inherited = 'desktop' === $breakpoint ? 'stacked' : $contact_layouts[ 'tablet' === $breakpoint ? 'desktop' : 'tablet' ];
+		$contact_layouts[ $breakpoint ] = wp_seed_events_public_people_contact_layout_option( $raw_contact_layouts[ $breakpoint ] ?? $inherited );
+	}
+	$uses_identity_contact_flow = $is_composable || in_array( 'with_name', $contact_layouts, true );
+	$separator_style = wp_seed_events_public_people_separator_style_option( $options['contact_separator_styles'], 'separator' );
+	$name_separator_styles = ( $is_v3 || $has_name_separator_styles ) ? $options['name_contact_separator_styles'] : $options['contact_separator_styles'];
+	$name_separator_style = wp_seed_events_public_people_separator_style_option( $name_separator_styles, 'name-separator' );
 	$rendered      = array();
 	$quote         = chr( 34 );
 
@@ -1554,7 +1680,7 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 
 			if ( '' !== $email ) {
 				$email_label = 'Envoyer un email à ' . $name;
-				if ( $link_email ) {
+				if ( $email_clickable ) {
 					$email_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__email-link' ) . $quote
 						. ' href=' . $quote . esc_attr( 'mailto:' . $email ) . $quote
 						. ' aria-label=' . $quote . esc_attr( $email_label ) . $quote . '>' . esc_html( $email ) . '</a>';
@@ -1566,14 +1692,18 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		}
 
 		if ( $show_phone ) {
+			$phone_action = null !== $legacy_phone_action
+				? $legacy_phone_action
+				: wp_seed_events_public_people_phone_action_option( $person['phone_action'] ?? '', 'call' );
 			$phone = wp_seed_events_normalize_person_phone(
 				wp_seed_events_public_event_person_coordinate( $person, 'public_phone', 'phone' )
 			);
 			$phone_href = wp_seed_events_public_phone_href( $phone );
 
 			if ( '' !== $phone && '' !== $phone_href ) {
-				$phone_label = 'Appeler ' . $name;
-				if ( $link_phone ) {
+				$phone_label = ( 'sms' === $phone_action ? 'Envoyer un SMS a ' : 'Appeler ' ) . $name;
+				if ( $phone_clickable && 'none' !== $phone_action ) {
+					$phone_href = ( 'sms' === $phone_action ? 'sms:' : 'tel:' ) . preg_replace( '/[^0-9+]/', '', $phone );
 					$phone_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__phone-link' ) . $quote
 						. ' href=' . $quote . esc_attr( $phone_href ) . $quote
 						. ' aria-label=' . $quote . esc_attr( $phone_label ) . $quote . '>' . esc_html( $phone ) . '</a>';
@@ -1585,17 +1715,23 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		}
 
 		if ( $show_link ) {
-			$url = wp_seed_events_normalize_person_link(
-				wp_seed_events_public_event_person_coordinate( $person, 'public_url', 'link' )
-			);
+			$url_value = wp_seed_events_public_event_person_coordinate( $person, 'website_url', 'public_url' );
+			if ( '' === $url_value ) {
+				$url_value = wp_seed_events_public_event_person_coordinate( $person, 'public_url', 'link' );
+			}
+			$url = wp_seed_events_normalize_person_link( $url_value );
 
 			if ( '' !== $url ) {
-				$url_label  = 'Consulter le lien associé à ' . $name;
-				if ( $link_url ) {
+				$canonical_site_label = wp_seed_events_public_event_person_text( $person['website_label'] ?? '' );
+				$linked_url_label = 'composable-v2' === $people_contract
+					? ( '' !== $canonical_site_label ? $canonical_site_label : $url )
+					: ( '' !== $site_label ? $site_label : ( $is_composable ? $url : 'Consulter le lien associé à ' . $name ) );
+				$plain_url_label = $is_composable ? $linked_url_label : $url;
+				if ( $site_clickable ) {
 					$url_link = '<a class=' . $quote . esc_attr( 'wp-seed-event-people__link-anchor' ) . $quote
-						. ' href=' . $quote . esc_url( $url ) . $quote . '>' . esc_html( $url_label ) . '</a>';
+						. ' href=' . $quote . esc_url( $url ) . $quote . '>' . esc_html( $linked_url_label ) . '</a>';
 				} else {
-					$url_link = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__link-text' ) . $quote . '>' . esc_html( $url ) . '</span>';
+					$url_link = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__link-text' ) . $quote . '>' . esc_html( $plain_url_label ) . '</span>';
 				}
 				$contacts[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-people__contact wp-seed-event-people__link' ) . $quote . '>' . $url_link . '</li>';
 			}
@@ -1610,8 +1746,8 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 			$name_classes[] = 'screen-reader-text';
 		}
 
-		$item = '<li class=' . $quote . esc_attr( 'wp-seed-event-person wp-seed-event-people__item' ) . $quote . '>';
-		$item .= '<span class=' . $quote . esc_attr( implode( ' ', $name_classes ) ) . $quote . '>' . esc_html( $name ) . '</span>';
+		$name_html = '<span class=' . $quote . esc_attr( implode( ' ', $name_classes ) ) . $quote . '>' . esc_html( $name ) . '</span>';
+		$roles_html = '';
 
 		if ( array() !== $roles ) {
 			$rendered_roles = array();
@@ -1620,15 +1756,42 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 				$rendered_roles[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-people__role' ) . $quote . '>' . esc_html( $role_label ) . '</li>';
 			}
 
-			$item .= '<ul class=' . $quote . esc_attr( 'wp-seed-event-people__roles' ) . $quote
+			$roles_html = '<ul class=' . $quote . esc_attr( 'wp-seed-event-people__roles' ) . $quote
 				. ' aria-label=' . $quote . esc_attr( 'Rôles de ' . $name ) . $quote . '>' . implode( '', $rendered_roles ) . '</ul>';
 		}
 
+		$name_separator_html = '';
+		$contacts_html = '';
 		if ( array() !== $contacts ) {
-			$item .= '<ul class=' . $quote . esc_attr( 'wp-seed-event-people__contacts' ) . $quote
+			if ( $uses_identity_contact_flow && $show_name && $show_name_contact_separator && in_array( 'with_name', $contact_layouts, true ) ) {
+				$name_separator_html = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__contact-separator wp-seed-event-people__contact-separator--name' ) . $quote
+					. ' aria-hidden=' . $quote . 'true' . $quote
+					. ( '' !== $name_separator_style ? ' style=' . $quote . esc_attr( $name_separator_style ) . $quote : '' )
+					. '>' . esc_html( $name_contact_separator ) . '</span>';
+			}
+			if ( $is_composable && $show_contact_separator ) {
+				foreach ( $contacts as $contact_index => $contact_html ) {
+					if ( 0 === $contact_index ) {
+						continue;
+					}
+					$separator = '<span class=' . $quote . esc_attr( 'wp-seed-event-people__contact-separator' ) . $quote
+						. ' aria-hidden=' . $quote . 'true' . $quote
+						. ( '' !== $separator_style ? ' style=' . $quote . esc_attr( $separator_style ) . $quote : '' )
+						. '>' . esc_html( $contact_separator ) . '</span>';
+					$contacts[ $contact_index ] = preg_replace( '/^(<li[^>]*>)/', '$1' . $separator, $contact_html, 1 );
+				}
+			}
+			$contacts_html = '<ul class=' . $quote . esc_attr( 'wp-seed-event-people__contacts' ) . $quote
 				. ' aria-label=' . $quote . esc_attr( 'Coordonnées publiques de ' . $name ) . $quote . '>' . implode( '', $contacts ) . '</ul>';
 		}
 
+		$item = '<li class=' . $quote . esc_attr( 'wp-seed-event-person wp-seed-event-people__item' ) . $quote . '>';
+		if ( $uses_identity_contact_flow ) {
+			$item .= '<div class=' . $quote . esc_attr( 'wp-seed-event-people__identity-contact-flow' ) . $quote . '>'
+				. $name_html . $name_separator_html . $contacts_html . '</div>' . $roles_html;
+		} else {
+			$item .= $name_html . $roles_html . $contacts_html;
+		}
 		$item      .= '</li>';
 		$rendered[] = $item;
 	}
@@ -1643,6 +1806,12 @@ function wp_seed_events_render_public_event_people_section( $event, $options = a
 		'wp-seed-event-people-section',
 		'is-layout-' . $layout,
 	);
+	if ( $uses_identity_contact_flow ) {
+		$section_classes[] = 'is-people-composable';
+		foreach ( $contact_layouts as $breakpoint => $contact_layout ) {
+			$section_classes[] = 'is-contact-layout-' . $breakpoint . '-' . $contact_layout;
+		}
+	}
 	$html            = '<section class=' . $quote . esc_attr( implode( ' ', $section_classes ) ) . $quote;
 
 	if ( '' === $title ) {

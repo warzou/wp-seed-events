@@ -43,6 +43,12 @@ const LAYOUT_OPTIONS = [
   { label: __( 'Grille', 'wp-seed-events' ), value: 'grid' },
 ];
 
+const CONTACT_LAYOUT_OPTIONS = [
+  { label: __( 'En dessous', 'wp-seed-events' ), value: 'stacked' },
+  { label: __( 'En ligne', 'wp-seed-events' ), value: 'inline' },
+  { label: __( 'Avec le nom', 'wp-seed-events' ), value: 'with_name' },
+];
+
 function validOption( options, value, fallback ) {
   return options.some( ( option ) => option.value === value ) ? value : fallback;
 }
@@ -93,9 +99,21 @@ function previewAttributes( attributes ) {
     show_email: booleanOption( attributes.show_email, true ),
     show_phone: booleanOption( attributes.show_phone, true ),
     show_link: booleanOption( attributes.show_link, true ),
-    link_phone: booleanOption( attributes.link_phone, true ),
     link_email: booleanOption( attributes.link_email, true ),
     link_url: booleanOption( attributes.link_url, true ),
+    contact_layout: validOption(
+      CONTACT_LAYOUT_OPTIONS,
+      attributes.contact_layout,
+      'stacked',
+    ),
+    show_contact_separator: booleanOption(
+      attributes.show_contact_separator,
+      false,
+    ),
+    contact_separator:
+      typeof attributes.contact_separator === 'string' && attributes.contact_separator.trim()
+        ? attributes.contact_separator.trim().slice( 0, 8 )
+        : '\u2014',
     layout: validOption( LAYOUT_OPTIONS, attributes.layout, 'list' ),
   };
 }
@@ -211,12 +229,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             onChange={ ( value ) => setAttributes( { show_phone: value } ) }
           />
           <ToggleControl
-            label={ __( 'Rendre le téléphone cliquable', 'wp-seed-events' ) }
-            checked={ normalized.link_phone }
-            disabled={ ! normalized.show_phone }
-            onChange={ ( value ) => setAttributes( { link_phone: value } ) }
-          />
-          <ToggleControl
             label={ __( 'Afficher les liens autorisés', 'wp-seed-events' ) }
             help={ __( 'Gutenberg ne peut jamais publier une coordonnée non autorisée.', 'wp-seed-events' ) }
             checked={ normalized.show_link }
@@ -227,6 +239,24 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             checked={ normalized.link_url }
             disabled={ ! normalized.show_link }
             onChange={ ( value ) => setAttributes( { link_url: value } ) }
+          />
+          <SelectControl
+            label={ __( 'Disposition des coordonnÃ©es', 'wp-seed-events' ) }
+            value={ normalized.contact_layout }
+            options={ CONTACT_LAYOUT_OPTIONS }
+            onChange={ ( value ) => setAttributes( { contact_layout: value } ) }
+          />
+          <ToggleControl
+            label={ __( 'Afficher le sÃ©parateur en ligne', 'wp-seed-events' ) }
+            checked={ normalized.show_contact_separator }
+            disabled={ normalized.contact_layout === 'stacked' }
+            onChange={ ( value ) => setAttributes( { show_contact_separator: value } ) }
+          />
+          <TextControl
+            label={ __( 'CaractÃ¨re du sÃ©parateur', 'wp-seed-events' ) }
+            value={ normalized.contact_separator }
+            disabled={ ! normalized.show_contact_separator || normalized.contact_layout === 'stacked' }
+            onChange={ ( value ) => setAttributes( { contact_separator: value } ) }
           />
           <SelectControl
             label={ __( 'Mise en page', 'wp-seed-events' ) }

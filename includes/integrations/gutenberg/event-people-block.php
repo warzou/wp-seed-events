@@ -87,9 +87,17 @@ function wp_seed_events_gutenberg_event_people_options( $attributes = array() ) 
 		'show_email'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_email'] ?? true ),
 		'show_phone'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_phone'] ?? true ),
 		'show_link'     => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_link'] ?? true ),
-		'link_phone'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_phone'] ?? true ),
+		'contract'      => 'composable-v2',
+		'legacy_phone_action' => array_key_exists( 'link_phone', $attributes ) && false === $attributes['link_phone'] ? 'none' : null,
 		'link_email'    => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_email'] ?? true ),
 		'link_url'      => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['link_url'] ?? true ),
+		'contact_layouts' => array(
+			'desktop' => wp_seed_events_public_people_contact_layout_option( $attributes['contact_layout'] ?? 'stacked' ),
+			'tablet'  => wp_seed_events_public_people_contact_layout_option( $attributes['contact_layout'] ?? 'stacked' ),
+			'phone'   => wp_seed_events_public_people_contact_layout_option( $attributes['contact_layout'] ?? 'stacked' ),
+		),
+		'show_contact_separator' => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_contact_separator'] ?? false, false ),
+		'contact_separator' => wp_seed_events_public_date_separator_character_option( $attributes['contact_separator'] ?? "\u{2014}" ),
 		'layout'        => wp_seed_events_public_event_people_layout_option( $attributes['layout'] ?? 'list' ),
 	);
 }

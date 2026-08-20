@@ -29,6 +29,106 @@
 	color: var(--wp-seed-event-list-current-color);
 }
 
+/* Roles and public coordinates are structural metadata, not editorial lists. */
+.wp-seed-event-people__roles,
+.wp-seed-event-people__contacts {
+	list-style: none !important;
+	list-style-type: none !important;
+	margin-inline-start: 0;
+	padding-inline-start: 0 !important;
+}
+
+.wp-seed-event-people__roles > li,
+.wp-seed-event-people__contacts > li {
+	list-style: none !important;
+	list-style-type: none !important;
+}
+
+.wp-seed-event-people__roles > li::before,
+.wp-seed-event-people__contacts > li::before {
+	content: none !important;
+	display: none !important;
+}
+
+.wp-seed-event-people__roles > li::marker,
+.wp-seed-event-people__contacts > li::marker {
+	content: "";
+}
+
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__list,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__item,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__identity-contact-flow,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__name,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__roles,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__contacts {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__name {
+	display: block;
+}
+
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__roles > li,
+.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__contacts > li {
+	text-align: inherit;
+}
+
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-inline .wp-seed-event-people__contacts > li {
+	display: inline;
+}
+
+.wp-seed-event-people__contact-separator--name {
+	display: none;
+}
+
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__identity-contact-flow {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	width: auto;
+	max-width: 100%;
+}
+
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__name,
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__contacts {
+	width: auto;
+}
+
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__contacts > li,
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__contact-separator--name {
+	display: inline;
+}
+
+.wp-seed-event-people-section.is-people-composable.is-contact-layout-desktop-with_name .wp-seed-event-people__roles {
+	order: 4;
+	flex-basis: 100%;
+}
+
+.wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name) {
+	--wp-seed-event-people-separator-current-color: var(--wp-seed-event-people-separator-color-desktop, currentColor);
+	--wp-seed-event-people-separator-current-size: var(--wp-seed-event-people-separator-size-desktop, 1em);
+	--wp-seed-event-people-separator-current-before: var(--wp-seed-event-people-separator-before-desktop, 0.35em);
+	--wp-seed-event-people-separator-current-after: var(--wp-seed-event-people-separator-after-desktop, 0.35em);
+	color: var(--wp-seed-event-people-separator-current-color);
+	font-size: var(--wp-seed-event-people-separator-current-size);
+	margin-inline: var(--wp-seed-event-people-separator-current-before) var(--wp-seed-event-people-separator-current-after);
+}
+
+.wp-seed-event-people__contact-separator--name {
+	--wp-seed-event-people-name-separator-current-color: var(--wp-seed-event-people-name-separator-color-desktop, currentColor);
+	--wp-seed-event-people-name-separator-current-size: var(--wp-seed-event-people-name-separator-size-desktop, 1em);
+	--wp-seed-event-people-name-separator-current-before: var(--wp-seed-event-people-name-separator-before-desktop, 0.35em);
+	--wp-seed-event-people-name-separator-current-after: var(--wp-seed-event-people-name-separator-after-desktop, 0.35em);
+	color: var(--wp-seed-event-people-name-separator-current-color);
+	font-size: var(--wp-seed-event-people-name-separator-current-size);
+	margin-inline: var(--wp-seed-event-people-name-separator-current-before) var(--wp-seed-event-people-name-separator-current-after);
+}
+
+.wp-seed-event-people-section.is-contact-layout-desktop-stacked .wp-seed-event-people__contact-separator {
+	display: none;
+}
+
 @media (max-width: 980px) {
 	.wp-seed-event-list.has-custom-list-style {
 		--wp-seed-event-list-current-marker-type: var(--wp-seed-event-list-marker-type-tablet, var(--wp-seed-event-list-marker-type-desktop, none));
@@ -36,6 +136,71 @@
 		--wp-seed-event-list-current-indent: var(--wp-seed-event-list-list-indent-tablet, var(--wp-seed-event-list-list-indent-desktop, 0px));
 		--wp-seed-event-list-current-gap: var(--wp-seed-event-list-item-gap-tablet, var(--wp-seed-event-list-item-gap-desktop, 0));
 		--wp-seed-event-list-current-color: var(--wp-seed-event-list-marker-color-tablet, var(--wp-seed-event-list-marker-color-desktop, currentColor));
+	}
+
+
+	.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__contacts > li {
+		display: block;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-stacked .wp-seed-event-people__identity-contact-flow,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-inline .wp-seed-event-people__identity-contact-flow {
+		display: block;
+		width: 100%;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-stacked .wp-seed-event-people__contact-separator--name,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-inline .wp-seed-event-people__contact-separator--name {
+		display: none;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-inline .wp-seed-event-people__contacts > li {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__identity-contact-flow {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		width: auto;
+		max-width: 100%;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__name,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__contacts {
+		width: auto;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__contacts > li,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__contact-separator--name {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-tablet-with_name .wp-seed-event-people__roles {
+		order: 4;
+		flex-basis: 100%;
+	}
+
+	.wp-seed-event-people-section.is-contact-layout-tablet-inline .wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name) {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-contact-layout-tablet-stacked .wp-seed-event-people__contact-separator {
+		display: none;
+	}
+
+	.wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name) {
+		--wp-seed-event-people-separator-current-color: var(--wp-seed-event-people-separator-color-tablet, var(--wp-seed-event-people-separator-color-desktop, currentColor));
+		--wp-seed-event-people-separator-current-size: var(--wp-seed-event-people-separator-size-tablet, var(--wp-seed-event-people-separator-size-desktop, 1em));
+		--wp-seed-event-people-separator-current-before: var(--wp-seed-event-people-separator-before-tablet, var(--wp-seed-event-people-separator-before-desktop, 0.35em));
+		--wp-seed-event-people-separator-current-after: var(--wp-seed-event-people-separator-after-tablet, var(--wp-seed-event-people-separator-after-desktop, 0.35em));
+	}
+
+	.wp-seed-event-people__contact-separator--name {
+		--wp-seed-event-people-name-separator-current-color: var(--wp-seed-event-people-name-separator-color-tablet, var(--wp-seed-event-people-name-separator-color-desktop, currentColor));
+		--wp-seed-event-people-name-separator-current-size: var(--wp-seed-event-people-name-separator-size-tablet, var(--wp-seed-event-people-name-separator-size-desktop, 1em));
+		--wp-seed-event-people-name-separator-current-before: var(--wp-seed-event-people-name-separator-before-tablet, var(--wp-seed-event-people-name-separator-before-desktop, 0.35em));
+		--wp-seed-event-people-name-separator-current-after: var(--wp-seed-event-people-name-separator-after-tablet, var(--wp-seed-event-people-name-separator-after-desktop, 0.35em));
 	}
 }
 
@@ -46,5 +211,70 @@
 		--wp-seed-event-list-current-indent: var(--wp-seed-event-list-list-indent-phone, var(--wp-seed-event-list-list-indent-tablet, 0px));
 		--wp-seed-event-list-current-gap: var(--wp-seed-event-list-item-gap-phone, var(--wp-seed-event-list-item-gap-tablet, 0));
 		--wp-seed-event-list-current-color: var(--wp-seed-event-list-marker-color-phone, var(--wp-seed-event-list-marker-color-tablet, currentColor));
+	}
+
+
+	.wp-seed-event-people-section.is-people-composable .wp-seed-event-people__contacts > li {
+		display: block;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-stacked .wp-seed-event-people__identity-contact-flow,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-inline .wp-seed-event-people__identity-contact-flow {
+		display: block;
+		width: 100%;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-stacked .wp-seed-event-people__contact-separator--name,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-inline .wp-seed-event-people__contact-separator--name {
+		display: none;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-inline .wp-seed-event-people__contacts > li {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__identity-contact-flow {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		width: auto;
+		max-width: 100%;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__name,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__contacts {
+		width: auto;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__contacts > li,
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__contact-separator--name {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-people-composable.is-contact-layout-phone-with_name .wp-seed-event-people__roles {
+		order: 4;
+		flex-basis: 100%;
+	}
+
+	.wp-seed-event-people-section.is-contact-layout-phone-inline .wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name) {
+		display: inline;
+	}
+
+	.wp-seed-event-people-section.is-contact-layout-phone-stacked .wp-seed-event-people__contact-separator {
+		display: none;
+	}
+
+	.wp-seed-event-people__contact-separator:not(.wp-seed-event-people__contact-separator--name) {
+		--wp-seed-event-people-separator-current-color: var(--wp-seed-event-people-separator-color-phone, var(--wp-seed-event-people-separator-color-tablet, currentColor));
+		--wp-seed-event-people-separator-current-size: var(--wp-seed-event-people-separator-size-phone, var(--wp-seed-event-people-separator-size-tablet, 1em));
+		--wp-seed-event-people-separator-current-before: var(--wp-seed-event-people-separator-before-phone, var(--wp-seed-event-people-separator-before-tablet, 0.35em));
+		--wp-seed-event-people-separator-current-after: var(--wp-seed-event-people-separator-after-phone, var(--wp-seed-event-people-separator-after-tablet, 0.35em));
+	}
+
+	.wp-seed-event-people__contact-separator--name {
+		--wp-seed-event-people-name-separator-current-color: var(--wp-seed-event-people-name-separator-color-phone, var(--wp-seed-event-people-name-separator-color-tablet, currentColor));
+		--wp-seed-event-people-name-separator-current-size: var(--wp-seed-event-people-name-separator-size-phone, var(--wp-seed-event-people-name-separator-size-tablet, 1em));
+		--wp-seed-event-people-name-separator-current-before: var(--wp-seed-event-people-name-separator-before-phone, var(--wp-seed-event-people-name-separator-before-tablet, 0.35em));
+		--wp-seed-event-people-name-separator-current-after: var(--wp-seed-event-people-name-separator-after-phone, var(--wp-seed-event-people-name-separator-after-tablet, 0.35em));
 	}
 }

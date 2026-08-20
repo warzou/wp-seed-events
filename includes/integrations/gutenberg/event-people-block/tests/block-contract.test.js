@@ -34,8 +34,10 @@ check('canonical block identity', () => {
   assert.strictEqual(metadata.icon, 'groups');
 });
 
-check('thirteen exact attributes', () => {
+check('sixteen exact attributes', () => {
   assert.deepStrictEqual(Object.keys(metadata.attributes).sort(), [
+    'contact_layout',
+    'contact_separator',
     'heading_level',
     'layout',
     'link_email',
@@ -43,6 +45,7 @@ check('thirteen exact attributes', () => {
     'link_url',
     'role',
     'roles',
+    'show_contact_separator',
     'show_email',
     'show_link',
     'show_name',
@@ -70,6 +73,9 @@ check('defaults match the people renderer', () => {
       link_phone: true,
       link_email: true,
       link_url: true,
+      contact_layout: 'stacked',
+      show_contact_separator: false,
+      contact_separator: '\u2014',
       layout: 'list',
     },
   );
@@ -87,6 +93,7 @@ check('role and layout enums are exact', () => {
   assert.ok(source.includes("{ label: __( 'Contact', 'wp-seed-events' ), value: 'contact' }"));
   assert.ok(source.includes("[ 'registration_contact', 'information_contact' ]"));
   assert.deepStrictEqual(metadata.attributes.layout.enum, ['list', 'grid']);
+  assert.deepStrictEqual(metadata.attributes.contact_layout.enum, ['stacked', 'inline', 'with_name']);
 });
 
 check('dynamic save is null', () => assert.ok(source.includes('save: () => null')));
@@ -139,17 +146,24 @@ check('Inspector exposes roles OR and fine-grained controls', () => {
     'Afficher les emails autoris\u00e9s',
     'Rendre l\u2019email cliquable',
     'Afficher les t\u00e9l\u00e9phones autoris\u00e9s',
-    'Rendre le t\u00e9l\u00e9phone cliquable',
     'Afficher les liens autoris\u00e9s',
     'Rendre le lien cliquable',
+    'Disposition des coordonnÃ©es',
+    'Afficher le sÃ©parateur en ligne',
+    'CaractÃ¨re du sÃ©parateur',
     'Mise en page',
   ].forEach((label) => assert.ok(source.includes(label), 'Missing label: ' + label));
   assert.ok(source.includes("rawRoles.includes( 'all' )"));
   assert.ok(source.includes("roles: uniqueRoles"));
-  assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 1);
-  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 2);
+  assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 2);
+  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 3);
   assert.strictEqual((source.match(/<CheckboxControl\b/g) || []).length, 2);
   assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 8);
+  assert.ok(!source.includes('Rendre le t\u00e9phone cliquable'));
+  assert.ok(bootstrap.includes("'contract'      => 'composable-v2'"));
+  assert.ok(bootstrap.includes("'legacy_phone_action'"));
+  assert.ok(bootstrap.includes("'contact_layouts'"));
+  assert.ok(bootstrap.includes("'show_contact_separator'"));
 });
 
 check('privacy help is explicit', () => {

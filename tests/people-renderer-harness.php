@@ -510,6 +510,279 @@ p2_case( '54 link toggles keep public values without anchors', function () use (
 	p2_not_contains( 'private@example.test', $html, 'Private email leaked.' );
 } );
 
+p2_case( '55 composable name-only output excludes all details', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array(
+		'contract' => 'composable-v1', 'show_name' => true, 'show_roles' => false,
+		'show_email' => false, 'show_phone' => false, 'show_link' => false,
+	) );
+	p2_contains( 'Émilie Test', $html, 'Name-only composition lost the name.' );
+	p2_not_contains( '__roles', $html, 'Name-only composition rendered roles.' );
+	p2_not_contains( '__contacts', $html, 'Name-only composition rendered contacts.' );
+} );
+
+p2_case( '56 phone action supports none call and SMS', function () use ( $complete ) {
+	$base = array( 'contract' => 'composable-v1', 'show_name' => false, 'show_roles' => false, 'show_email' => false, 'show_link' => false );
+	$none = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array_merge( $base, array( 'phone_action' => 'none' ) ) );
+	$call = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array_merge( $base, array( 'phone_action' => 'call' ) ) );
+	$sms  = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array_merge( $base, array( 'phone_action' => 'sms' ) ) );
+	p2_not_contains( 'href=', $none, 'None phone action created a link.' );
+	p2_contains( 'href="tel:+32470112233"', $call, 'Call action is invalid.' );
+	p2_contains( 'href="sms:+32470112233"', $sms, 'SMS action is invalid.' );
+	p2_contains( '+32 470 11 22 33', $sms, 'Readable phone was changed.' );
+} );
+
+p2_case( '57 email and site clickability are independent', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array(
+		'contract' => 'composable-v1', 'email_clickable' => false, 'site_clickable' => true, 'site_label' => 'Site internet',
+	) );
+	p2_not_contains( 'mailto:', $html, 'Email remained clickable.' );
+	p2_contains( '>public@example.test</span>', $html, 'Email text disappeared.' );
+	p2_contains( 'href="https://example.test/profil">Site internet</a>', $html, 'Site label or URL is invalid.' );
+} );
+
+p2_case( '58 empty site label falls back to URL in composable contract', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array( 'contract' => 'composable-v1', 'site_label' => '' ) );
+	p2_contains( '>https://example.test/profil</a>', $html, 'Site URL fallback is missing.' );
+} );
+
+p2_case( '59 inline contacts render neutral separators only between values', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), array(
+		'contract' => 'composable-v1', 'contact_layouts' => array( 'desktop' => 'inline', 'tablet' => 'stacked', 'phone' => 'inline' ),
+		'show_contact_separator' => true, 'contact_separator' => '|',
+	) );
+	p2_contains( 'is-contact-layout-desktop-inline', $html, 'Desktop inline class is missing.' );
+	p2_contains( 'is-contact-layout-tablet-stacked', $html, 'Tablet stacked class is missing.' );
+	p2_contains( 'is-contact-layout-phone-inline', $html, 'Phone inline class is missing.' );
+	p2_assert( 2 === p2_count( 'wp-seed-event-people__contact-separator', $html ), 'Separator cardinality differs from contacts minus one.' );
+	p2_assert( 3 === p2_count( 'wp-seed-event-people__contact wp-seed-event-people__', $html ), 'Contact cardinality changed.' );
+} );
+
+p2_case( '60 legacy output remains byte-compatible in its public labels', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ) );
+	p2_contains( '>Consulter le lien associé à Émilie Test</a>', $html, 'Legacy site label changed.' );
+	p2_not_contains( 'is-people-composable', $html, 'Legacy output received composable classes.' );
+	p2_not_contains( '__contact-separator', $html, 'Legacy output received separators.' );
+} );
+
+p2_case( '61 composable v2 consumes canonical person website data', function () use ( $complete ) {
+	$person = array_merge(
+		$complete,
+		array(
+			'website_url'   => 'https://example.test/profil',
+			'website_label' => 'Découvrir mon site',
+		)
+	);
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $person ) ),
+		array( 'contract' => 'composable-v2', 'site_clickable' => true )
+	);
+	p2_contains( 'href="https://example.test/profil">Découvrir mon site</a>', $html, 'Canonical website label was not rendered.' );
+} );
+
+p2_case( '62 composable v2 site text remains canonical when unlinked', function () use ( $complete ) {
+	$person = array_merge(
+		$complete,
+		array(
+			'website_url'   => 'https://example.test/profil',
+			'website_label' => 'Découvrir mon site',
+		)
+	);
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $person ) ),
+		array( 'contract' => 'composable-v2', 'site_clickable' => false )
+	);
+	p2_contains( '>Découvrir mon site</span>', $html, 'Canonical unlinked website label was not rendered.' );
+	p2_not_contains( '__link-anchor', $html, 'Unlinked canonical website remained clickable.' );
+} );
+
+p2_case( '63 composable v1 preserves its saved module label', function () use ( $complete ) {
+	$person = array_merge( $complete, array( 'website_label' => 'Nouveau libellé Personne' ) );
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $person ) ),
+		array( 'contract' => 'composable-v1', 'site_label' => 'Ancien libellé du module' )
+	);
+	p2_contains( '>Ancien libellé du module</a>', $html, 'Saved v1 module label was replaced.' );
+	p2_not_contains( 'Nouveau libellé Personne', $html, 'V1 instance consumed v2 person data.' );
+} );
+
+p2_case( '64 composable v2 consumes canonical association phone actions', function () use ( $complete ) {
+	$base = array( 'contract' => 'composable-v2', 'show_name' => false, 'show_roles' => false, 'show_email' => false, 'show_link' => false );
+	$none = wp_seed_events_render_public_event_people_section( p2_event( array( array_merge( $complete, array( 'phone_action' => 'none' ) ) ) ), $base );
+	$call = wp_seed_events_render_public_event_people_section( p2_event( array( array_merge( $complete, array( 'phone_action' => 'call' ) ) ) ), $base );
+	$sms  = wp_seed_events_render_public_event_people_section( p2_event( array( array_merge( $complete, array( 'phone_action' => 'sms' ) ) ) ), $base );
+	p2_not_contains( 'href=', $none, 'Canonical none action created a link.' );
+	p2_contains( 'href="tel:+32470112233"', $call, 'Canonical call action is invalid.' );
+	p2_contains( 'href="sms:+32470112233"', $sms, 'Canonical SMS action is invalid.' );
+} );
+
+p2_case( '65 same person can use distinct phone actions per event', function () use ( $complete ) {
+	$base = array( 'contract' => 'composable-v2', 'show_email' => false, 'show_link' => false, 'phone_action' => 'none' );
+	$call = wp_seed_events_render_public_event_people_section( p2_event( array( array_merge( $complete, array( 'phone_action' => 'call' ) ) ) ), $base );
+	$sms  = wp_seed_events_render_public_event_people_section( p2_event( array( array_merge( $complete, array( 'phone_action' => 'sms' ) ) ) ), $base );
+	p2_contains( 'href="tel:', $call, 'Event A did not keep call.' );
+	p2_contains( 'href="sms:', $sms, 'Event B did not keep SMS.' );
+	p2_not_contains( 'href="sms:', $call, 'Event B action leaked into event A.' );
+} );
+
+p2_case( '66 with-name layout is normalized and emitted per breakpoint', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'        => 'composable-v2',
+			'contact_layouts' => array( 'desktop' => 'with_name', 'tablet' => 'inline', 'phone' => 'stacked' ),
+		)
+	);
+	p2_contains( 'is-contact-layout-desktop-with_name', $html, 'Desktop with-name class is missing.' );
+	p2_contains( 'is-contact-layout-tablet-inline', $html, 'Tablet inline class is missing.' );
+	p2_contains( 'is-contact-layout-phone-stacked', $html, 'Phone stacked class is missing.' );
+} );
+
+p2_case( '67 with-name separator includes the name boundary', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'               => 'composable-v2',
+			'contact_layouts'        => array( 'desktop' => 'with_name' ),
+			'show_contact_separator' => true,
+		)
+	);
+	p2_contains( 'wp-seed-event-people__contact-separator--name', $html, 'Name/contact separator boundary is missing.' );
+	p2_contains( '>&mdash;</span>', str_replace( '—', '&mdash;', $html ), 'New separator default is not an em dash.' );
+} );
+
+p2_case( '68 explicit historical separator remains unchanged', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'               => 'composable-v2',
+			'contact_layouts'        => array( 'desktop' => 'with_name' ),
+			'show_contact_separator' => true,
+			'contact_separator'      => '|',
+		)
+	);
+	p2_contains( '>|</span>', $html, 'Explicit separator was replaced.' );
+} );
+
+p2_case( '69 with-name separators cover only visible values', function () use ( $complete ) {
+	$base = array(
+		'contract'               => 'composable-v2',
+		'contact_layouts'        => array( 'desktop' => 'with_name' ),
+		'show_contact_separator' => true,
+		'contact_separator'      => '|',
+		'show_roles'             => false,
+	);
+	$all = wp_seed_events_render_public_event_people_section( p2_event( array( $complete ) ), $base );
+	p2_assert( 3 === p2_count( '<span class="wp-seed-event-people__contact-separator', $all ), 'Name plus three contacts must have exactly three separators.' );
+	p2_not_contains( '||', wp_strip_all_tags( $all ), 'Adjacent separators were rendered.' );
+
+	$name_and_phone = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array_merge( $base, array( 'show_email' => false, 'show_link' => false ) )
+	);
+	p2_assert( 1 === p2_count( '<span class="wp-seed-event-people__contact-separator', $name_and_phone ), 'Name plus phone must have exactly one separator.' );
+
+	$name_only = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array_merge( $base, array( 'show_email' => false, 'show_phone' => false, 'show_link' => false ) )
+	);
+	p2_not_contains( '__contact-separator', $name_only, 'Name-only output rendered a separator.' );
+} );
+
+p2_case( '70 hidden name never creates a leading with-name separator', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'               => 'composable-v2',
+			'contact_layouts'        => array( 'desktop' => 'with_name' ),
+			'show_name'              => false,
+			'show_roles'             => false,
+			'show_contact_separator' => true,
+		)
+	);
+	p2_not_contains( '__contact-separator--name', $html, 'Hidden name created a leading separator.' );
+	p2_assert( 2 === p2_count( '<span class="wp-seed-event-people__contact-separator', $html ), 'Visible contacts did not keep contacts-minus-one separators.' );
+} );
+
+p2_case( '71 composable v3 keeps both separator contracts independent', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'                    => 'composable-v3',
+			'contact_layouts'             => array( 'desktop' => 'with-name' ),
+			'show_contact_separator'      => true,
+			'contact_separator'           => '|',
+			'show_name_contact_separator' => true,
+			'name_contact_separator'      => ':',
+			'contact_separator_styles'    => array( 'desktop' => array( 'color' => '#112233' ) ),
+			'name_contact_separator_styles' => array( 'desktop' => array( 'color' => '#445566' ) ),
+		)
+	);
+	p2_contains( 'is-contact-layout-desktop-with_name', $html, 'Hyphenated UI value was not normalized.' );
+	p2_contains( 'wp-seed-event-people__identity-contact-flow', $html, 'Composable output lacks the real identity/contact flow wrapper.' );
+	p2_contains( '>:</span>', $html, 'Name separator character is missing.' );
+	p2_contains( '>|</span>', $html, 'Contact separator character is missing.' );
+	p2_contains( '--wp-seed-event-people-name-separator-color-desktop:#445566', $html, 'Name separator style leaked or disappeared.' );
+	p2_contains( '--wp-seed-event-people-separator-color-desktop:#112233', $html, 'Contact separator style leaked or disappeared.' );
+	p2_assert(
+		strpos( $html, 'wp-seed-event-people__name' ) < strpos( $html, '__contact-separator--name' )
+		&& strpos( $html, '__contact-separator--name' ) < strpos( $html, 'wp-seed-event-people__contacts' ),
+		'Name, boundary separator and contacts do not share the expected DOM order.'
+	);
+} );
+
+p2_case( '72 composable v3 never renders orphan name separators', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'                    => 'composable-v3',
+			'contact_layouts'             => array( 'desktop' => 'with_name' ),
+			'show_name_contact_separator' => true,
+			'show_email'                  => false,
+			'show_phone'                  => false,
+			'show_link'                   => false,
+		)
+	);
+	p2_not_contains( '__contact-separator', $html, 'Name-only output rendered an orphan separator.' );
+} );
+
+p2_case( '73 responsive layouts preserve with-name inline and stacked modes', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'        => 'composable-v3',
+			'contact_layouts' => array( 'desktop' => 'with-name', 'tablet' => 'inline', 'phone' => 'stacked' ),
+		)
+	);
+	p2_contains( 'is-contact-layout-desktop-with_name', $html, 'Desktop with-name class missing.' );
+	p2_contains( 'is-contact-layout-tablet-inline', $html, 'Tablet inline class missing.' );
+	p2_contains( 'is-contact-layout-phone-stacked', $html, 'Phone stacked class missing.' );
+} );
+
+p2_case( '74 untouched historical instances keep legacy markup', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array( 'contract' => 'legacy', 'contact_layouts' => array( 'desktop' => 'inline' ) )
+	);
+	p2_not_contains( 'wp-seed-event-people__identity-contact-flow', $html, 'Untouched legacy inline instance was migrated implicitly.' );
+	p2_not_contains( 'is-people-composable', $html, 'Untouched legacy inline instance received composable classes.' );
+} );
+
+p2_case( '75 explicit with-name overrides a missing historical contract', function () use ( $complete ) {
+	$html = wp_seed_events_render_public_event_people_section(
+		p2_event( array( $complete ) ),
+		array(
+			'contract'                    => 'legacy',
+			'contact_layouts'             => array( 'desktop' => 'with_name', 'tablet' => 'inline', 'phone' => 'stacked' ),
+			'show_contact_separator'      => true,
+			'show_name_contact_separator' => true,
+			'name_contact_separator'      => ':',
+		)
+	);
+	p2_contains( 'is-contact-layout-desktop-with_name', $html, 'Explicit historical with-name value did not become authoritative.' );
+	p2_contains( 'wp-seed-event-people__identity-contact-flow', $html, 'Explicit historical with-name value did not create the shared flow.' );
+	p2_contains( 'wp-seed-event-people__contact-separator--name', $html, 'Explicit historical with-name value lost its name separator.' );
+} );
+
 $benchmark_events = array(
 	'zero'            => p2_event( array() ),
 	'one'             => p2_event( array( $organizer ) ),

@@ -5,6 +5,7 @@ define( 'ABSPATH', __DIR__ );
 $GLOBALS['contact_rest_meta']   = array();
 $GLOBALS['contact_rest_fields'] = array();
 $GLOBALS['contact_cache_flush'] = array();
+$GLOBALS['contact_people']      = array();
 
 class WP_Error {
 	public $code;
@@ -53,6 +54,18 @@ function wp_seed_events_contact_role_keys( $contact, $roles ) {
 function wp_seed_events_get_event_data( $id ) {
 	return array( 'contact' => array( array( 'name' => 'Public ' . $id, 'role_keys' => array( 'contact' ) ) ) );
 }
+function wp_seed_events_stored_people() { return $GLOBALS['contact_people']; }
+function wp_seed_events_save_people( $people ) { $GLOBALS['contact_people'] = $people; }
+function wp_seed_events_sanitize_person( $person, $person_key = '' ) {
+	return array(
+		'person_key'    => sanitize_key( $person_key ?: ( $person['person_key'] ?? '' ) ),
+		'name'          => sanitize_text_field( $person['name'] ?? '' ),
+		'phone'         => sanitize_text_field( $person['phone'] ?? '' ),
+		'email'         => sanitize_email( $person['email'] ?? '' ),
+		'link'          => wp_seed_events_normalize_person_link( $person['link'] ?? '' ),
+		'website_label' => wp_seed_events_normalize_person_website_label( $person['website_label'] ?? '' ),
+	);
+}
 
 require dirname( __DIR__ ) . '/includes/public/people.php';
 
@@ -78,6 +91,8 @@ cr_case( 'edit REST read canonicalizes legacy storage', function () {
 	$value = wp_seed_events_contact_rest_get( array( 'id' => 9 ), 'contact', new Contact_Request( 'edit' ) );
 	cr_same( 1, count( $value ), 'non-contact leaked into contact field' );
 	cr_same( 'contact', $value[0]['role'], 'legacy role was not canonicalized' );
+	cr_same( 'call', $value[0]['phone_action'], 'historical phone action fallback differs' );
+	cr_same( false, $value[0]['phone_action_explicit'], 'historical fallback became explicit' );
 } );
 
 cr_case( 'REST write replaces contacts and preserves other people', function () {
@@ -91,6 +106,52 @@ cr_case( 'REST deletion removes contacts only', function () {
 	wp_seed_events_contact_rest_update( array(), (object) array( 'ID' => 9 ) );
 	cr_same( 1, count( $GLOBALS['contact_rest_meta'][9] ), 'contact was not removed' );
 	cr_same( 'organizer', $GLOBALS['contact_rest_meta'][9][0]['role'], 'organizer was removed' );
+} );
+
+cr_case( 'REST writes phone action on the event association', function () {
+	$row = cr_row( 'contact', 'David' );
+	$row['phone'] = '+32 470 11 22 33';
+	$row['publish_phone'] = true;
+	$row['phone_action'] = 'sms';
+	wp_seed_events_contact_rest_update( array( $row ), (object) array( 'ID' => 9 ) );
+	$stored = $GLOBALS['contact_rest_meta'][9][1] ?? array();
+	cr_same( 'sms', $stored['phone_action'] ?? '', 'REST phone action was not stored on the association' );
+} );
+
+cr_case( 'REST preserves an implicit historical action on round trip', function () {
+	$legacy = cr_row( 'contact', 'Claire' );
+	$GLOBALS['contact_rest_meta'][10] = array( $legacy );
+	$editable = wp_seed_events_contact_rest_get( array( 'id' => 10 ), 'contact', new Contact_Request( 'edit' ) );
+	wp_seed_events_contact_rest_update( $editable, (object) array( 'ID' => 10 ) );
+	cr_same( false, array_key_exists( 'phone_action', $GLOBALS['contact_rest_meta'][10][0] ), 'REST round trip migrated historical storage' );
+} );
+
+cr_case( 'edit REST exposes the canonical website pair', function () {
+	$row = cr_row( 'contact', 'Claire' );
+	$row['link'] = 'https://example.test/claire';
+	$GLOBALS['contact_rest_meta'][11] = array( $row );
+	$GLOBALS['contact_people']['claire'] = array_merge( $row, array( 'website_label' => 'Découvrir le site' ) );
+	$value = wp_seed_events_contact_rest_get( array( 'id' => 11 ), 'contact', new Contact_Request( 'edit' ) );
+	cr_same( 'https://example.test/claire', $value[0]['website_url'], 'website URL missing from edit REST' );
+	cr_same( 'Découvrir le site', $value[0]['website_label'], 'website label missing from edit REST' );
+} );
+
+cr_case( 'REST stores the label globally without duplicating the association', function () {
+	$row = cr_row( 'contact', 'Claire' );
+	$row['website_url'] = 'https://example.test/claire';
+	$row['website_label'] = 'Voir Claire';
+	$result = wp_seed_events_contact_rest_update( array( $row ), (object) array( 'ID' => 11 ) );
+	cr_same( true, $result, 'website REST write failed' );
+	cr_same( 'Voir Claire', $GLOBALS['contact_people']['claire']['website_label'], 'global website label was not updated' );
+	cr_same( false, array_key_exists( 'website_label', $GLOBALS['contact_rest_meta'][11][0] ), 'website label leaked into event association' );
+} );
+
+cr_case( 'REST rejects a website label without URL', function () {
+	$row = cr_row( 'contact', 'Claire' );
+	$row['website_label'] = 'Voir Claire';
+	$result = wp_seed_events_contact_rest_update( array( $row ), (object) array( 'ID' => 11 ) );
+	cr_same( true, $result instanceof WP_Error, 'invalid website pair did not return WP_Error' );
+	cr_same( 'rest_invalid_website', $result->code, 'invalid website pair returned the wrong error' );
 } );
 
 echo "PASS {$passed}/{$passed}\n";

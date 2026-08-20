@@ -17,9 +17,9 @@ Aucun adaptateur builder ne lit directement les metas ou les coordonnees privees
 
 ## Autorisations de publication
 
-Chaque association peut autoriser independamment `publish_email`, `publish_phone` et `publish_link`. Seules les valeurs strictement vraies autorisent la projection publique. Le nom et les roles restent publics ; les coordonnees sont privees par defaut.
+Chaque association peut autoriser independamment `publish_email`, `publish_phone` et `publish_link`. Elle porte aussi `phone_action` (`none`, `call` ou `sms`), qui definit le comportement du telephone pour cet evenement seulement. Seules les valeurs strictement vraies autorisent la projection publique. Le nom et les roles restent publics.
 
-Modifier une coordonnee revoque uniquement son autorisation correspondante. Aucune autorisation n'est propagee entre evenements et aucune coordonnee historique n'est republiee automatiquement.
+Pour une nouvelle association, chaque coordonnee valide est proposee publique par defaut et peut etre decochee avant la sauvegarde. Une association historique sans flag reste privee et les choix explicites existants sont preserves lors d'une modification sans rapport. Remplacer une coordonnee deja renseignee revoque uniquement son autorisation correspondante ; ajouter une coordonnee jusque-la absente la propose publique. Aucune autorisation n'est propagee entre evenements.
 
 ## Event Data publique
 
@@ -29,7 +29,9 @@ Chaque personne publique peut fournir :
 - `role_keys` et `roles` ;
 - `public_email` ;
 - `public_phone` ;
-- `public_url`.
+- `phone_public` et `phone_action` ;
+- `public_url` et son alias canonique `website_url` ;
+- `website_label`, resolu depuis la fiche Personne avec fallback sur l'URL.
 
 Les trois coordonnees publiques sont absentes ou vides lorsque leur publication n'est pas autorisee. Les alias historiques suivent le meme filtrage.
 
@@ -56,15 +58,17 @@ Elle consomme uniquement une Event Data publique deja filtree et n'accede ni aux
 | `show_phone` | `true` | booleen |
 | `show_email` | `true` | booleen |
 | `show_link` | `true` | booleen |
-| `link_phone` | `true` | booleen |
+| `link_phone` | compatible | ancien choix de presentation, lu uniquement pour les instances historiques |
 | `link_email` | `true` | booleen |
 | `link_url` | `true` | booleen |
 | `details` | compatible | alias historique des options de detail |
 | `layout` | `list` | `list` ou `grid` |
+| `contact_layout` | `stacked` | `stacked`, `inline` ou `with_name` |
+| `contact_separator` | `—` | separateur entre coordonnees et, en mode `with_name`, entre le nom et la premiere coordonnee |
 
 Les roles canoniques sont `organizer`, `speaker` et `contact`. Plusieurs roles utilisent une logique OU. `all` est exclusif dans les interfaces ; une liste explicite ne combine jamais un second mode de filtrage. `registration_contact` et `information_contact` restent des alias de lecture pour les contenus historiques.
 
-`details` reste accepte pour les contenus historiques. Les nouvelles integrations doivent utiliser les options `show_*` et `link_*`.
+`details` reste accepte pour les contenus historiques. Les nouvelles integrations doivent utiliser les options `show_*` et `link_*`. Un separateur explicitement enregistre reste inchange ; les nouvelles configurations utilisent un tiret cadratin.
 
 ## Confidentialite et accessibilite
 
@@ -100,7 +104,7 @@ Le template natif delegue au meme renderer partage. Il conserve l'ordre et la co
 
 ## Module Divi 5
 
-Le module `wp-seed-events/event-people` expose : titre, niveau, quatre roles selectionnables, nom, roles, trois coordonnees, trois options de liens cliquables et disposition liste/grille.
+Le module `wp-seed-events/event-people` expose : titre, niveau, nom, roles, trois coordonnees, les choix de presentation email/site et les dispositions des personnes et coordonnees. Le mode telephone appartient a l'association evenement-personne et le libelle du site appartient a la fiche Personne ; les nouvelles instances Divi ne dupliquent aucun de ces champs.
 
 Les roles actives sont combines en logique OU. Sans role specifique, tous les roles sont affiches. Le module ne contient ni shortcode, ni ID fixe, ni lecture de meta et n'ajoute aucune route REST Personnes.
 
@@ -110,7 +114,7 @@ Un contexte evenement explicite incompatible retourne vide sans fallback. Dans c
 
 Le bloc dynamique `wp-seed-events/event-people-block` utilise Block API v3, `save: null`, le rendu serveur partage et les memes options que le renderer. Ses attributs persistants incluent `roles` et conservent `role` pour la compatibilite.
 
-L'inspecteur permet une selection multiple des roles en logique OU et des controles distincts pour le nom, les roles, les coordonnees et leurs liens. Query Loop transmet un contexte isole a chaque carte. Une page ordinaire ou un contexte explicite incompatible reste vide en frontend.
+L'inspecteur permet une selection multiple des roles en logique OU et des controles distincts pour le nom, les roles et les coordonnees. Le telephone consomme toujours le mode canonique de l'association. Query Loop transmet un contexte isole a chaque carte. Une page ordinaire ou un contexte explicite incompatible reste vide en frontend.
 
 ## Contrat alpha.2 fige
 

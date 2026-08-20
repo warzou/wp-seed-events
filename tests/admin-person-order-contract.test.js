@@ -24,5 +24,11 @@ assert.ok(source.includes("$(document).on('click','[data-wp-seed-person-move-up]
 assert.ok(source.includes('item.insertBefore(sibling)'));
 assert.ok(source.includes('item.insertAfter(sibling)'));
 assert.ok(source.includes('refreshPeopleOrder(peopleRoot);\n\t\tmarkChanged(peopleRoot);'));
+assert.ok(peopleSource.includes('Action du téléphone'));
+assert.ok(peopleSource.includes('data-wp-seed-person-panel-field="phone_action"'));
+assert.ok(peopleSource.includes('data-wp-seed-person-field="phone_action_explicit"'));
+assert.ok(source.includes("phone_action:'none'"), 'New associations must default to none.');
+assert.ok(source.includes("personPanel.data('wpSeedPhoneActionTouched',false)"));
+assert.ok(source.includes('wp_seed_events_contact_phone_action_for_storage('));
 
-console.log('Admin event-scoped person order contract: 16 assertions PASS');
+console.log('Admin event-scoped person order and phone action contract: 22 assertions PASS');

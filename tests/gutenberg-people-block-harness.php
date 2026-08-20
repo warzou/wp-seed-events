@@ -13,8 +13,8 @@ $GLOBALS['p5_cases']       = 0;
 $GLOBALS['p5_data_calls']  = 0;
 $GLOBALS['p5_current_id']  = 0;
 $GLOBALS['p5_registered']  = array();
-$GLOBALS['p5_post_types']  = array( 10 => 'wp_seed_event', 11 => 'wp_seed_event', 12 => 'wp_seed_event', 20 => 'page' );
-$GLOBALS['p5_post_status'] = array( 10 => 'publish', 11 => 'publish', 12 => 'publish', 20 => 'publish' );
+$GLOBALS['p5_post_types']  = array( 10 => 'wp_seed_event', 11 => 'wp_seed_event', 12 => 'wp_seed_event', 13 => 'wp_seed_event', 20 => 'page' );
+$GLOBALS['p5_post_status'] = array( 10 => 'publish', 11 => 'publish', 12 => 'publish', 13 => 'publish', 20 => 'publish' );
 
 function absint( $value ) {
 	return abs( (int) $value );
@@ -130,6 +130,10 @@ $GLOBALS['p5_events'] = array(
 		'people' => array( p5_person( 'David', 'information_contact', 'Contact information' ) ),
 	),
 	12 => array( 'id' => 12, 'people' => array() ),
+	13 => array(
+		'id' => 13,
+		'people' => array( p5_person( 'SMS', 'contact', 'Contact', array( 'public_phone' => '+32 470 11 22 33', 'phone_action' => 'sms' ) ) ),
+	),
 );
 
 function wp_seed_events_get_event_data( $event_id ) {
@@ -278,5 +282,11 @@ p5_case( '52 name and link controls preserve privacy', function () {
 	p5_not_contains( 'secret', $html, 'Private coordinate leaked.' );
 } );
 
-p5_assert( 52 === $GLOBALS['p5_cases'], 'Expected 50 cases.' );
-echo 'Gutenberg people block: 52/52 OK' . PHP_EOL;
+p5_case( '53 Gutenberg consumes canonical association phone action', function () {
+	$html = p5_render( array( 'postId' => 13, 'postType' => 'wp_seed_event' ) );
+	p5_contains( 'href="sms:+32470112233"', $html, 'Canonical SMS action is missing.' );
+	p5_not_contains( 'href="tel:', $html, 'Gutenberg rebuilt the phone action.' );
+} );
+
+p5_assert( 53 === $GLOBALS['p5_cases'], 'Expected 53 cases.' );
+echo 'Gutenberg people block: 53/53 OK' . PHP_EOL;

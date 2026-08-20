@@ -77,6 +77,23 @@
       "type": "boolean",
       "default": true
     },
+    "contact_layout": {
+      "type": "string",
+      "default": "stacked",
+      "enum": [
+        "stacked",
+        "inline",
+        "with_name"
+      ]
+    },
+    "show_contact_separator": {
+      "type": "boolean",
+      "default": false
+    },
+    "contact_separator": {
+      "type": "string",
+      "default": "\u2014"
+    },
     "layout": {
       "type": "string",
       "default": "list",

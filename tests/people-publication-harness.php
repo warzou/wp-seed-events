@@ -17,6 +17,7 @@ $GLOBALS['p1_people']           = array();
 $GLOBALS['p1_meta_reads']       = array();
 $GLOBALS['p1_writes']           = array();
 $GLOBALS['p1_event_ids']        = array();
+$GLOBALS['p1_invalidated_ids']  = array();
 $GLOBALS['p1_current_user_can'] = true;
 
 function p1_assert( $condition, $message ) {
@@ -38,6 +39,7 @@ function p1_reset_runtime() {
 	$GLOBALS['p1_meta_reads']       = array();
 	$GLOBALS['p1_writes']           = array();
 	$GLOBALS['p1_event_ids']        = array();
+	$GLOBALS['p1_invalidated_ids']  = array();
 	$GLOBALS['p1_current_user_can'] = true;
 	$_POST                          = array();
 }
@@ -175,6 +177,10 @@ function delete_post_meta( $post_id, $key ) {
 	$GLOBALS['p1_writes'][] = array( 'delete_post_meta', $post_id, (string) $key );
 
 	return true;
+}
+
+function wp_seed_events_dynamic_data_invalidate_event_cache( $event_id ) {
+	$GLOBALS['p1_invalidated_ids'][] = absint( $event_id );
 }
 
 function get_posts( $args = array() ) {
@@ -323,11 +329,12 @@ function wp_seed_events_sanitize_person( $person, $person_key = '' ) {
 	}
 
 	return array(
-		'person_key' => sanitize_key( '' !== $person_key ? $person_key : ( $person['person_key'] ?? '' ) ),
-		'name'       => $name,
-		'phone'      => $coordinates['phone'],
-		'email'      => $coordinates['email'],
-		'link'       => $coordinates['link'],
+		'person_key'    => sanitize_key( '' !== $person_key ? $person_key : ( $person['person_key'] ?? '' ) ),
+		'name'          => $name,
+		'phone'         => $coordinates['phone'],
+		'email'         => $coordinates['email'],
+		'link'          => $coordinates['link'],
+		'website_label' => wp_seed_events_normalize_person_website_label( $person['website_label'] ?? '' ),
 	);
 }
 
@@ -355,6 +362,18 @@ p1_same( '', wp_seed_events_normalize_person_phone( '12345' ), 'short phone reje
 p1_same( '', wp_seed_events_normalize_person_phone( '+12 abc 345678' ), 'phone letters rejected' );
 p1_same( '', wp_seed_events_normalize_person_phone( '1234567890123456' ), 'long phone rejected' );
 p1_same( 'https://person.example.test/profile', wp_seed_events_normalize_person_link( ' https://person.example.test/profile ' ), 'HTTPS link normalized' );
+p1_same( 'Découvrir le site', wp_seed_events_normalize_person_website_label( "  Découvrir\n le site  " ), 'website label normalized' );
+p1_same( 'Découvrir le site', wp_seed_events_person_website_label( array( 'website_label' => 'Découvrir le site' ), 'https://person.example.test/' ), 'website label preferred' );
+p1_same( 'https://person.example.test/', wp_seed_events_person_website_label( array(), 'https://person.example.test/' ), 'historical URL fallback missing' );
+p1_same( 'none', wp_seed_events_normalize_contact_phone_action( 'none' ), 'none phone action rejected' );
+p1_same( 'call', wp_seed_events_normalize_contact_phone_action( 'call' ), 'call phone action rejected' );
+p1_same( 'sms', wp_seed_events_normalize_contact_phone_action( 'sms' ), 'sms phone action rejected' );
+p1_same( 'call', wp_seed_events_contact_phone_action( array() ), 'historical phone action fallback changed' );
+p1_same( 'none', wp_seed_events_contact_phone_action( array( 'phone_action' => 'none' ) ), 'explicit none phone action changed' );
+p1_same( null, wp_seed_events_contact_phone_action_for_storage( array(), array(), false ), 'phone action stored without a phone' );
+p1_same( 'none', wp_seed_events_contact_phone_action_for_storage( array( 'phone' => '+32 470 11 22 33' ), array(), false ), 'new association default is not none' );
+p1_same( null, wp_seed_events_contact_phone_action_for_storage( array( 'phone' => '+32 470 11 22 33' ), array(), true ), 'historical absence was migrated' );
+p1_same( 'sms', wp_seed_events_contact_phone_action_for_storage( array( 'phone' => '+32 470 11 22 33', 'phone_action' => 'sms' ), array(), false ), 'explicit SMS was not stored' );
 
 foreach ( array( '/relative', 'javascript:alert(1)', 'data:text/plain,x', 'file:///tmp/x', 'mailto:a@example.test', 'tel:+32123456' ) as $unsafe_url ) {
 	p1_same( '', wp_seed_events_normalize_person_link( $unsafe_url ), 'unsafe person link accepted: ' . $unsafe_url );
@@ -424,6 +443,14 @@ $new_publication = wp_seed_events_normalize_contact_publication_for_storage(
 );
 p1_assert( true === $new_publication['publish_phone'] && true === $new_publication['publish_email'] && true === $new_publication['publish_link'], 'new explicit publication flags rejected' );
 
+$new_default_publication = wp_seed_events_normalize_contact_publication_for_storage( $base_contact );
+p1_assert( true === $new_default_publication['publish_phone'] && true === $new_default_publication['publish_email'] && true === $new_default_publication['publish_link'], 'new association is not public by default' );
+
+$new_private_publication = wp_seed_events_normalize_contact_publication_for_storage(
+	array_merge( $base_contact, array( 'publish_phone' => '0', 'publish_email' => '0', 'publish_link' => '0' ) )
+);
+p1_assert( false === $new_private_publication['publish_phone'] && false === $new_private_publication['publish_email'] && false === $new_private_publication['publish_link'], 'new association explicit privacy was ignored' );
+
 $existing_contact = array_merge(
 	$base_contact,
 	array(
@@ -433,6 +460,21 @@ $existing_contact = array_merge(
 		'publish_link'  => true,
 	)
 );
+
+$historical_private = array_merge( $base_contact, array( 'person_key' => 'private' ) );
+$preserved_private  = wp_seed_events_normalize_contact_publication_for_storage( $historical_private, $historical_private, true );
+p1_assert( false === $preserved_private['publish_phone'] && false === $preserved_private['publish_email'] && false === $preserved_private['publish_link'], 'historical private association became public' );
+
+$submitted_without_flags = $existing_contact;
+unset( $submitted_without_flags['publish_phone'], $submitted_without_flags['publish_email'], $submitted_without_flags['publish_link'] );
+$preserved_public = wp_seed_events_normalize_contact_publication_for_storage( $submitted_without_flags, $existing_contact, true );
+p1_assert( true === $preserved_public['publish_phone'] && true === $preserved_public['publish_email'] && true === $preserved_public['publish_link'], 'unrelated edit changed public flags' );
+
+$without_email = array_merge( $existing_contact, array( 'email' => '' ) );
+unset( $without_email['publish_email'] );
+$with_new_email = array_merge( $without_email, array( 'email' => 'added@example.test' ) );
+$added_coordinate = wp_seed_events_normalize_contact_publication_for_storage( $with_new_email, $without_email, true );
+p1_same( true, $added_coordinate['publish_email'], 'new coordinate on existing association is not public by default' );
 $changed_publication = wp_seed_events_normalize_contact_publication_for_storage(
 	array_merge( $existing_contact, array( 'email' => 'new@example.test' ) ),
 	$existing_contact,
@@ -490,6 +532,14 @@ $GLOBALS['p1_meta'][300]['_wp_seed_event_contacts'] = array(
 	array( 'name' => 'No coordinates', 'roles' => array() ),
 	array( 'name' => '   ', 'phone' => '+32 499 00 00 00', 'publish_phone' => true ),
 );
+$GLOBALS['p1_people']['public'] = array(
+	'person_key'    => 'public',
+	'name'          => 'Public',
+	'phone'         => '+32 470 11 22 33',
+	'email'         => 'public@example.test',
+	'link'          => 'https://public.example.test/',
+	'website_label' => 'Découvrir mon site',
+);
 $people = wp_seed_events_public_event_people_data( 300 );
 p1_same( 3, count( $people ), 'invalid empty-name person was not filtered' );
 p1_same( 'Historical', $people[0]['name'], 'people order changed' );
@@ -504,6 +554,10 @@ p1_same( '', $people[0]['link'], 'historical link alias leaked' );
 p1_same( '+32 470 11 22 33', $people[1]['public_phone'], 'authorized phone missing' );
 p1_same( 'public@example.test', $people[1]['public_email'], 'authorized email missing' );
 p1_same( 'https://public.example.test/', $people[1]['public_url'], 'authorized link missing' );
+p1_same( 'https://public.example.test/', $people[1]['website_url'], 'canonical website URL missing' );
+p1_same( 'Découvrir mon site', $people[1]['website_label'], 'canonical website label missing' );
+p1_same( true, $people[1]['phone_public'], 'public phone state missing' );
+p1_same( 'call', $people[1]['phone_action'], 'historical phone action fallback missing from Event Data' );
 p1_same( $people[1]['public_phone'], $people[1]['phone'], 'phone compatibility alias differs' );
 p1_same( $people[1]['public_email'], $people[1]['email'], 'email compatibility alias differs' );
 p1_same( $people[1]['public_url'], $people[1]['link'], 'link compatibility alias differs' );
@@ -511,6 +565,32 @@ p1_assert( ! array_key_exists( 'person_key', $people[1] ), 'person_key exposed p
 foreach ( array_keys( $people[1] ) as $public_key ) {
 	p1_assert( 0 !== strpos( $public_key, 'publish_' ), 'publication flag exposed publicly' );
 }
+
+$shared_person = array_merge(
+	$base_contact,
+	array(
+		'person_key'    => 'public',
+		'name'          => 'Public',
+		'phone'         => '+32 470 11 22 33',
+		'publish_phone' => true,
+	)
+);
+$GLOBALS['p1_meta'][301]['_wp_seed_event_contacts'] = array(
+	array_merge( $shared_person, array( 'phone_action' => 'call', 'publish_email' => false, 'publish_phone' => true, 'publish_link' => false ) ),
+);
+$GLOBALS['p1_meta'][302]['_wp_seed_event_contacts'] = array(
+	array_merge( $shared_person, array( 'phone_action' => 'sms', 'publish_email' => true, 'publish_phone' => false, 'publish_link' => true ) ),
+);
+$event_a_people = wp_seed_events_public_event_people_data( 301 );
+$event_b_people = wp_seed_events_public_event_people_data( 302 );
+p1_same( 'call', $event_a_people[0]['phone_action'], 'event A phone action differs' );
+p1_same( 'sms', $event_b_people[0]['phone_action'], 'event B phone action differs' );
+p1_same( '', $event_a_people[0]['public_email'], 'event A inherited event B email publication' );
+p1_same( 'public@example.test', $event_b_people[0]['public_email'], 'event B lost its email publication' );
+p1_same( '+32 470 11 22 33', $event_a_people[0]['public_phone'], 'event A lost its phone publication' );
+p1_same( '', $event_b_people[0]['public_phone'], 'event B inherited event A phone publication' );
+p1_same( '', $event_a_people[0]['public_url'], 'event A inherited event B website publication' );
+p1_same( 'https://public.example.test/', $event_b_people[0]['public_url'], 'event B lost its website publication' );
 p1_same( array(), $people[2]['roles'], 'person without role changed' );
 p1_same( '', $people[2]['public_email'], 'person without coordinates has public email' );
 
@@ -519,6 +599,7 @@ $GLOBALS['p1_posts'][300] = (object) array(
 	'post_type'    => 'wp_seed_event',
 	'post_status'  => 'publish',
 	'post_title'   => 'Public event',
+	'post_name'    => 'public-event',
 	'post_content' => 'Description',
 );
 $GLOBALS['p1_posts'][301] = (object) array(
@@ -608,6 +689,7 @@ p1_same( 'delete_post_meta', $GLOBALS['p1_writes'][0][0], 'explicit empty payloa
 for ( $mask = 0; $mask < 8; $mask++ ) {
 	p1_reset_runtime();
 	$GLOBALS['p1_posts'][200] = (object) array( 'post_type' => 'wp_seed_event', 'post_status' => 'draft', 'post_title' => 'Event' );
+	$GLOBALS['p1_people']['person-a'] = array_merge( $base_contact, array( 'person_key' => 'person-a', 'website_label' => 'Découvrir mon site' ) );
 	$_POST = array(
 		'wp_seed_events_contacts_nonce'        => 'valid',
 		'wp_seed_event_people_changed'         => '1',
@@ -634,6 +716,9 @@ for ( $mask = 0; $mask < 8; $mask++ ) {
 	p1_assert( ! array_key_exists( 'publish_email', $GLOBALS['p1_people']['person-a'] ), 'email authorization stored globally' );
 	p1_assert( ! array_key_exists( 'publish_phone', $GLOBALS['p1_people']['person-a'] ), 'phone authorization stored globally' );
 	p1_assert( ! array_key_exists( 'publish_link', $GLOBALS['p1_people']['person-a'] ), 'link authorization stored globally' );
+	p1_assert( ! array_key_exists( 'link', $saved ), 'website URL duplicated in event association' );
+	p1_assert( ! array_key_exists( 'website_label', $saved ), 'website label duplicated in event association' );
+	p1_same( 'Découvrir mon site', $GLOBALS['p1_people']['person-a']['website_label'], 'event association save dropped the person website label' );
 }
 
 p1_reset_runtime();
@@ -675,7 +760,7 @@ $_POST['wp_seed_events_contacts'][0] = array_merge(
 );
 wp_seed_events_save_contacts( 200 );
 $saved = $GLOBALS['p1_meta'][200]['_wp_seed_event_contacts'][0];
-p1_same( '', $saved['link'], 'removed link retained' );
+p1_assert( ! array_key_exists( 'link', $saved ), 'removed link retained in association' );
 p1_same( false, $saved['publish_link'], 'removed link remained public' );
 p1_same( true, $saved['publish_email'], 'removed link revoked email' );
 p1_same( true, $saved['publish_phone'], 'removed link revoked phone' );
@@ -721,8 +806,9 @@ wp_seed_events_update_person_in_events(
 	array_merge(
 		$existing_contact,
 		array(
-			'name'  => 'Updated name',
-			'email' => 'library-change@example.test',
+			'name'          => 'Updated name',
+			'email'         => 'library-change@example.test',
+			'website_label' => 'Canonical person label',
 		)
 	)
 );
@@ -736,6 +822,8 @@ p1_same( false, $first_propagated['publish_link'], 'library email change altered
 p1_same( false, $second_propagated['publish_email'], 'library email change authorized second email' );
 p1_same( false, $second_propagated['publish_phone'], 'library email change altered second phone flag' );
 p1_same( true, $second_propagated['publish_link'], 'library email change altered second link flag' );
+p1_assert( ! array_key_exists( 'website_label', $first_propagated ), 'person website label was duplicated into the event association' );
+p1_same( array( 10, 11 ), $GLOBALS['p1_invalidated_ids'], 'person change did not invalidate associated Event Data caches' );
 
 $GLOBALS['p1_meta'][12]['_wp_seed_event_contacts'] = array(
 	array_merge( $base_contact, array( 'name' => 'Deleted from library', 'person_key' => 'deleted' ) ),
@@ -751,15 +839,17 @@ $meta_position   = strpos( $save_source, "get_post_meta( \$post_id, '_wp_seed_ev
 p1_assert( false !== $marker_position && false !== $meta_position && $marker_position < $meta_position, 'save guard does not precede contacts read' );
 p1_same( 1, substr_count( $main_source, 'name="wp_seed_event_people_changed"' ), 'changed marker is not rendered exactly once' );
 p1_same( 1, substr_count( $main_source, 'name="wp_seed_event_people_payload_present"' ), 'payload marker is not rendered exactly once' );
-p1_same( 2, substr_count( $main_source, 'markChanged(peopleRoot);' ), 'dirty marker is set outside effective save/remove actions' );
+p1_same( 3, substr_count( $main_source, 'markChanged(peopleRoot);' ), 'dirty marker must be limited to save, reorder and remove actions' );
 
 foreach (
 	array(
-		'Publication sur la fiche publique',
-		'Les coordonnées restent privées tant que leur publication n’est pas autorisée pour cet événement.',
+		'<legend>Identité</legend>',
+		'<legend>Coordonnées</legend>',
+		'<legend>Site</legend>',
+		'Les choix de publication sont propres à cet événement.',
 		'Afficher cet email sur la fiche publique de cet événement',
 		'Afficher ce téléphone sur la fiche publique de cet événement',
-		'Afficher ce lien sur la fiche publique de cet événement',
+		'Afficher ce site sur la fiche publique de cet événement',
 		'aria-live="polite"',
 		':focus-visible'
 	) as $required_ui_contract
@@ -769,6 +859,9 @@ foreach (
 
 $sanitize_person_source = p1_extract_function( $main_source, 'wp_seed_events_sanitize_person', 'wp_seed_events_stored_people' );
 p1_assert( false === strpos( $sanitize_person_source, 'publish_' ), 'global people sanitizer contains authorization flags' );
+p1_assert( false !== strpos( $sanitize_person_source, "'website_label'" ), 'global people sanitizer does not store website_label' );
+p1_assert( false !== strpos( $main_source, 'name="wp_seed_person_website_label"' ), 'people admin does not expose website_label' );
+p1_assert( false === strpos( $save_source, "'website_label'    =>" ), 'event association stores website_label' );
 
 $people_source            = file_get_contents( dirname( __DIR__ ) . '/includes/public/people.php' );
 $public_projection_start  = strpos( $people_source, 'function wp_seed_events_public_event_people_data(' );
