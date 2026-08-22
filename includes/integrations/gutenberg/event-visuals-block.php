@@ -66,20 +66,23 @@ function wp_seed_events_gutenberg_event_visuals_boolean_option( $value, $default
  */
 function wp_seed_events_gutenberg_event_visuals_options( $attributes = array() ) {
 	$attributes = is_array( $attributes ) ? $attributes : array();
-	$title      = isset( $attributes['title'] ) && is_string( $attributes['title'] )
-		? $attributes['title']
-		: 'Visuels de communication';
-
 	return array(
-		'title'          => $title,
-		'heading_level'  => wp_seed_events_public_heading_level_option( $attributes['heading_level'] ?? 'h2' ),
 		'show_flyer'     => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['show_flyer'] ?? true ),
 		'show_visuals'   => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['show_visuals'] ?? true ),
-		'show_document'  => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['show_document'] ?? true ),
 		'show_captions'  => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['show_captions'] ?? false, false ),
 		'image_size'     => wp_seed_events_public_visuals_image_size_option( $attributes['image_size'] ?? 'large' ),
+		'click_action'   => is_scalar( $attributes['click_action'] ?? null ) ? sanitize_key( (string) $attributes['click_action'] ) : '',
 		'link_original'  => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['link_original'] ?? true ),
+		'lightbox'       => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['lightbox'] ?? false, false ),
 		'layout'         => wp_seed_events_public_visuals_layout_option( $attributes['layout'] ?? 'grid' ),
+		'horizontal_gap' => sanitize_text_field( (string) ( $attributes['horizontal_gap'] ?? '' ) ),
+		'vertical_gap'   => sanitize_text_field( (string) ( $attributes['vertical_gap'] ?? '' ) ),
+		'align_items'    => sanitize_key( (string) ( $attributes['align_items'] ?? '' ) ),
+		'justify_content'=> sanitize_key( (string) ( $attributes['justify_content'] ?? '' ) ),
+		'wrap'           => wp_seed_events_gutenberg_event_visuals_boolean_option( $attributes['wrap'] ?? true ),
+		'columns'        => absint( $attributes['columns'] ?? 3 ),
+		'columns_tablet' => absint( $attributes['columns_tablet'] ?? 2 ),
+		'columns_phone'  => absint( $attributes['columns_phone'] ?? 1 ),
 	);
 }
 

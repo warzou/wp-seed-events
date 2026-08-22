@@ -7,6 +7,37 @@
 
 defined( 'ABSPATH' ) || exit;
 
+if ( ! defined( 'WP_SEED_EVENTS_DOCUMENT_DISPLAY_NAME_META_KEY' ) ) {
+	define( 'WP_SEED_EVENTS_DOCUMENT_DISPLAY_NAME_META_KEY', '_wp_seed_event_document_display_name' );
+}
+
+function wp_seed_events_document_filename_display_name( $filename ) {
+	$filename = is_scalar( $filename ) ? rawurldecode( (string) $filename ) : '';
+	$filename = pathinfo( wp_basename( $filename ), PATHINFO_FILENAME );
+	$filename = preg_replace( '/[-_]+/u', ' ', $filename );
+	$filename = preg_replace( '/\s+/u', ' ', (string) $filename );
+
+	return sanitize_text_field( trim( (string) $filename ) );
+}
+
+function wp_seed_events_event_document_display_name( $event_id, $document ) {
+	$name = wp_seed_events_event_document_explicit_display_name( $event_id );
+
+	if ( '' !== $name ) {
+		return $name;
+	}
+
+	return wp_seed_events_document_filename_display_name(
+		is_array( $document ) ? ( $document['filename'] ?? '' ) : ''
+	);
+}
+
+function wp_seed_events_event_document_explicit_display_name( $event_id ) {
+	return sanitize_text_field(
+		(string) get_post_meta( absint( $event_id ), WP_SEED_EVENTS_DOCUMENT_DISPLAY_NAME_META_KEY, true )
+	);
+}
+
 function wp_seed_events_empty_event_media() {
 	return array(
 		'featured_image'        => null,
@@ -130,6 +161,11 @@ function wp_seed_events_get_event_media( $event_id ) {
 		get_post_meta( $event_id, '_wp_seed_event_flyer_pdf_id', true ),
 		'application/pdf'
 	);
+
+	if ( is_array( $event_document ) ) {
+		$event_document['display_name'] = wp_seed_events_event_document_display_name( $event_id, $event_document );
+		$event_document['display_name_explicit'] = wp_seed_events_event_document_explicit_display_name( $event_id );
+	}
 
 	return array(
 		'featured_image'        => $featured_image,

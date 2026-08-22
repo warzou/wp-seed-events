@@ -3,16 +3,17 @@
   "apiVersion": 3,
   "name": "wp-seed-events/event-visuals-block",
   "version": "0.2.0-beta.9",
-  "title": "WP Seed — Visuels de communication",
+  "title": "WPSEvents — Visuels",
   "category": "widgets",
   "icon": "format-gallery",
   "description": "Affiche les visuels de communication de l’événement courant.",
   "keywords": ["événement", "visuels", "WP Seed"],
   "textdomain": "wp-seed-events",
   "attributes": {
+    "show_document": {"type": "boolean", "default": true},
     "title": {
       "type": "string",
-      "default": "Visuels de communication"
+      "default": ""
     },
     "heading_level": {
       "type": "string",
@@ -24,10 +25,6 @@
       "default": true
     },
     "show_visuals": {
-      "type": "boolean",
-      "default": true
-    },
-    "show_document": {
       "type": "boolean",
       "default": true
     },
@@ -43,11 +40,24 @@
       "type": "boolean",
       "default": true
     },
+    "lightbox": {
+      "type": "boolean",
+      "default": false
+    },
+    "click_action": {"type": "string", "default": "none", "enum": ["none", "lightbox", "original"]},
     "layout": {
       "type": "string",
       "default": "grid",
-      "enum": ["grid", "list"]
-    }
+      "enum": ["vertical", "horizontal", "grid"]
+    },
+    "horizontal_gap": {"type": "string", "default": "24px"},
+    "vertical_gap": {"type": "string", "default": "24px"},
+    "align_items": {"type": "string", "default": "stretch"},
+    "justify_content": {"type": "string", "default": "flex-start"},
+    "wrap": {"type": "boolean", "default": true},
+    "columns": {"type": "number", "default": 3},
+    "columns_tablet": {"type": "number", "default": 2},
+    "columns_phone": {"type": "number", "default": 1}
   },
   "usesContext": ["postId", "postType", "queryId"],
   "supports": {

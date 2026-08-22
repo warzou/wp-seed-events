@@ -94,3 +94,9 @@ Stockage WordPress
 Event Data ne produit pas de HTML, ne choisit pas une collection et ne depend d'aucun builder.
 
 Le contrat complet des descriptions, du legacy `post_excerpt` et du REST d'édition est documenté dans [Descriptions des événements](EVENT-DESCRIPTIONS.md).
+# Document canonique
+
+Un evenement possede au plus un PDF. `event_document` contient l'ID, l'URL, le MIME, le filename technique et
+`display_name`. Le champ `event_document_display_name` reprend ce nom public ; lorsqu'aucun nom editorial n'est saisi,
+il est derive du filename sans extension, tirets ni underscores. `event_document_filename` reste distinct pour la
+compatibilite des bindings existants.

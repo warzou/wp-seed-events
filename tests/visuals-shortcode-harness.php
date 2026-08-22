@@ -258,7 +258,8 @@ wp_seed_events_visuals_shortcode_case(
 		$GLOBALS['wp_seed_events_public_event_id'] = 1031;
 		$html = wp_seed_events_event_visuals_shortcode( array( 'id' => '914' ) );
 
-		wp_seed_events_visuals_shortcode_contains( 'programme.pdf', $html, 'Explicit event was not rendered.' );
+		wp_seed_events_visuals_shortcode_contains( wp_seed_events_visuals_shortcode_marker( 1 ), $html, 'Explicit event flyer was not rendered.' );
+		wp_seed_events_visuals_shortcode_contains( wp_seed_events_visuals_shortcode_marker( 2 ), $html, 'Explicit event visual was not rendered.' );
 		wp_seed_events_visuals_shortcode_assert( 2 === substr_count( $html, '<figure' ), 'Explicit event was contaminated by public context.' );
 		wp_seed_events_visuals_shortcode_assert( 1 === $GLOBALS['wp_seed_events_visuals_shortcode_data_calls'], 'Explicit ID did not load Event Data exactly once.' );
 	}
@@ -311,12 +312,11 @@ wp_seed_events_visuals_shortcode_case(
 );
 
 wp_seed_events_visuals_shortcode_case(
-	'8 PDF only',
+	'8 PDF only stays outside the visuals shortcode',
 	function () {
 		$html = wp_seed_events_event_visuals_shortcode( array( 'id' => 1022 ) );
 
-		wp_seed_events_visuals_shortcode_contains( 'wp-seed-event-visuals__document-link', $html, 'PDF link is missing.' );
-		wp_seed_events_visuals_shortcode_not_contains( '<figure', $html, 'PDF-only event produced an image.' );
+		wp_seed_events_visuals_shortcode_assert( '' === $html, 'PDF-only event produced a visuals wrapper.' );
 	}
 );
 
@@ -326,7 +326,7 @@ wp_seed_events_visuals_shortcode_case(
 		$html = wp_seed_events_event_visuals_shortcode( array( 'id' => 914 ) );
 
 		wp_seed_events_visuals_shortcode_assert( 2 === substr_count( $html, '<figure' ), 'Complete event image count is incorrect.' );
-		wp_seed_events_visuals_shortcode_assert( 1 === substr_count( $html, 'wp-seed-event-visuals__document-link' ), 'Complete event PDF count is incorrect.' );
+		wp_seed_events_visuals_shortcode_not_contains( 'wp-seed-event-visuals__document-link', $html, 'Document leaked into the visuals shortcode.' );
 	}
 );
 
@@ -392,23 +392,23 @@ wp_seed_events_visuals_shortcode_case(
 );
 
 wp_seed_events_visuals_shortcode_case(
-	'16 grid and list layouts',
+	'16 grid and historical list layouts',
 	function () {
 		$grid = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'layout' => 'grid' ) );
 		$list = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'layout' => 'list' ) );
 
 		wp_seed_events_visuals_shortcode_contains( 'is-layout-grid', $grid, 'Grid layout class is missing.' );
-		wp_seed_events_visuals_shortcode_contains( 'is-layout-list', $list, 'List layout class is missing.' );
+		wp_seed_events_visuals_shortcode_contains( 'is-layout-vertical', $list, 'Historical list layout did not map to vertical.' );
 	}
 );
 
 wp_seed_events_visuals_shortcode_case(
-	'17 heading levels h2 to h6',
+	'17 historical heading levels are inert',
 	function () {
 		foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) {
 			$html = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'heading_level' => $level ) );
 
-			wp_seed_events_visuals_shortcode_contains( '<' . $level . ' class=', $html, 'Heading level ' . $level . ' is missing.' );
+			wp_seed_events_visuals_shortcode_not_contains( 'wp-seed-event-visuals__title', $html, 'Heading level ' . $level . ' rendered.' );
 		}
 	}
 );

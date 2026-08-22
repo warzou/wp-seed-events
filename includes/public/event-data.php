@@ -127,6 +127,9 @@ function wp_seed_events_get_event_data( $event_id ) {
 	$document_filename  = is_array( $media['event_document'] )
 		? sanitize_file_name( (string) ( $media['event_document']['filename'] ?? '' ) )
 		: '';
+	$document_display_name = is_array( $media['event_document'] )
+		? sanitize_text_field( (string) ( $media['event_document']['display_name'] ?? '' ) )
+		: '';
 	$event_url          = wp_seed_events_sanitize_public_http_url( get_permalink( $event_id ) );
 	$place_url          = is_array( $place )
 		? wp_seed_events_sanitize_public_http_url( $place['link'] ?? '' )
@@ -184,6 +187,7 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'excerpt'                     => $short_description_effective,
 		'practical_info'              => $practical_info,
 		'event_document_filename' => $document_filename,
+		'event_document_display_name' => $document_display_name,
 		'event_document_url'      => $event_document_url,
 		'featured_image'          => $media['featured_image'],
 		'communication_visual'  => $media['communication_visual'],

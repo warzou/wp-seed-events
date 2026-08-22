@@ -60,6 +60,7 @@ require_once __DIR__ . '/includes/public/event-data.php';
 require_once __DIR__ . '/includes/public/people.php';
 require_once __DIR__ . '/includes/public/calendar.php';
 require_once __DIR__ . '/includes/public/sharing.php';
+require_once __DIR__ . '/includes/public/lightbox.php';
 require_once __DIR__ . '/includes/public/collections.php';
 require_once __DIR__ . '/includes/public/occurrence-collections.php';
 require_once __DIR__ . '/includes/public/occurrence-context.php';
@@ -68,6 +69,7 @@ require_once __DIR__ . '/includes/public/data-registry.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/block-bindings.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-dates-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-visuals-block.php';
+require_once __DIR__ . '/includes/integrations/gutenberg/event-document-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-people-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-query.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-patterns.php';
@@ -141,6 +143,7 @@ add_shortcode( 'wp_seed_event', 'wp_seed_events_event_shortcode' );
 add_shortcode( 'wp_seed_event_field', 'wp_seed_events_event_field_shortcode' );
 add_shortcode( 'wp_seed_event_dates', 'wp_seed_events_event_dates_shortcode' );
 add_shortcode( 'wp_seed_event_visuals', 'wp_seed_events_event_visuals_shortcode' );
+add_shortcode( 'wp_seed_event_document', 'wp_seed_events_event_document_shortcode' );
 add_shortcode( 'wp_seed_event_people', 'wp_seed_events_event_people_shortcode' );
 add_shortcode( 'wp_seed_event_place', 'wp_seed_events_event_place_shortcode' );
 add_shortcode( 'wp_seed_event_practical_info', 'wp_seed_events_event_practical_info_shortcode' );
@@ -156,11 +159,29 @@ function wp_seed_events_activate() {
 
 function wp_seed_events_enqueue_public_visuals_style() {
 	$dates_stylesheet       = __DIR__ . '/includes/public/event-dates.css';
+	$visuals_stylesheet     = __DIR__ . '/includes/public/event-visuals.css';
+	$visuals_script         = __DIR__ . '/includes/public/event-visuals-divi.js';
 	$lists_stylesheet       = __DIR__ . '/includes/public/event-lists.css';
 	$description_stylesheet = __DIR__ . '/includes/public/event-descriptions.css';
 	$dates_version          = WP_SEED_EVENTS_VERSION;
+	$visuals_version        = WP_SEED_EVENTS_VERSION;
+	$visuals_script_version = WP_SEED_EVENTS_VERSION;
 	$lists_version          = WP_SEED_EVENTS_VERSION;
 	$description_version    = WP_SEED_EVENTS_VERSION;
+
+	if ( is_readable( $visuals_stylesheet ) ) {
+		$visuals_hash = hash_file( 'sha256', $visuals_stylesheet );
+		if ( is_string( $visuals_hash ) && '' !== $visuals_hash ) {
+			$visuals_version .= '-' . substr( $visuals_hash, 0, 12 );
+		}
+	}
+
+	if ( is_readable( $visuals_script ) ) {
+		$visuals_script_hash = hash_file( 'sha256', $visuals_script );
+		if ( is_string( $visuals_script_hash ) && '' !== $visuals_script_hash ) {
+			$visuals_script_version .= '-' . substr( $visuals_script_hash, 0, 12 );
+		}
+	}
 
 	if ( is_readable( $dates_stylesheet ) ) {
 		$dates_hash = hash_file( 'sha256', $dates_stylesheet );
@@ -189,7 +210,14 @@ function wp_seed_events_enqueue_public_visuals_style() {
 		'wp-seed-events-public-visuals',
 		plugins_url( 'includes/public/event-visuals.css', __FILE__ ),
 		array(),
-		WP_SEED_EVENTS_VERSION
+		$visuals_version
+	);
+	wp_register_script(
+		'wp-seed-events-divi-visuals-lightbox',
+		plugins_url( 'includes/public/event-visuals-divi.js', __FILE__ ),
+		array( 'jquery', 'magnific-popup' ),
+		$visuals_script_version,
+		true
 	);
 	wp_enqueue_style(
 		'wp-seed-events-public-dates',
@@ -4532,6 +4560,9 @@ function wp_seed_events_render_media_meta_box( $post, $event_media = null ) {
 }
 
 function wp_seed_events_render_media_document_panel( $event_media ) {
+	$document_display_name = is_array( $event_media['event_document'] ?? null )
+		? sanitize_text_field( (string) ( $event_media['event_document']['display_name_explicit'] ?? '' ) )
+		: '';
 	?>
 	<p class="description">Ajoutez un document PDF complémentaire lié à l’événement.</p>
 	<?php
@@ -4555,6 +4586,11 @@ function wp_seed_events_render_media_document_panel( $event_media ) {
 				<button type="button" class="button-link" data-wp-seed-media-remove="<?php echo esc_attr( $meta_key ); ?>" <?php echo $attachment_id ? '' : 'hidden'; ?>>Retirer</button>
 			</p>
 			<p class="description">PDF uniquement.</p>
+			<p>
+				<label for="wp-seed-event-document-display-name">Nom d'affichage (facultatif)</label><br />
+				<input id="wp-seed-event-document-display-name" type="text" name="wp_seed_event_document_display_name" value="<?php echo esc_attr( $document_display_name ); ?>" data-wp-seed-document-display-name />
+				<br /><span class="description">Si ce champ est vide, le nom du fichier nettoyé est utilisé.</span>
+			</p>
 		</div>
 		<?php
 	}
@@ -4858,6 +4894,10 @@ jQuery(function($){
 		input.val('');
 		$('[data-wp-seed-media-label="'+key+'"]').text('');
 		wpSeedRefreshDocumentState(key);
+		wpSeedMarkDocumentChanged();
+	});
+
+	$(document).on('input','[data-wp-seed-document-display-name]',function(){
 		wpSeedMarkDocumentChanged();
 	});
 
@@ -6220,6 +6260,17 @@ function wp_seed_events_save_media( $post_id ) {
 			if ( absint( get_post_meta( $post_id, $meta_key, true ) ) !== $attachment_id ) {
 				update_post_meta( $post_id, $meta_key, $attachment_id );
 			}
+		}
+
+		$document_id = absint( get_post_meta( $post_id, '_wp_seed_event_flyer_pdf_id', true ) );
+		$display_name = isset( $_POST['wp_seed_event_document_display_name'] )
+			? sanitize_text_field( wp_unslash( $_POST['wp_seed_event_document_display_name'] ) )
+			: '';
+
+		if ( 0 === $document_id || '' === $display_name ) {
+			delete_post_meta( $post_id, WP_SEED_EVENTS_DOCUMENT_DISPLAY_NAME_META_KEY );
+		} else {
+			update_post_meta( $post_id, WP_SEED_EVENTS_DOCUMENT_DISPLAY_NAME_META_KEY, $display_name );
 		}
 	}
 

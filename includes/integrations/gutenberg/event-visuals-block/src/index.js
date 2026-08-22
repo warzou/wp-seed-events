@@ -18,14 +18,6 @@ import metadata from './block.json';
 const PREVIEW_PATH = '/wp-seed-events/v1/gutenberg-event-visuals-preview';
 const PREVIEW_DELAY = 250;
 
-const HEADING_LEVEL_OPTIONS = [
-  { label: 'h2', value: 'h2' },
-  { label: 'h3', value: 'h3' },
-  { label: 'h4', value: 'h4' },
-  { label: 'h5', value: 'h5' },
-  { label: 'h6', value: 'h6' },
-];
-
 const IMAGE_SIZE_OPTIONS = [
   { label: __( 'Miniature', 'wp-seed-events' ), value: 'thumbnail' },
   { label: __( 'Moyenne', 'wp-seed-events' ), value: 'medium' },
@@ -34,8 +26,14 @@ const IMAGE_SIZE_OPTIONS = [
 ];
 
 const LAYOUT_OPTIONS = [
+  { label: __( 'Verticale', 'wp-seed-events' ), value: 'vertical' },
+  { label: __( 'Horizontale', 'wp-seed-events' ), value: 'horizontal' },
   { label: __( 'Grille', 'wp-seed-events' ), value: 'grid' },
-  { label: __( 'Liste', 'wp-seed-events' ), value: 'list' },
+];
+const CLICK_OPTIONS = [
+  { label: __( 'Aucune', 'wp-seed-events' ), value: 'none' },
+  { label: __( 'Visionneuse', 'wp-seed-events' ), value: 'lightbox' },
+  { label: __( 'Image originale', 'wp-seed-events' ), value: 'original' },
 ];
 
 function validOption( options, value, fallback ) {
@@ -68,7 +66,7 @@ function previewContext( context ) {
 }
 
 function Preview( { state } ) {
-  const label = __( 'WP Seed — Visuels de communication', 'wp-seed-events' );
+  const label = __( 'WPSEvents — Visuels', 'wp-seed-events' );
 
   if ( state.status === 'loading' ) {
     return (
@@ -105,25 +103,15 @@ function Preview( { state } ) {
 }
 
 function Edit( { attributes, setAttributes, context = {} } ) {
-  const title =
-    typeof attributes.title === 'string'
-      ? attributes.title
-      : 'Visuels de communication';
-  const headingLevel = validOption(
-    HEADING_LEVEL_OPTIONS,
-    attributes.heading_level,
-    'h2',
-  );
   const showFlyer = booleanOption( attributes.show_flyer, true );
   const showVisuals = booleanOption( attributes.show_visuals, true );
-  const showDocument = booleanOption( attributes.show_document, true );
   const showCaptions = booleanOption( attributes.show_captions, false );
   const imageSize = validOption(
     IMAGE_SIZE_OPTIONS,
     attributes.image_size,
     'large',
   );
-  const linkOriginal = booleanOption( attributes.link_original, true );
+  const clickAction = validOption( CLICK_OPTIONS, attributes.click_action, 'none' );
   const layout = validOption( LAYOUT_OPTIONS, attributes.layout, 'grid' );
   const [ preview, setPreview ] = useState( {
     status: 'loading',
@@ -155,15 +143,20 @@ function Edit( { attributes, setAttributes, context = {} } ) {
         method: 'POST',
         data: {
           attributes: {
-            title,
-            heading_level: headingLevel,
             show_flyer: showFlyer,
             show_visuals: showVisuals,
-            show_document: showDocument,
             show_captions: showCaptions,
             image_size: imageSize,
-            link_original: linkOriginal,
+            click_action: clickAction,
             layout,
+            horizontal_gap: attributes.horizontal_gap,
+            vertical_gap: attributes.vertical_gap,
+            align_items: attributes.align_items,
+            justify_content: attributes.justify_content,
+            wrap: attributes.wrap,
+            columns: attributes.columns,
+            columns_tablet: attributes.columns_tablet,
+            columns_phone: attributes.columns_phone,
           },
           context: previewContext( {
             postId: contextPostId,
@@ -214,15 +207,15 @@ function Edit( { attributes, setAttributes, context = {} } ) {
       }
     };
   }, [
-    title,
-    headingLevel,
     showFlyer,
     showVisuals,
-    showDocument,
     showCaptions,
     imageSize,
-    linkOriginal,
+    clickAction,
     layout,
+    attributes.horizontal_gap, attributes.vertical_gap, attributes.align_items,
+    attributes.justify_content, attributes.wrap, attributes.columns,
+    attributes.columns_tablet, attributes.columns_phone,
     contextPostId,
     contextPostType,
     contextQueryId,
@@ -235,17 +228,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
           title={ __( 'Réglages des visuels', 'wp-seed-events' ) }
           initialOpen
         >
-          <TextControl
-            label={ __( 'Titre', 'wp-seed-events' ) }
-            value={ title }
-            onChange={ ( value ) => setAttributes( { title: value } ) }
-          />
-          <SelectControl
-            label={ __( 'Niveau du titre', 'wp-seed-events' ) }
-            value={ headingLevel }
-            options={ HEADING_LEVEL_OPTIONS }
-            onChange={ ( value ) => setAttributes( { heading_level: value } ) }
-          />
           <ToggleControl
             label={ __( 'Afficher le recto', 'wp-seed-events' ) }
             checked={ showFlyer }
@@ -255,11 +237,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             label={ __( 'Afficher les autres visuels', 'wp-seed-events' ) }
             checked={ showVisuals }
             onChange={ ( value ) => setAttributes( { show_visuals: value } ) }
-          />
-          <ToggleControl
-            label={ __( 'Afficher le document', 'wp-seed-events' ) }
-            checked={ showDocument }
-            onChange={ ( value ) => setAttributes( { show_document: value } ) }
           />
           <ToggleControl
             label={ __( 'Afficher les légendes', 'wp-seed-events' ) }
@@ -272,17 +249,18 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             options={ IMAGE_SIZE_OPTIONS }
             onChange={ ( value ) => setAttributes( { image_size: value } ) }
           />
-          <ToggleControl
-            label={ __( 'Lier vers le fichier original', 'wp-seed-events' ) }
-            checked={ linkOriginal }
-            onChange={ ( value ) => setAttributes( { link_original: value } ) }
-          />
+          <SelectControl label={ __( 'Action au clic', 'wp-seed-events' ) } value={ clickAction } options={ CLICK_OPTIONS } onChange={ ( value ) => setAttributes( { click_action: value } ) } />
           <SelectControl
             label={ __( 'Disposition', 'wp-seed-events' ) }
             value={ layout }
             options={ LAYOUT_OPTIONS }
             onChange={ ( value ) => setAttributes( { layout: value } ) }
           />
+          <TextControl label={ __( 'Espacement horizontal', 'wp-seed-events' ) } value={ attributes.horizontal_gap } onChange={ ( value ) => setAttributes( { horizontal_gap: value } ) } />
+          <TextControl label={ __( 'Espacement vertical', 'wp-seed-events' ) } value={ attributes.vertical_gap } onChange={ ( value ) => setAttributes( { vertical_gap: value } ) } />
+          <TextControl label={ __( 'Colonnes bureau', 'wp-seed-events' ) } value={ String( attributes.columns ) } onChange={ ( value ) => setAttributes( { columns: Number.parseInt( value, 10 ) || 1 } ) } />
+          <TextControl label={ __( 'Colonnes tablette', 'wp-seed-events' ) } value={ String( attributes.columns_tablet ) } onChange={ ( value ) => setAttributes( { columns_tablet: Number.parseInt( value, 10 ) || 1 } ) } />
+          <TextControl label={ __( 'Colonnes téléphone', 'wp-seed-events' ) } value={ String( attributes.columns_phone ) } onChange={ ( value ) => setAttributes( { columns_phone: Number.parseInt( value, 10 ) || 1 } ) } />
         </PanelBody>
       </InspectorControls>
       <div { ...blockProps }>

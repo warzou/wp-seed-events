@@ -93,7 +93,7 @@ Si aucun élément valide ne reste, le renderer retourne une chaîne vide et ne 
 La structure métier est neutre :
 
 - `section.wp-seed-event-visuals` ;
-- heading facultatif `.wp-seed-event-visuals__title` ;
+- aucun heading integre ; le titre appartient au builder ;
 - `ul.wp-seed-event-visuals__list` ;
 - `li.wp-seed-event-visuals__item` ;
 - `figure.wp-seed-event-visuals__figure` ;

@@ -24,6 +24,10 @@ $gutenbergVisualsRuntimeRoot = 'includes/integrations/gutenberg/event-visuals-bl
 $gutenbergVisualsBlockJson = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/block.json"
 $gutenbergVisualsBlockScript = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.js"
 $gutenbergVisualsBlockAsset = Join-Path $root "$gutenbergVisualsRuntimeRoot/build/index.asset.php"
+$gutenbergDocumentRuntimeRoot = 'includes/integrations/gutenberg/event-document-block'
+$gutenbergDocumentBlockJson = Join-Path $root "$gutenbergDocumentRuntimeRoot/build/block.json"
+$gutenbergDocumentBlockScript = Join-Path $root "$gutenbergDocumentRuntimeRoot/build/index.js"
+$gutenbergDocumentBlockAsset = Join-Path $root "$gutenbergDocumentRuntimeRoot/build/index.asset.php"
 $gutenbergPeopleRuntimeRoot = 'includes/integrations/gutenberg/event-people-block'
 $gutenbergPeopleBlockJson = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/block.json"
 $gutenbergPeopleBlockScript = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.js"
@@ -50,6 +54,9 @@ $excludedRuntimePatterns = @(
     "$gutenbergVisualsRuntimeRoot/node_modules/*",
     "$gutenbergVisualsRuntimeRoot/tests/*",
     "$gutenbergVisualsRuntimeRoot/src/*",
+    "$gutenbergDocumentRuntimeRoot/node_modules/*",
+    "$gutenbergDocumentRuntimeRoot/tests/*",
+    "$gutenbergDocumentRuntimeRoot/src/*",
     "$gutenbergPeopleRuntimeRoot/node_modules/*",
     "$gutenbergPeopleRuntimeRoot/tests/*",
     "$gutenbergPeopleRuntimeRoot/src/*",
@@ -76,6 +83,21 @@ $excludedRuntimePatterns += @(
 foreach ($visualsModuleAsset in @($visualsModuleJson, $visualsModuleBundle)) {
     if (-not (Test-Path -LiteralPath $visualsModuleAsset -PathType Leaf)) {
         throw ('Missing Divi visuals module asset. Run npm run build first: ' + $visualsModuleAsset)
+    }
+}
+
+$documentModuleRuntimeRoot = 'includes/integrations/divi/event-document-module/visual-builder'
+$documentModuleJson = Join-Path $root ($documentModuleRuntimeRoot + '/src/module.json')
+$documentModuleBundle = Join-Path $root ($documentModuleRuntimeRoot + '/build/wp-seed-events-event-document.js')
+$excludedRuntimePatterns += @(
+    ($documentModuleRuntimeRoot + '/node_modules/*'),
+    ($documentModuleRuntimeRoot + '/webpack.config.js'),
+    ($documentModuleRuntimeRoot + '/tests/*'),
+    ($documentModuleRuntimeRoot + '/src/index.jsx')
+)
+foreach ($documentModuleAsset in @($documentModuleJson, $documentModuleBundle)) {
+    if (-not (Test-Path -LiteralPath $documentModuleAsset -PathType Leaf)) {
+        throw ('Missing Divi document module asset. Run npm run build first: ' + $documentModuleAsset)
     }
 }
 
@@ -155,6 +177,12 @@ foreach ($gutenbergAsset in @($gutenbergBlockJson, $gutenbergBlockScript, $guten
 foreach ($gutenbergVisualsAsset in @($gutenbergVisualsBlockJson, $gutenbergVisualsBlockScript, $gutenbergVisualsBlockAsset)) {
     if (-not (Test-Path -LiteralPath $gutenbergVisualsAsset -PathType Leaf)) {
         throw "Missing Gutenberg visuals block asset. Run npm run build:gutenberg first: $gutenbergVisualsAsset"
+    }
+}
+
+foreach ($gutenbergDocumentAsset in @($gutenbergDocumentBlockJson, $gutenbergDocumentBlockScript, $gutenbergDocumentBlockAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergDocumentAsset -PathType Leaf)) {
+        throw "Missing Gutenberg document block asset. Run npm run build:gutenberg first: $gutenbergDocumentAsset"
     }
 }
 

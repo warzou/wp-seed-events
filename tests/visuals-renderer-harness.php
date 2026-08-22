@@ -13,6 +13,7 @@ $GLOBALS['wp_seed_events_visuals_case_count']       = 0;
 $GLOBALS['wp_seed_events_visuals_image_calls']      = array();
 $GLOBALS['wp_seed_events_visuals_event_data_calls'] = 0;
 $GLOBALS['wp_seed_events_visuals_meta_calls']       = 0;
+$GLOBALS['wp_seed_events_lightbox_calls']           = array();
 
 function absint( $value ) {
 	return abs( (int) $value );
@@ -101,6 +102,17 @@ function get_post_meta( $post_id, $key = '', $single = false ) {
 	return '';
 }
 
+function block_core_image_render_lightbox( $html, $block, $instance ) {
+	$GLOBALS['wp_seed_events_lightbox_calls'][] = array(
+		'id'      => absint( $block['attrs']['id'] ?? 0 ),
+		'enabled' => true === ( $block['attrs']['lightbox']['enabled'] ?? false ),
+		'gallery' => (string) ( $instance->context['galleryId'] ?? '' ),
+	);
+
+	return str_replace( '<figure ', '<figure data-native-lightbox="1" ', $html );
+}
+
+require dirname( __DIR__ ) . '/includes/public/lightbox.php';
 require dirname( __DIR__ ) . '/includes/public/rendering.php';
 
 function wp_seed_events_visuals_media( $id, $overrides = array() ) {
@@ -250,15 +262,11 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'5 PDF only',
+	'5 PDF only stays outside the visuals module',
 	function () use ( $pdf ) {
 		$html = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array(), $pdf ) );
 
-		wp_seed_events_visuals_contains( 'wp-seed-event-visuals__document-link', $html, 'PDF link is missing.' );
-		wp_seed_events_visuals_contains( 'Télécharger le document PDF', $html, 'PDF link text is not explicit.' );
-		wp_seed_events_visuals_contains( 'programme.pdf', $html, 'Safe PDF filename is missing.' );
-		wp_seed_events_visuals_not_contains( '<figure', $html, 'PDF produced an image figure.' );
-		wp_seed_events_visuals_not_contains( 'target=', $html, 'PDF link opens a new target.' );
+		wp_seed_events_visuals_assert( '' === $html, 'PDF-only Event Data produced a visuals wrapper.' );
 		wp_seed_events_visuals_assert( array() === $GLOBALS['wp_seed_events_visuals_image_calls'], 'PDF requested an attachment image.' );
 	}
 );
@@ -269,8 +277,8 @@ wp_seed_events_visuals_case(
 		$html = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array( $flyer, $visual2, $visual3 ), $pdf ) );
 
 		wp_seed_events_visuals_assert( 3 === wp_seed_events_visuals_count( '<figure', $html ), 'Complete event image count is incorrect.' );
-		wp_seed_events_visuals_assert( 1 === wp_seed_events_visuals_count( 'wp-seed-event-visuals__document-link', $html ), 'Complete event PDF count is incorrect.' );
-		wp_seed_events_visuals_assert( 4 === wp_seed_events_visuals_count( '<li ', $html ), 'Complete event list cardinality is incorrect.' );
+		wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__document-link', $html, 'Document leaked into the visuals module.' );
+		wp_seed_events_visuals_assert( 3 === wp_seed_events_visuals_count( '<li ', $html ), 'Complete event list cardinality is incorrect.' );
 	}
 );
 
@@ -382,20 +390,20 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'15 list layout',
+	'15 historical list layout maps to vertical',
 	function () use ( $flyer ) {
 		$html = wp_seed_events_render_public_event_visuals_section(
 			wp_seed_events_visuals_event( array( $flyer ) ),
 			array( 'layout' => 'list' )
 		);
 
-		wp_seed_events_visuals_contains( 'is-layout-list', $html, 'List class is missing.' );
+		wp_seed_events_visuals_contains( 'is-layout-vertical', $html, 'Historical list layout did not map to vertical.' );
 		wp_seed_events_visuals_not_contains( 'is-layout-grid', $html, 'Grid class leaked into list layout.' );
 	}
 );
 
 wp_seed_events_visuals_case(
-	'16 heading levels h2 through h6',
+	'16 historical heading levels are inert',
 	function () use ( $flyer ) {
 		foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) {
 			$html = wp_seed_events_render_public_event_visuals_section(
@@ -403,8 +411,7 @@ wp_seed_events_visuals_case(
 				array( 'heading_level' => $level )
 			);
 
-			wp_seed_events_visuals_contains( '<' . $level . ' class=', $html, 'Expected heading level is missing: ' . $level );
-			wp_seed_events_visuals_contains( '</' . $level . '>', $html, 'Expected heading closing tag is missing: ' . $level );
+			wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__title', $html, 'Historical heading rendered: ' . $level );
 		}
 	}
 );
@@ -424,14 +431,14 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'18 invalid heading falls back to h2',
+	'18 invalid historical heading is inert',
 	function () use ( $flyer ) {
 		$html = wp_seed_events_render_public_event_visuals_section(
 			wp_seed_events_visuals_event( array( $flyer ) ),
 			array( 'heading_level' => 'h1' )
 		);
 
-		wp_seed_events_visuals_contains( '<h2 class=', $html, 'Invalid heading did not fall back to h2.' );
+		wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__title', $html, 'Invalid heading rendered.' );
 		wp_seed_events_visuals_not_contains( '<h1 ', $html, 'Invalid h1 heading was accepted.' );
 	}
 );
@@ -544,14 +551,12 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'27 PDF filename is sanitized',
+	'27 PDF metadata remains outside the visuals renderer',
 	function () {
 		$document = wp_seed_events_visuals_document( array( 'filename' => '../../private programme.pdf' ) );
 		$html     = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array(), $document ) );
 
-		wp_seed_events_visuals_contains( 'private-programme.pdf', $html, 'Safe PDF basename is missing.' );
-		wp_seed_events_visuals_not_contains( '../', $html, 'PDF filename exposed path traversal.' );
-		wp_seed_events_visuals_not_contains( 'private programme.pdf', $html, 'Unsafe filename spacing was retained.' );
+		wp_seed_events_visuals_assert( '' === $html, 'PDF metadata produced visuals markup.' );
 	}
 );
 
@@ -568,16 +573,16 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'29 DOM order is flyer then visuals then document',
+	'29 DOM order is flyer then visuals without document',
 	function () use ( $flyer, $visual2, $visual3, $pdf ) {
 		$html       = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array( $flyer, $visual2, $visual3 ), $pdf ) );
 		$flyer_pos = strpos( $html, wp_seed_events_visuals_image_marker( 1 ) );
 		$two_pos   = strpos( $html, wp_seed_events_visuals_image_marker( 2 ) );
 		$three_pos = strpos( $html, wp_seed_events_visuals_image_marker( 3 ) );
-		$pdf_pos   = strpos( $html, 'wp-seed-event-visuals__document-link' );
 
-		wp_seed_events_visuals_assert( false !== $flyer_pos && false !== $two_pos && false !== $three_pos && false !== $pdf_pos, 'Ordered media is incomplete.' );
-		wp_seed_events_visuals_assert( $flyer_pos < $two_pos && $two_pos < $three_pos && $three_pos < $pdf_pos, 'Media DOM order is incorrect.' );
+		wp_seed_events_visuals_assert( false !== $flyer_pos && false !== $two_pos && false !== $three_pos, 'Ordered visuals are incomplete.' );
+		wp_seed_events_visuals_assert( $flyer_pos < $two_pos && $two_pos < $three_pos, 'Visuals DOM order is incorrect.' );
+		wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__document-link', $html, 'Document leaked into the visuals DOM.' );
 	}
 );
 
@@ -655,15 +660,15 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'35 title is plain text and escaped',
+	'35 historical title is inert',
 	function () use ( $flyer ) {
 		$html = wp_seed_events_render_public_event_visuals_section(
 			wp_seed_events_visuals_event( array( $flyer ) ),
 			array( 'title' => '<script>alert(1)</script>Visuels & documents' )
 		);
 
-		wp_seed_events_visuals_not_contains( '<script>', $html, 'Title retained executable HTML.' );
-		wp_seed_events_visuals_contains( 'alert(1)Visuels &amp; documents', $html, 'Title was not normalized and escaped.' );
+		wp_seed_events_visuals_not_contains( '<script>', $html, 'Historical title retained executable HTML.' );
+		wp_seed_events_visuals_not_contains( 'alert(1)Visuels', $html, 'Historical title rendered in the titleless visuals module.' );
 	}
 );
 
@@ -710,12 +715,15 @@ wp_seed_events_visuals_case(
 
 		foreach (
 			array(
+				'.wp_seed_events_divi_event_visuals.is-native-layout .wp-seed-event-visuals__item',
+				'flex-basis: auto',
 				'.wp-seed-event-visuals.is-layout-grid .wp-seed-event-visuals__list',
 				'grid-template-columns:',
-				'minmax(min(100%, 18rem), 1fr)',
-				'.wp-seed-event-visuals.is-layout-list .wp-seed-event-visuals__list',
+				'minmax(0, 1fr)',
+				'.wp-seed-event-visuals.is-layout-vertical .wp-seed-event-visuals__list',
+				'.wp-seed-event-visuals.is-layout-horizontal .wp-seed-event-visuals__list',
 				'overflow-wrap: anywhere',
-				'.wp-seed-event-visuals__document-link',
+				'.wp-seed-event-document__link',
 				'color: inherit',
 				'text-decoration: underline',
 				':focus-visible',
@@ -734,6 +742,41 @@ wp_seed_events_visuals_case(
 			$plugin,
 			'Shared visuals stylesheet is not enqueued from the plugin runtime.'
 		);
+	}
+);
+
+wp_seed_events_visuals_case(
+	'39 lightbox remains opt-in',
+	function () use ( $flyer ) {
+		$GLOBALS['wp_seed_events_lightbox_calls'] = array();
+		$html = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array( $flyer ) ) );
+
+		wp_seed_events_visuals_assert( array() === $GLOBALS['wp_seed_events_lightbox_calls'], 'Untouched renderer invoked the lightbox adapter.' );
+		wp_seed_events_visuals_not_contains( 'data-native-lightbox', $html, 'Untouched renderer changed its historical markup.' );
+	}
+);
+
+wp_seed_events_visuals_case(
+	'40 native WordPress lightbox groups multiple valid images',
+	function () use ( $flyer, $visual2 ) {
+		$GLOBALS['wp_seed_events_lightbox_calls'] = array();
+		$event = wp_seed_events_visuals_event( array( $flyer, $visual2 ) );
+		$event['id'] = 2414;
+		$html = wp_seed_events_render_public_event_visuals_section(
+			$event,
+			array(
+				'lightbox'      => true,
+				'link_original' => true,
+			)
+		);
+
+		wp_seed_events_visuals_assert( 2 === count( $GLOBALS['wp_seed_events_lightbox_calls'] ), 'Native lightbox was not applied once per image.' );
+		wp_seed_events_visuals_assert( 2 === substr_count( $html, 'data-native-lightbox="1"' ), 'Native lightbox markup is incomplete.' );
+		wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__image-link', $html, 'Direct original links remained active with native lightbox.' );
+		foreach ( $GLOBALS['wp_seed_events_lightbox_calls'] as $call ) {
+			wp_seed_events_visuals_assert( true === $call['enabled'], 'Core image lightbox flag is not enabled.' );
+			wp_seed_events_visuals_assert( 'wp-seed-event-2414-visuals' === $call['gallery'], 'Images do not share an event-scoped gallery ID.' );
+		}
 	}
 );
 

@@ -51,16 +51,23 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				'args'                => array(
 					'post_id'        => array( 'sanitize_callback' => 'absint' ),
 					'loop_id'        => array( 'sanitize_callback' => 'absint' ),
-					'title'          => array( 'sanitize_callback' => 'sanitize_text_field' ),
-					'show_title'     => array( 'sanitize_callback' => 'sanitize_key' ),
-					'heading_level'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_flyer'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_visuals'   => array( 'sanitize_callback' => 'sanitize_key' ),
-					'show_document'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_captions'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'image_size'     => array( 'sanitize_callback' => 'sanitize_key' ),
+					'click_action'   => array( 'sanitize_callback' => 'sanitize_key' ),
 					'link_original'  => array( 'sanitize_callback' => 'sanitize_key' ),
+					'lightbox'       => array( 'sanitize_callback' => 'sanitize_key' ),
 					'layout'         => array( 'sanitize_callback' => 'sanitize_key' ),
+					'horizontal_gap' => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'vertical_gap'   => array( 'sanitize_callback' => 'sanitize_text_field' ),
+					'align_items'    => array( 'sanitize_callback' => 'sanitize_key' ),
+					'justify_content'=> array( 'sanitize_callback' => 'sanitize_key' ),
+					'wrap'           => array( 'sanitize_callback' => 'sanitize_key' ),
+					'columns'        => array( 'sanitize_callback' => 'absint' ),
+					'columns_tablet' => array( 'sanitize_callback' => 'absint' ),
+					'columns_phone'  => array( 'sanitize_callback' => 'absint' ),
+					'layout_contract'=> array( 'sanitize_callback' => 'sanitize_key' ),
 				),
 			)
 		);
@@ -96,16 +103,23 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 
 		$options = self::normalize_options(
 			array(
-				'title'          => $request->get_param( 'title' ),
-				'show_title'     => $request->get_param( 'show_title' ),
-				'heading_level'  => $request->get_param( 'heading_level' ),
 				'show_flyer'     => $request->get_param( 'show_flyer' ),
 				'show_visuals'   => $request->get_param( 'show_visuals' ),
-				'show_document'  => $request->get_param( 'show_document' ),
 				'show_captions'  => $request->get_param( 'show_captions' ),
 				'image_size'     => $request->get_param( 'image_size' ),
+				'click_action'   => $request->get_param( 'click_action' ),
 				'link_original'  => $request->get_param( 'link_original' ),
+				'lightbox'       => $request->get_param( 'lightbox' ),
 				'layout'         => $request->get_param( 'layout' ),
+				'horizontal_gap' => $request->get_param( 'horizontal_gap' ),
+				'vertical_gap'   => $request->get_param( 'vertical_gap' ),
+				'align_items'    => $request->get_param( 'align_items' ),
+				'justify_content'=> $request->get_param( 'justify_content' ),
+				'wrap'           => $request->get_param( 'wrap' ),
+				'columns'        => $request->get_param( 'columns' ),
+				'columns_tablet' => $request->get_param( 'columns_tablet' ),
+				'columns_phone'  => $request->get_param( 'columns_phone' ),
+				'layout_contract'=> $request->get_param( 'layout_contract' ),
 			)
 		);
 
@@ -155,7 +169,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				'attrs'               => $attrs,
 				'elements'            => $elements,
 				'id'                  => $block->parsed_block['id'] ?? '',
-				'moduleClassName'     => 'wp_seed_events_divi_event_visuals',
+				'moduleClassName'     => 'wp_seed_events_divi_event_visuals' . ( 'native' === $options['layout'] ? ' is-native-layout' : '' ),
 				'name'                => $block->block_type->name,
 				'moduleCategory'      => $block->block_type->category,
 				'classnamesFunction'  => array( self::class, 'module_classnames' ),
@@ -182,7 +196,74 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 			return '';
 		}
 
-		return (string) wp_seed_events_render_public_event_visuals_section( $event, $options );
+		$click_action = wp_seed_events_public_visuals_click_action_option(
+			$options['click_action'] ?? '',
+			array( 'lightbox' => $options['lightbox'] ?? false, 'link_original' => $options['link_original'] ?? false )
+		);
+		$lightbox = 'lightbox' === $click_action;
+
+		if ( $lightbox ) {
+			self::enqueue_divi_lightbox_assets();
+			$options['click_action'] = 'original';
+		}
+
+		$html = (string) wp_seed_events_render_public_event_visuals_section( $event, $options );
+
+		return $lightbox ? self::apply_divi_lightbox( $html ) : $html;
+	}
+
+	/**
+	 * Load Divi's own Magnific Popup runtime when this module is its only consumer.
+	 */
+	private static function enqueue_divi_lightbox_assets() {
+		if ( ! function_exists( 'wp_enqueue_script' ) || ! function_exists( 'wp_enqueue_style' ) ) {
+			return;
+		}
+
+		if ( class_exists( '\\ET\\Builder\\FrontEnd\\Assets\\DynamicAssetsUtils' ) ) {
+			\ET\Builder\FrontEnd\Assets\DynamicAssetsUtils::enqueue_magnific_popup_script();
+		} elseif ( wp_script_is( 'magnific-popup', 'registered' ) ) {
+			wp_enqueue_script( 'magnific-popup' );
+		}
+
+		if ( defined( 'ET_BUILDER_URI' ) ) {
+			wp_enqueue_style(
+				'wp-seed-events-divi-magnific-popup',
+				ET_BUILDER_URI . '/feature/dynamic-assets/assets/css/magnific_popup.css',
+				array(),
+				defined( 'ET_CORE_VERSION' ) ? ET_CORE_VERSION : null
+			);
+			add_action( 'wp_footer', array( self::class, 'print_divi_lightbox_style' ), 1 );
+		}
+
+		if ( wp_script_is( 'wp-seed-events-divi-visuals-lightbox', 'registered' ) ) {
+			wp_enqueue_script( 'wp-seed-events-divi-visuals-lightbox' );
+		}
+	}
+
+	/**
+	 * Print a native Divi lightbox stylesheet that was discovered after wp_head.
+	 */
+	public static function print_divi_lightbox_style() {
+		wp_print_styles( 'wp-seed-events-divi-magnific-popup' );
+	}
+
+	/**
+	 * Apply Divi's native image-lightbox trigger to renderer-owned image links.
+	 */
+	private static function apply_divi_lightbox( $html ) {
+		if ( '' === $html || ! class_exists( 'WP_HTML_Tag_Processor' ) ) {
+			return $html;
+		}
+
+		$processor = new WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag( array( 'class_name' => 'wp-seed-event-visuals__image-link' ) ) ) {
+			$processor->add_class( 'et_pb_lightbox_image' );
+			$processor->set_attribute( 'data-wp-seed-divi-lightbox', '1' );
+		}
+
+		return $processor->get_updated_html();
 	}
 
 	/**
@@ -201,15 +282,23 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 	private static function normalize_options( $values ) {
 		$values   = is_array( $values ) ? $values : array();
 		$defaults = array(
-			'title'          => 'Visuels de communication',
-			'heading_level'  => 'h2',
 			'show_flyer'     => 'on',
 			'show_visuals'   => 'on',
-			'show_document'  => 'on',
 			'show_captions'  => 'off',
 			'image_size'     => 'large',
+			'click_action'   => '',
 			'link_original'  => 'on',
+			'lightbox'       => 'off',
 			'layout'         => 'grid',
+			'horizontal_gap' => '',
+			'vertical_gap'   => '',
+			'align_items'    => '',
+			'justify_content'=> '',
+			'wrap'           => 'on',
+			'columns'        => '3',
+			'columns_tablet' => '2',
+			'columns_phone'  => '1',
+			'layout_contract'=> '',
 		);
 		$options  = array();
 
@@ -218,8 +307,10 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				? (string) $values[ $key ]
 				: $default;
 		}
-		$options['title'] = wp_seed_events_divi_optional_title( $values, 'Visuels de communication' );
 
+		if ( 'native-v1' === $options['layout_contract'] ) {
+			$options['layout'] = 'native';
+		}
 		return $options;
 	}
 
@@ -258,7 +349,6 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 		foreach (
 			array(
 				'sectionStyle',
-				'titleStyle',
 				'listStyle',
 				'eventListStyle',
 				'gridStyle',
@@ -267,9 +357,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 				'figureStyle',
 				'imageStyle',
 				'captionStyle',
-				'documentStyle',
 				'imageLinkStyle',
-				'documentLinkStyle',
 			) as $attr_name
 		) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );

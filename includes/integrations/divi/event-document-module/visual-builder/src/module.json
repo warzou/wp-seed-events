@@ -1,0 +1,57 @@
+{
+  "name": "wp-seed-events/event-document",
+  "d4Shortcode": "",
+  "title": "WPSEvents — Document",
+  "titles": "WPSEvents — Document",
+  "folder": "wp-seed-events",
+  "category": "module",
+  "moduleClassName": "wp_seed_events_divi_event_document",
+  "moduleOrderClassName": "wp_seed_events_divi_event_document",
+  "usesContext": ["postId", "queryId"],
+  "attributes": {
+    "__loop_post_id": {"type": "string", "default": ""},
+    "module": {
+      "type": "object", "selector": "{{selector}}",
+      "default": {"meta": {"adminLabel": {"desktop": {"value": "WPSEvents — Document"}}}},
+      "settings": {"meta": {"adminLabel": {}}, "advanced": {"htmlAttributes": {}, "loop": {}}, "decoration": {"layout": {"component": {"props": {"groupLabel": "Module", "dynamicSubgroupHost": true}}}}}
+    },
+    "content": {
+      "type": "object",
+      "default": {"innerContent": {"desktop": {"value": {"show_document": "on", "link_text": "Télécharger le document", "name_display": "text_name", "name_position": "inline"}}}},
+      "settings": {"innerContent": {"groupType": "group-items", "items": {
+        "nameDisplay": {"groupSlug": "contentDocument", "priority": 30, "render": true, "subName": "name_display", "label": "Affichage du nom", "features": {"responsive": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"text": {"label": "Texte uniquement"}, "name": {"label": "Nom du document uniquement"}, "text_name": {"label": "Texte + nom du document"}}}}},
+        "namePosition": {"groupSlug": "contentDocument", "priority": 40, "render": true, "subName": "name_position", "label": "Position du nom", "features": {"responsive": false, "dynamicContent": false}, "component": {"name": "divi/select", "type": "field", "props": {"options": {"inline": {"label": "À la suite"}, "next_line": {"label": "Ligne suivante"}}}}}
+      }}}
+    },
+    "linkText": {
+      "type": "object",
+      "selector": "{{selector}} .wp-seed-event-document__link-text",
+      "tagName": "span",
+      "inlineEditor": false,
+      "allowHtml": false,
+      "childrenSanitizer": "et_core_esc_previously",
+      "default": {"innerContent": {"desktop": {"value": "Télécharger le document"}}},
+      "settings": {
+        "innerContent": {
+          "groupType": "group-item",
+          "item": {
+            "groupSlug": "contentDocument",
+            "priority": 20,
+            "render": true,
+            "attrName": "linkText.innerContent",
+            "label": "Texte du lien",
+            "category": "basic_option",
+            "features": {"sticky": false, "dynamicContent": false, "preset": "content"},
+            "component": {"name": "divi/text", "type": "field"}
+          }
+        }
+      }
+    },
+    "linkStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-document__link", "settings": {"decoration": {"font": {"component": {"props": {"groupLabel": "Document / Lien", "fieldLabel": "Lien"}}}}}},
+    "nameStyle": {"type": "object", "selector": "{{selector}} .wp-seed-event-document__name", "settings": {"decoration": {"font": {"component": {"props": {"groupLabel": "Nom du document", "fieldLabel": "Nom du document"}}}}}}
+  },
+  "settings": {
+    "content": "auto", "design": "auto", "advanced": "auto",
+    "groups": {"contentDocument": {"panel": "content", "priority": 10, "groupName": "contentDocument", "multiElements": true, "component": {"name": "divi/composite", "props": {"groupLabel": "Document"}}}}
+  }
+}

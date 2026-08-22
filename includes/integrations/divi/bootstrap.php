@@ -131,6 +131,22 @@ function wp_seed_events_divi_register_event_visuals_module( $dependency_tree ) {
 }
 add_action( 'divi_module_library_modules_dependency_tree', 'wp_seed_events_divi_register_event_visuals_module' );
 
+function wp_seed_events_divi_register_event_document_module( $dependency_tree ) {
+	if (
+		! function_exists( 'et_builder_d5_enabled' ) || ! et_builder_d5_enabled()
+		|| ! interface_exists( '\ET\Builder\Framework\DependencyManagement\Interfaces\DependencyInterface' )
+		|| ! class_exists( '\ET\Builder\Packages\ModuleLibrary\ModuleRegistration' )
+	) {
+		return;
+	}
+
+	require_once __DIR__ . '/class-event-document-module.php';
+	if ( class_exists( 'WP_Seed_Events_Divi_Event_Document_Module', false ) ) {
+		$dependency_tree->add_dependency( new WP_Seed_Events_Divi_Event_Document_Module() );
+	}
+}
+add_action( 'divi_module_library_modules_dependency_tree', 'wp_seed_events_divi_register_event_document_module' );
+
 /**
  * Register the Divi 5 event people module in the official dependency tree.
  */
@@ -269,7 +285,7 @@ function wp_seed_events_divi_enqueue_event_visuals_module_assets() {
 				'enqueue_app_window' => true,
 			),
 			'style'   => array(
-				'src'                => plugins_url( 'includes/public/event-lists.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
+				'src'                => plugins_url( 'includes/public/event-visuals.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
 				'deps'               => array(),
 				'enqueue_top_window' => false,
 				'enqueue_app_window' => true,
@@ -278,6 +294,33 @@ function wp_seed_events_divi_enqueue_event_visuals_module_assets() {
 	);
 }
 add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_event_visuals_module_assets' );
+
+function wp_seed_events_divi_enqueue_event_document_module_assets() {
+	if (
+		! function_exists( 'et_core_is_fb_enabled' ) || ! function_exists( 'et_builder_d5_enabled' )
+		|| ! et_core_is_fb_enabled() || ! et_builder_d5_enabled()
+		|| ! class_exists( '\ET\Builder\VisualBuilder\Assets\PackageBuildManager' )
+	) {
+		return;
+	}
+
+	\ET\Builder\VisualBuilder\Assets\PackageBuildManager::register_package_build(
+		array(
+			'name' => 'wp-seed-events-event-document-module',
+			'version' => wp_seed_events_divi_asset_version( 'event-document-module/visual-builder/build/wp-seed-events-event-document.js' ),
+			'script' => array(
+				'src' => plugins_url( 'event-document-module/visual-builder/build/wp-seed-events-event-document.js', __FILE__ ),
+				'deps' => array( 'divi-module-library', 'divi-vendor-wp-hooks', 'divi-rest' ),
+				'enqueue_top_window' => false, 'enqueue_app_window' => true,
+			),
+			'style' => array(
+				'src' => plugins_url( 'includes/public/event-visuals.css', dirname( __DIR__, 3 ) . '/wp-seed-events.php' ),
+				'deps' => array(), 'enqueue_top_window' => false, 'enqueue_app_window' => true,
+			),
+		)
+	);
+}
+add_action( 'divi_visual_builder_assets_before_enqueue_scripts', 'wp_seed_events_divi_enqueue_event_document_module_assets' );
 /**
  * Resolve the historical event visual source inside native Divi loop previews.
  */

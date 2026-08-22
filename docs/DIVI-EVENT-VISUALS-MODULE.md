@@ -43,6 +43,8 @@ Les valeurs sont conservées dans `content.innerContent.desktop.value` :
 
 Les tailles proposées sont `thumbnail`, `medium`, `medium_large`, `large` et `full`. Le renderer reste l'autorité de normalisation finale.
 
+`image_size` choisit exclusivement la variante WordPress transmise à `wp_get_attachment_image()`. Il ne fixe pas la largeur affichée. Une même source `medium_large` peut donc être réduite par une demi-colonne et conserver sa largeur intrinsèque dans une colonne pleine largeur. Les dimensions visibles se règlent avec les familles natives Divi de `Élément` et `Image`, branchées respectivement sur le `li` flex et sur le vrai `img`.
+
 ## Réglages Design
 
 Les groupes Divi ciblent les sélecteurs stables du renderer :
@@ -50,7 +52,7 @@ Les groupes Divi ciblent les sélecteurs stables du renderer :
 | Attribut Design | Sélecteur |
 | --- | --- |
 | `sectionStyle` | `.wp-seed-event-visuals` |
-| `titleStyle` | `.wp-seed-event-visuals__title` |
+| `titleStyle` | attribut historique stocke, non expose et non rendu |
 | `listStyle` | `.wp-seed-event-visuals__list` |
 | `gridStyle` | `.is-layout-grid .wp-seed-event-visuals__list` |
 | `listLayoutStyle` | `.is-layout-list .wp-seed-event-visuals__list` |
@@ -114,7 +116,7 @@ Une sortie métier vide ne produit aucun wrapper Divi. Le module n'impose ni nou
 - aucun SQL, shortcode ou ID fixe ;
 - route d'aperçu protégée par les capacités WordPress ;
 - un appel Event Data et un appel renderer par instance ;
-- aucun JavaScript frontend propre au module ;
+- un initialiseur frontend borné aux liens WPSEvents qui charge Magnific Popup et appelle uniquement l'API lightbox native Divi ;
 - aucune dépendance à iFolders, Astra, Spectra ou un plugin média.
 
 ## Développement et build
@@ -163,3 +165,11 @@ Le ZIP inclut le bundle compilé et `src/module.json`, requis par l'enregistreme
 Dans une boucle Divi 5, la donnee dynamique `WP Seed Events - Visuel de communication` fournit une URL publique scalaire au module Image natif. Le Visual Builder lit l'item courant du store de boucle et applique cette URL aux attributs runtime de l'image sans modifier le contenu sauvegarde. Le frontend, le lien dynamique vers la fiche evenement et les identifiants historiques restent inchanges.
 
 Un evenement prive, incompatible ou sans visuel reste vide. Aucun fallback vers le post global ou l'item precedent n'est effectue. La recette de reference couvre Divi 5.9.0, deux images distinctes et deux boucles independantes.
+# Separation images / document
+
+`WPSEvents - Visuels` rend uniquement le flyer recto et les autres images. Le PDF canonique est rendu par
+`WPSEvents - Document`. Les attributs document historiques restent lisibles mais sont inertes.
+
+La nouvelle UI fusionne `link_original` et `lightbox` dans `click_action` : `none`, `lightbox` ou `original`.
+Divi utilise sa lightbox native. Le module charge les assets natifs Divi et appelle `et_pb_image_lightbox_init` lorsqu'il est le seul consommateur de la page ; aucune visionneuse n'est réimplémentée. La collection interne accepte les dispositions verticale, horizontale et grille,
+avec espacements, alignement, justification, wrap et colonnes responsive.

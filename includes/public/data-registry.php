@@ -94,9 +94,15 @@ function wp_seed_events_dynamic_data_fields() {
 		),
 		'event_document_filename' => array(
 			'key'         => 'event_document_filename',
+			'label'       => 'Nom du fichier',
+			'type'        => 'text',
+			'description' => 'Nom technique du fichier PDF complementaire.',
+		),
+		'event_document_display_name' => array(
+			'key'         => 'event_document_display_name',
 			'label'       => 'Nom du document',
 			'type'        => 'text',
-			'description' => 'Nom public du document complementaire.',
+			'description' => 'Nom editorial du document, avec repli sur le nom de fichier nettoye.',
 		),
 		'url'         => array(
 			'key'         => 'url',
@@ -336,6 +342,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':
 			return trim( wp_strip_all_tags( (string) ( $event['event_document_filename'] ?? '' ) ) );
+		case 'event_document_display_name':
+			return trim( wp_strip_all_tags( (string) ( $event['event_document_display_name'] ?? '' ) ) );
 		case 'url':
 			return wp_seed_events_sanitize_public_http_url( $event['url'] ?? '' );
 		case 'place_url':

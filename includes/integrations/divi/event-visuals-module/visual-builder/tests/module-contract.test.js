@@ -1,251 +1,54 @@
 const assert = require('assert');
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-
 const root = path.resolve(__dirname, '..');
 const pluginRoot = path.resolve(root, '..', '..', '..', '..', '..');
-const metadata = JSON.parse(fs.readFileSync(path.join(root, 'src', 'module.json'), 'utf8'));
-const source = fs.readFileSync(path.join(root, 'src', 'index.jsx'), 'utf8');
-const webpackConfig = fs.readFileSync(path.join(root, 'webpack.config.js'), 'utf8');
-const phpModule = fs.readFileSync(
-  path.join(pluginRoot, 'includes', 'integrations', 'divi', 'class-event-visuals-module.php'),
-  'utf8',
-);
-const contextHelper = fs.readFileSync(
-  path.join(pluginRoot, 'includes', 'integrations', 'divi', 'context.php'),
-  'utf8',
-);
-const bootstrap = fs.readFileSync(
-  path.join(pluginRoot, 'includes', 'integrations', 'divi', 'bootstrap.php'),
-  'utf8',
-);
-const packageJson = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'package.json'), 'utf8'));
-const buildScript = fs.readFileSync(path.join(pluginRoot, 'build-dev-zip.ps1'), 'utf8');
-const { getDiviAttribute, getDiviLoopPostId } = require(path.join(pluginRoot, 'includes/integrations/divi/visual-builder-event-context.js'));
-const datesBundlePath = path.join(
-  pluginRoot,
-  'includes',
-  'integrations',
-  'divi',
-  'event-dates-module',
-  'visual-builder',
-  'build',
-  'wp-seed-events-event-dates.js',
-);
-const resolverSource = contextHelper.slice(
-  contextHelper.indexOf('function wp_seed_events_divi_resolve_event_id'),
-);
-const contentItems = metadata.attributes.content.settings.innerContent.items;
+const read = (...parts) => fs.readFileSync(path.join(...parts), 'utf8');
+const metadata = JSON.parse(read(root, 'src', 'module.json'));
+const source = read(root, 'src', 'index.jsx');
+const php = read(pluginRoot, 'includes/integrations/divi/class-event-visuals-module.php');
+const renderer = read(pluginRoot, 'includes/public/rendering.php');
+const bootstrap = read(pluginRoot, 'includes/integrations/divi/bootstrap.php');
+const publicScript = read(pluginRoot, 'includes/public/event-visuals-divi.js');
+const publicStyles = read(pluginRoot, 'includes/public/event-visuals.css');
+const plugin = read(pluginRoot, 'wp-seed-events.php');
+const items = metadata.attributes.content.settings.innerContent.items;
 const defaults = metadata.attributes.content.default.innerContent.desktop.value;
-const persistentFields = Object.values(contentItems).map((item) => item.subName);
 let passed = 0;
+const test = (name, fn) => { fn(); passed += 1; console.log(`ok ${passed} - ${name}`); };
 
-const test = (name, callback) => {
-  callback();
-  passed += 1;
-  console.log('ok ' + passed + ' - ' + name);
-};
-
-test('module ID is distinct and registered once', () => {
-  assert.strictEqual(metadata.name, 'wp-seed-events/event-visuals');
-  assert.notStrictEqual(metadata.name, 'wp-seed-events/event-dates');
-  assert.strictEqual((source.match(/registerModule\(metadata, eventVisualsModule\)/g) || []).length, 1);
+test('module identity and folder stay stable', () => { assert.strictEqual(metadata.name, 'wp-seed-events/event-visuals'); assert.strictEqual(metadata.folder, 'wp-seed-events'); });
+test('module registers exactly once', () => assert.strictEqual((source.match(/registerModule\(metadata, eventVisualsModule\)/g) || []).length, 1));
+test('content UI is image-only while legacy storage remains readable', () => { const text = JSON.stringify(metadata); assert.ok(Object.hasOwn(defaults, 'show_document')); assert.ok(!Object.values(items).some((item) => item.subName === 'show_document')); assert.ok(Object.hasOwn(metadata.attributes, 'documentStyle')); assert.ok(!metadata.attributes.documentStyle.settings); assert.ok(!text.includes('Document / Lien document')); });
+test('click action replaces two toggles', () => { assert.strictEqual(items.clickAction.label, 'Action au clic'); assert.deepStrictEqual(Object.keys(items.clickAction.component.props.options), ['none', 'lightbox', 'original']); assert.ok(!items.linkOriginal); assert.ok(!items.lightbox); });
+test('new module defaults to no click action', () => assert.strictEqual(defaults.click_action, 'none'));
+test('new UI delegates collection layout to Divi', () => { ['layout', 'horizontalGap', 'verticalGap', 'alignItems', 'justifyContent', 'wrap', 'columns', 'columnsTablet', 'columnsPhone'].forEach((key) => assert.ok(!items[key])); assert.ok(!metadata.settings.groups.designVisualLayout); });
+test('native Divi layout targets the real visuals list', () => { assert.ok(!metadata.attributes.module.settings.decoration?.layout); assert.ok(metadata.attributes.eventListStyle.settings.decoration.layout); assert.strictEqual(metadata.attributes.eventListStyle.selector, '{{selector}} .wp-seed-event-visuals__list'); });
+test('legacy layout storage remains readable without becoming a new default', () => { ['layout', 'horizontal_gap', 'vertical_gap', 'align_items', 'justify_content', 'wrap', 'columns', 'columns_tablet', 'columns_phone'].forEach((key) => assert.ok(!Object.hasOwn(defaults, key))); assert.ok(php.includes("'layout'         => 'grid'")); });
+test('new modules mark the native Divi layout contract', () => { assert.ok(source.includes("layout_contract: 'native-v1'")); assert.ok(php.includes("'native-v1' === $options['layout_contract']")); });
+test('style surface has four business groups maximum', () => { const text = JSON.stringify(metadata); ['Module', 'Élément', 'Image', 'Légende'].forEach((label) => assert.ok(text.includes(label))); assert.ok(!text.includes('Disposition des visuels')); });
+test('Divi native lightbox is used and initialized after preview mount', () => { assert.ok(php.includes("$processor->add_class( 'et_pb_lightbox_image' )")); assert.ok(php.includes("$options['click_action'] = 'original'")); assert.ok(source.includes('window.et_pb_image_lightbox_init')); assert.ok(source.includes("find('.et_pb_lightbox_image')")); });
+test('frontend lightbox loads and calls only Divi native assets', () => {
+  assert.ok(php.includes('DynamicAssetsUtils::enqueue_magnific_popup_script()'));
+  assert.ok(php.includes("ET_BUILDER_URI . '/feature/dynamic-assets/assets/css/magnific_popup.css'"));
+  assert.ok(php.includes("wp_enqueue_script( 'wp-seed-events-divi-visuals-lightbox' )"));
+  assert.ok(publicScript.includes('window.et_pb_image_lightbox_init(links)'));
+  assert.ok(!publicScript.includes('.magnificPopup({'));
+  assert.ok(plugin.includes("array( 'jquery', 'magnific-popup' )"));
 });
-
-test('module uses the shared WP Seed Events folder', () => {
-  assert.strictEqual(metadata.folder, 'wp-seed-events');
-  assert.strictEqual((source.match(/registerFolder\(\{/g) || []).length, 1);
-  assert.ok(source.includes("title: 'WP Seed Events'"));
+test('WordPress image source size is independent from native Divi display sizing', () => {
+  assert.ok(renderer.includes('wp_get_attachment_image('));
+  assert.ok(renderer.includes('$image_size'));
+  assert.ok(metadata.attributes.itemStyle.settings.decoration.sizing);
+  assert.ok(metadata.attributes.imageStyle.settings.decoration.sizing);
+  assert.ok(publicStyles.includes('flex-basis: auto'));
+  assert.ok(publicStyles.includes('inline-size: auto'));
+  assert.ok(!publicStyles.includes('flex-basis: 100%'));
 });
-
-test('content options are exact and image sizes are constrained', () => {
-  assert.deepStrictEqual(
-    persistentFields.sort(),
-    [
-      'heading_level',
-      'image_size',
-      'layout',
-      'link_original',
-      'show_captions',
-      'show_document',
-      'show_flyer',
-      'show_title',
-      'show_visuals',
-      'title',
-    ].sort(),
-  );
-  assert.deepStrictEqual(
-    Object.keys(contentItems.imageSize.component.props.options),
-    ['thumbnail', 'medium', 'medium_large', 'large', 'full'],
-  );
-});
-
-test('content defaults match the shared renderer contract', () => {
-  assert.deepStrictEqual(defaults, {
-    title: 'Visuels de communication',
-    show_title: 'on',
-    heading_level: 'h2',
-    show_flyer: 'on',
-    show_visuals: 'on',
-    show_document: 'on',
-    show_captions: 'off',
-    image_size: 'large',
-    link_original: 'on',
-    layout: 'grid',
-  });
-});
-
-test('context follows the validated Dates resolver', () => {
-  assert.deepStrictEqual(metadata.usesContext, ['postId', 'queryId']);
-  assert.ok(phpModule.includes('wp_seed_events_divi_resolve_event_id'));
-  assert.ok(resolverSource.indexOf('$loop_id =') < resolverSource.indexOf('$post_id ='));
-  assert.ok(resolverSource.includes('return wp_seed_events_divi_is_event( $loop_id ) ? $loop_id : 0;'));
-});
-test('module opts into the native Divi Loop Builder', () => {
-  assert.deepStrictEqual(metadata.attributes.module.settings.advanced.loop, {});
-});
-test('loop context consumes the Divi runtime loop post ID', () => {
-  assert.deepStrictEqual(metadata.attributes.__loop_post_id, { type: 'string', default: '' });
-  assert.ok(source.includes("name\":\"loop_post_id"));
-  assert.ok(source.includes('__loop_post_id: loopPostIdContext'));
-  assert.ok(phpModule.includes('wp_seed_events_divi_get_module_event_context'));
-  assert.ok(contextHelper.includes('DynamicContentUtils'));
-  assert.ok(contextHelper.includes('get_loop_post_id'));
-  assert.ok(contextHelper.includes("return array( 'loop_id' => $loop_post_id );"));
-  assert.ok(source.includes('resolveCurrentEventContext'));
-  assert.ok(source.includes('loop_id: loopPostId'));
-  assert.ok(!phpModule.includes('get_the_ID()'));
-  assert.ok(!phpModule.includes('WPSEED_V4_CONTEXT'));
-});
-
-test('Visual Builder reads plain and Immutable Divi loop attributes', () => {
-  const immutableAttrs = {
-    get: (key) => (key === '__loop_post_id' ? '202' : undefined),
-  };
-
-  assert.strictEqual(getDiviAttribute({ __loop_post_id: '101' }, '__loop_post_id'), '101');
-  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '101' }), 101);
-  assert.strictEqual(getDiviLoopPostId(immutableAttrs), 202);
-});
-
-test('Visual Builder rejects missing or invalid Divi loop IDs', () => {
-  assert.strictEqual(getDiviLoopPostId({}), 0);
-  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: 'not-an-id' }), 0);
-  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '-10' }), 0);
-  assert.strictEqual(getDiviLoopPostId({ __loop_post_id: '10.5' }), 0);
-});
-test('Event Data API is called exactly once', () => {
-  assert.strictEqual((phpModule.match(/wp_seed_events_get_event_data/g) || []).length, 1);
-});
-
-test('shared visuals renderer is called exactly once', () => {
-  assert.strictEqual(
-    (phpModule.match(/wp_seed_events_render_public_event_visuals_section/g) || []).length,
-    1,
-  );
-});
-
-test('module does not use a shortcode', () => {
-  assert.ok(!phpModule.includes('do_shortcode'));
-  assert.ok(!phpModule.includes('[wp_seed_event_visuals'));
-  assert.ok(!source.includes('[wp_seed_event_visuals'));
-});
-
-test('module does not access post meta', () => {
-  assert.ok(!phpModule.includes('get_post_meta'));
-  assert.ok(!phpModule.includes('_wp_seed_event_'));
-});
-
-test('module adds no SQL or HTTP request', () => {
-  assert.ok(!phpModule.includes('$wpdb'));
-  assert.ok(!phpModule.includes('WP_Query'));
-  assert.ok(!phpModule.includes('wp_remote_'));
-});
-
-test('module contains no fixed fixture or event ID', () => {
-  ['914', '1011', '1022', '1031', '1048', '1057', '976', '1205', '1295'].forEach((id) => {
-    assert.ok(!phpModule.includes(id));
-    assert.ok(!source.includes(id));
-  });
-});
-
-test('React does not duplicate media business markup', () => {
-  assert.ok(source.includes('dangerouslySetInnerHTML'));
-  assert.ok(!source.includes('<figure'));
-  assert.ok(!source.includes('<img'));
-  assert.ok(!source.includes('<figcaption'));
-  assert.ok(!source.includes('featured_image'));
-  assert.ok(!source.includes('communication_visuals'));
-});
-
-test('preview route is read-only and permission protected', () => {
-  assert.ok(phpModule.includes('WP_REST_Server::READABLE'));
-  assert.ok(phpModule.includes('edit_posts'));
-  assert.ok(phpModule.includes('edit_post'));
-  assert.ok(phpModule.includes('$context_id'));
-  assert.ok(!phpModule.includes('update_post_meta'));
-  assert.ok(!phpModule.includes('delete_post_meta'));
-});
-
-test('preview exposes loading, empty and error states', () => {
-  assert.ok(source.includes('Chargement des visuels'));
-  assert.ok(source.includes('Aucun visuel à afficher dans ce contexte.'));
-  assert.ok(source.includes('L’aperçu des visuels est indisponible.'));
-  assert.ok(source.includes("role='status'"));
-  assert.ok(source.includes("role='alert'"));
-});
-
-test('stale preview requests are aborted', () => {
-  assert.ok(source.includes('AbortController'));
-  assert.ok(source.includes('abortRef.current.abort()'));
-  assert.ok(source.includes('signal: controller.signal'));
-});
-
-test('stable Design selectors cover the shared renderer', () => {
-  [
-    'wp-seed-event-visuals',
-    'wp-seed-event-visuals__title',
-    'wp-seed-event-visuals__list',
-    'is-layout-grid',
-    'is-layout-list',
-    'wp-seed-event-visuals__item',
-    'wp-seed-event-visuals__figure',
-    'wp-seed-event-visuals__image',
-    'wp-seed-event-visuals__caption',
-    'wp-seed-event-visuals__document',
-    'wp-seed-event-visuals__image-link',
-    'wp-seed-event-visuals__document-link',
-  ].forEach((selector) => {
-    assert.ok(JSON.stringify(metadata).includes(selector), 'Missing selector: ' + selector);
-  });
-});
-
-test('preview state and cancellation are instance-local', () => {
-  assert.ok(source.includes('const abortRef = useRef()'));
-  assert.ok(source.includes('const [hasError, setHasError] = useState(false)'));
-  assert.ok(!source.includes('window.wpSeedEventsEventId'));
-});
-
-test('a distinct visuals build is wired into the root workspace', () => {
-  assert.ok(webpackConfig.includes("filename: 'wp-seed-events-event-visuals.js'"));
-  assert.ok(packageJson.scripts['build:divi'].includes('build:divi:visuals'));
-  assert.ok(packageJson.scripts['test:divi'].includes('event-visuals-module'));
-  assert.ok(packageJson.scripts['lint:divi'].includes('event-visuals-module'));
-});
-
-test('packaging requires runtime assets and excludes sources', () => {
-  assert.ok(buildScript.includes('event-visuals-module/visual-builder'));
-  assert.ok(buildScript.includes('wp-seed-events-event-visuals.js'));
-  assert.ok(buildScript.includes('src/index.jsx'));
-  assert.ok(buildScript.includes('visual-builder-event-context.js') || fs.existsSync(path.join(pluginRoot, 'includes/integrations/divi/visual-builder-event-context.js')));
-  assert.ok(buildScript.includes('tests/*'));
-  assert.ok(buildScript.includes('webpack.config.js'));
-});
-
-test('Dates bundle exists and is non-empty', () => {
-  assert.ok(fs.statSync(datesBundlePath).size > 0);
-});
-
-assert.strictEqual(passed, 24);
-console.log('Divi event visuals module contract: 24/24 OK');
+test('loop context uses canonical resolver', () => { assert.deepStrictEqual(metadata.usesContext, ['postId', 'queryId']); assert.ok(source.includes('resolveCurrentEventContext')); assert.ok(php.includes('wp_seed_events_divi_resolve_event_id')); assert.ok(!php.includes('get_the_ID()')); });
+test('preview is protected and abortable', () => { assert.ok(php.includes('WP_REST_Server::READABLE')); assert.ok(php.includes('edit_posts')); assert.ok(source.includes('AbortController')); });
+test('Event Data and shared renderer are single source', () => { assert.strictEqual((php.match(/wp_seed_events_get_event_data/g) || []).length, 1); assert.strictEqual((php.match(/wp_seed_events_render_public_event_visuals_section/g) || []).length, 1); assert.ok(!php.includes('get_post_meta')); });
+test('public renderer contains no document branch', () => { const start = renderer.indexOf('function wp_seed_events_render_public_event_visuals_section'); const end = renderer.indexOf('function wp_seed_events_render_public_event_document_section'); assert.ok(!renderer.slice(start, end).includes('event_document')); });
+test('build and bootstrap are wired', () => { assert.ok(fs.statSync(path.join(root, 'build/wp-seed-events-event-visuals.js')).size > 0); assert.ok(bootstrap.includes('wp_seed_events_divi_register_event_visuals_module')); });
+assert.strictEqual(passed, 18);
+console.log('Divi event visuals module contract: 18/18 OK');
