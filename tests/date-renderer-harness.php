@@ -183,6 +183,8 @@ function wp_seed_events_harness_event( $occurrences ) {
 			'address' => '1 Test street',
 		),
 		'occurrences' => $occurrences,
+		'programming_status' => 'scheduled',
+		'programming_text'   => '',
 	);
 }
 
@@ -217,6 +219,20 @@ $past         = wp_seed_events_harness_occurrence( 'past-1', '2026-01-05', 'past
 $cancelled_up = wp_seed_events_harness_occurrence( 'cancelled-future', '2026-09-10', 'future', true );
 $cancelled_old = wp_seed_events_harness_occurrence( 'cancelled-past', '2025-12-10', 'past', true );
 $all_day      = wp_seed_events_harness_occurrence( 'all-day', '2026-10-10', 'future', false, array( 'all_day' => true ) );
+
+wp_seed_events_harness_case(
+	'0. to-schedule renders editorial text without occurrence markup',
+	function () {
+		$event = wp_seed_events_harness_event( array() );
+		$event['programming_status'] = 'to_schedule';
+		$event['programming_text']   = "2e et 4e jeudi · 19h00–21h00\nprochaines dates à confirmer";
+		$html = wp_seed_events_render_public_event_dates_section( $event );
+		wp_seed_events_harness_contains( 'wp-seed-event-programming-text', $html, 'Programming text wrapper is missing.' );
+		wp_seed_events_harness_contains( '<br />', $html, 'Programming line break is missing.' );
+		wp_seed_events_harness_not_contains( '<li', $html, 'A fake occurrence was rendered.' );
+		wp_seed_events_harness_not_contains( 'À programmer', $html, 'An automatic title was rendered.' );
+	}
+);
 
 wp_seed_events_harness_case(
 	'1. no occurrence or invalid occurrence',

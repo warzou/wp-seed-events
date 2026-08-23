@@ -150,6 +150,7 @@ function wp_seed_events_get_event_data( $event_id ) {
 	$is_pinned = function_exists( 'wp_seed_events_event_is_pinned' )
 		? wp_seed_events_event_is_pinned( $event_id )
 		: false;
+	$programming = wp_seed_events_get_programming_data( $event_id );
 
 	$people  = wp_seed_events_public_event_people_data( $event_id );
 	$contact = wp_seed_events_public_event_contacts( $people );
@@ -164,6 +165,9 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'secondary_types'   => $type_data['secondary_types'],
 		'all_types'         => $type_data['all_types'],
 		'is_pinned'         => $is_pinned,
+		'programming_status'        => $programming['status'],
+		'programming_text'          => $programming['text'],
+		'programming_visible_until' => $programming['visible_until'],
 		'occurrences'        => $occurrences,
 		'promotions'         => $promotions,
 		'parcours_years'     => array_values( $parcours_years ),

@@ -115,7 +115,7 @@ gq_case( 'REST parameters are complete and bounded', function () {
 	foreach ( array( 'wpSeedEventsCollection', 'wpSeedEventsType', 'wpSeedEventsStatus', 'wpSeedEventsPinned', 'wpSeedEventsOrder', 'wpSeedEventsOrderBy' ) as $key ) {
 		gq_assert( isset( $params[ $key ] ), 'REST parameter missing: ' . $key );
 	}
-	gq_assert( array( 'upcoming', 'past', 'all' ) === $params['wpSeedEventsStatus']['enum'], 'Status schema differs.' );
+	gq_assert( array( 'upcoming', 'to_schedule', 'past', 'all' ) === $params['wpSeedEventsStatus']['enum'], 'Status schema differs.' );
 	gq_assert( array( 'business_date' ) === $params['wpSeedEventsOrderBy']['enum'], 'Order schema differs.' );
 	$sanitize_type = $params['wpSeedEventsType']['sanitize_callback'];
 	gq_assert( 'atelier-danse' === $sanitize_type( 'Atelier Danse', new WP_REST_Request(), 'wpSeedEventsType' ), 'Type sanitizer differs.' );

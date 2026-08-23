@@ -22,7 +22,7 @@ function wp_seed_events_divi_event_results_condition_settings( $settings ) {
 	$pinned   = sanitize_key( (string) ( $settings['eventPinned'] ?? 'all' ) );
 	$types    = wp_seed_events_divi_flatten_term_values( $settings['eventTypes'] ?? array() );
 
-	if ( ! in_array( $status, array( 'upcoming', 'past', 'all' ), true ) ) {
+	if ( ! in_array( $status, array( 'upcoming', 'to_schedule', 'past', 'all' ), true ) ) {
 		$status = 'upcoming';
 	}
 

@@ -42,6 +42,7 @@ if ( ! defined( 'WP_SEED_EVENTS_REWRITE_VERSION' ) ) {
 	define( 'WP_SEED_EVENTS_REWRITE_VERSION', '2026-08-05-type-scoped-event-rewrites-v2' );
 }
 
+require_once __DIR__ . '/includes/public/programming.php';
 require_once __DIR__ . '/includes/public/occurrences.php';
 require_once __DIR__ . '/includes/public/classifications.php';
 require_once __DIR__ . '/includes/public/promotions.php';
@@ -1069,6 +1070,14 @@ function wp_seed_events_render_event_admin_column( $column_name, $post_id ) {
 }
 
 function wp_seed_events_format_event_admin_dates( $post_id ) {
+	if ( wp_seed_events_event_is_to_schedule( $post_id ) ) {
+		$programming = wp_seed_events_get_programming_data( $post_id );
+		$cutoff      = '' !== $programming['visible_until'] ? date_i18n( 'd/m/Y', strtotime( $programming['visible_until'] . ' 12:00:00' ) ) : '';
+
+		return esc_html__( 'À programmer', 'wp-seed-events' )
+			. ( '' !== $cutoff ? '<br /><span class="description">' . esc_html( sprintf( __( 'Visible jusqu’au %s', 'wp-seed-events' ), $cutoff ) ) . '</span>' : '' );
+	}
+
 	$lifecycle = wp_seed_events_get_event_lifecycle( $post_id );
 
 	if ( 'undated' === $lifecycle ) {
@@ -2664,9 +2673,35 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 	$display_occurrences     = wp_seed_events_sort_occurrences_for_display( $occurrences );
 	$promotions              = wp_seed_events_get_promotions( array( 'status' => 'all' ) );
 	$has_display_occurrences = false;
+	$has_stored_occurrences  = array() !== $occurrences;
+	$programming             = wp_seed_events_get_programming_data( $post->ID );
+	$is_to_schedule          = 'to_schedule' === $programming['status'];
 
 	wp_nonce_field( 'wp_seed_events_save_occurrences', 'wp_seed_events_occurrences_nonce' );
 	?>
+	<div data-wp-seed-programming>
+		<p>
+			<label for="wp-seed-event-programming-status"><strong>État de programmation</strong></label><br />
+			<select id="wp-seed-event-programming-status" name="wp_seed_event_programming_status" data-wp-seed-programming-status>
+				<option value="scheduled" <?php selected( 'scheduled', $programming['status'] ); ?>>Programmé</option>
+				<option value="to_schedule" <?php selected( 'to_schedule', $programming['status'] ); ?>>À programmer</option>
+			</select>
+		</p>
+
+		<div data-wp-seed-programming-fields <?php echo $is_to_schedule ? '' : 'hidden'; ?>>
+			<p>
+				<label for="wp-seed-event-programming-text"><strong>Texte de programmation</strong></label><br />
+				<textarea id="wp-seed-event-programming-text" name="wp_seed_event_programming_text" rows="3" class="widefat" data-wp-seed-programming-required><?php echo esc_textarea( $programming['text'] ); ?></textarea>
+			</p>
+			<p>
+				<label for="wp-seed-event-programming-visible-until"><strong>Visible jusqu’au</strong></label><br />
+				<input id="wp-seed-event-programming-visible-until" type="date" name="wp_seed_event_programming_visible_until" value="<?php echo esc_attr( $programming['visible_until'] ); ?>" data-wp-seed-programming-required />
+			</p>
+			<p class="description">Cette date limite la présence dans les listes. Elle ne devient jamais une date de l’événement.</p>
+			<p class="notice notice-warning inline" data-wp-seed-programming-occurrence-warning <?php echo $has_stored_occurrences ? '' : 'hidden'; ?>>Cet événement possède encore des dates programmées. Retirez-les avant de le passer à À programmer.</p>
+		</div>
+
+		<div data-wp-seed-scheduled-fields <?php echo $is_to_schedule ? 'hidden' : ''; ?>>
 	<input type="hidden" name="wp_seed_event_occurrences_changed" value="0" data-wp-seed-occurrences-changed />
 	<div data-wp-seed-dates data-next-index="<?php echo esc_attr( (string) count( $occurrences ) ); ?>">
 		<div data-wp-seed-dates-list>
@@ -2788,6 +2823,8 @@ function wp_seed_events_render_occurrences_meta_box( $post ) {
 			Après avoir enregistré la date, pensez à mettre à jour l’événement pour conserver vos modifications.
 		</p>
 	</div>
+		</div>
+	</div>
 	<?php
 }
 
@@ -2810,17 +2847,66 @@ function wp_seed_events_save_occurrences( $post_id ) {
 		return;
 	}
 
+	$stored_occurrences = get_post_meta( $post_id, '_wp_seed_event_occurrences', true );
+	$stored_occurrences = is_array( $stored_occurrences ) ? $stored_occurrences : array();
 	$changed_is_present = isset( $_POST['wp_seed_event_occurrences_changed'] );
 	$changed            = $changed_is_present
 		? sanitize_text_field( wp_unslash( $_POST['wp_seed_event_occurrences_changed'] ) )
 		: '';
+	$occurrences_changed = '1' === $changed;
+	$submitted_occurrences = isset( $_POST['wp_seed_events_occurrences'] ) && is_array( $_POST['wp_seed_events_occurrences'] )
+		? wp_unslash( $_POST['wp_seed_events_occurrences'] )
+		: array();
+	$effective_occurrences = $occurrences_changed ? $submitted_occurrences : $stored_occurrences;
+
+	if ( isset( $_POST['wp_seed_event_programming_status'] ) ) {
+		$requested_status = sanitize_key( wp_unslash( $_POST['wp_seed_event_programming_status'] ) );
+		$current_status   = wp_seed_events_get_programming_status( $post_id );
+		$programming_text = isset( $_POST['wp_seed_event_programming_text'] )
+			? sanitize_textarea_field( wp_unslash( $_POST['wp_seed_event_programming_text'] ) )
+			: (string) get_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_TEXT_META_KEY, true );
+		$visible_until = isset( $_POST['wp_seed_event_programming_visible_until'] )
+			? sanitize_text_field( wp_unslash( $_POST['wp_seed_event_programming_visible_until'] ) )
+			: (string) get_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY, true );
+
+		$programming_error = wp_seed_events_validate_programming_state(
+			$requested_status,
+			$programming_text,
+			$visible_until,
+			$effective_occurrences
+		);
+
+		if ( 'invalid_status' === $programming_error ) {
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			return;
+		}
+
+		if ( '' !== $programming_error ) {
+			$GLOBALS['wp_seed_events_occurrences_validation_error'] = true;
+			$GLOBALS['wp_seed_events_programming_notice']            = $programming_error;
+			return;
+		}
+
+		update_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_STATUS_META_KEY, $requested_status );
+		update_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_TEXT_META_KEY, $programming_text );
+
+		if ( wp_seed_events_is_valid_programming_date( $visible_until ) ) {
+			update_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY, $visible_until );
+		} elseif ( '' === $visible_until ) {
+			delete_post_meta( $post_id, WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY );
+		}
+
+		$GLOBALS['wp_seed_events_programming_changed'] = $requested_status !== $current_status;
+
+		if ( 'scheduled' === $requested_status && array() === $effective_occurrences ) {
+			$GLOBALS['wp_seed_events_programming_notice'] = 'scheduled_empty';
+		}
+	}
 
 	if ( ( $changed_is_present && '1' !== $changed ) || ( ! $changed_is_present && ! isset( $_POST['wp_seed_events_occurrences'] ) ) ) {
 		return;
 	}
 
-	$stored_occurrences = get_post_meta( $post_id, '_wp_seed_event_occurrences', true );
-	$stored_occurrences = is_array( $stored_occurrences ) ? $stored_occurrences : array();
 	$stored_by_uid      = array();
 
 	foreach ( $stored_occurrences as $stored_index => $stored_occurrence ) {
@@ -2832,7 +2918,7 @@ function wp_seed_events_save_occurrences( $post_id ) {
 		$stored_by_uid[ '' !== $stored_uid ? $stored_uid : 'index:' . $stored_index ] = $stored_occurrence;
 	}
 
-	$raw_occurrences = isset( $_POST['wp_seed_events_occurrences'] ) && is_array( $_POST['wp_seed_events_occurrences'] ) ? wp_unslash( $_POST['wp_seed_events_occurrences'] ) : array();
+	$raw_occurrences = $submitted_occurrences;
 	$occurrences     = array();
 
 	foreach ( $raw_occurrences as $occurrence_index => $raw_occurrence ) {
@@ -6192,6 +6278,32 @@ jQuery(function($){
 
 	$(document).on('change','[data-wp-seed-date-panel-field="promotion_id"]',function(){
 		wpSeedDateUpdateParcoursState(wpSeedDatePanel(wpSeedDateRoot(this)));
+	});
+
+	function wpSeedProgrammingRefresh(root){
+		var toSchedule='to_schedule'===root.find('[data-wp-seed-programming-status]').val();
+		var programmingFields=root.find('[data-wp-seed-programming-fields]');
+		var scheduledFields=root.find('[data-wp-seed-scheduled-fields]');
+		var hasOccurrences=scheduledFields.find('[data-wp-seed-date-item]').length>0;
+		programmingFields.prop('hidden',!toSchedule);
+		scheduledFields.prop('hidden',toSchedule&&!hasOccurrences);
+		programmingFields.find('[data-wp-seed-programming-required]').prop('required',toSchedule);
+		programmingFields.find('[data-wp-seed-programming-occurrence-warning]').prop('hidden',!hasOccurrences);
+	}
+
+	$(document).on('change','[data-wp-seed-programming-status]',function(){
+		wpSeedProgrammingRefresh($(this).closest('[data-wp-seed-programming]'));
+	});
+
+	$('[data-wp-seed-programming]').each(function(){
+		var root=$(this);
+		wpSeedProgrammingRefresh(root);
+		if('MutationObserver' in window){
+			new MutationObserver(function(){wpSeedProgrammingRefresh(root);}).observe(
+				root.find('[data-wp-seed-dates-list]')[0],
+				{childList:true}
+			);
+		}
 	});
 });
 JS

@@ -51,6 +51,7 @@ registerBlockBindingsSource( {
 
 const STATUS_OPTIONS = [
   { label: __( 'À venir', 'wp-seed-events' ), value: 'upcoming' },
+  { label: __( 'À programmer', 'wp-seed-events' ), value: 'to_schedule' },
   { label: __( 'Passés', 'wp-seed-events' ), value: 'past' },
   { label: __( 'Tous', 'wp-seed-events' ), value: 'all' },
 ];

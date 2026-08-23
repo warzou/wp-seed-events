@@ -4,6 +4,10 @@
 
 Le renderer public des dates centralise le HTML d'une liste d'occurrences.
 
+Pour un événement dont `programming_status=to_schedule`, il rend uniquement le
+`programming_text` multiligne, sans occurrence, date, titre automatique ni lien ICS.
+La date technique `programming_visible_until` n'entre jamais dans ce rendu.
+
 Il consomme uniquement l'Event Data API et les occurrences normalisees par
 l'Event Occurrences API. Il ne lit aucune meta, ne recalcule aucune date et
 n'ecrit aucune donnee.

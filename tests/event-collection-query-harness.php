@@ -26,6 +26,14 @@ function sanitize_title( $value ) {
 	return trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $value ) ), '-' );
 }
 
+function remove_accents( $value ) {
+	return (string) $value;
+}
+
+function wp_seed_events_programming_is_publicly_listable( $event_id ) {
+	return ! empty( $GLOBALS['collection_events'][ absint( $event_id ) ]['programming_listable'] );
+}
+
 function wp_parse_args( $args, $defaults = array() ) {
 	return array_merge( $defaults, is_array( $args ) ? $args : array() );
 }
@@ -59,6 +67,8 @@ function collection_event( $id, $lifecycle, $date = '', $type = 'atelier', $pinn
 		'lifecycle'       => $lifecycle,
 		'next_occurrence' => array(),
 		'last_occurrence' => array(),
+		'programming_status' => 'scheduled',
+		'occurrences'     => array(),
 	);
 
 	if ( 'upcoming' === $lifecycle && '' !== $date ) {
@@ -105,6 +115,17 @@ collection_event( 107, 'upcoming', '2026-10-01 10:00', 'atelier', true );
 collection_event( 108, 'upcoming', '2026-07-20 10:00', 'conference' );
 collection_event( 109, 'upcoming', '2026-08-01 10:00' );
 collection_event( 110, 'upcoming', '2026-07-30 10:00' );
+$GLOBALS['collection_events'][111] = array(
+	'id'                   => 111,
+	'title'                => 'À programmer',
+	'lifecycle'            => 'undated',
+	'programming_status'   => 'to_schedule',
+	'programming_listable' => true,
+	'occurrences'          => array(),
+	'next_occurrence'      => array(),
+	'last_occurrence'      => array(),
+);
+$GLOBALS['collection_types'][111] = array( 'atelier' );
 
 collection_case( 'type only', function () {
 	collection_assert( ! in_array( 108, collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ), true ), 'Other type leaked.' );
@@ -118,8 +139,12 @@ collection_case( 'past', function () {
 	collection_assert( array( 103 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'past' ) ), 'Past selection differs.' );
 } );
 
+collection_case( 'to-schedule', function () {
+	collection_assert( array( 111 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'to_schedule' ) ), 'To-schedule selection differs.' );
+} );
+
 collection_case( 'all', function () {
-	collection_assert( array( 107, 103, 102, 110, 101, 109, 105, 104, 106 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ), 'All selection differs.' );
+	collection_assert( array( 107, 103, 102, 110, 101, 109, 105, 104, 106, 111 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ), 'All selection differs.' );
 } );
 
 collection_case( 'type plus upcoming', function () {

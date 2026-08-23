@@ -4,6 +4,10 @@
 
 Le module Divi 5 `WP Seed — Dates de l'événement` est un adaptateur builder pour la collection structurée des occurrences. Il ne contient aucune logique métier de date : il résout le contexte, lit l'Event Data API une fois et délègue le HTML à `wp_seed_events_render_public_event_dates_section()`.
 
+Quand l'événement est `to_schedule`, le même renderer affiche uniquement son texte
+de programmation. Les styles Date existants s'appliquent au texte et aucun titre
+« À programmer » n'est ajouté par le module.
+
 Identifiants persistants :
 
 - module : `wp-seed-events/event-dates` ;

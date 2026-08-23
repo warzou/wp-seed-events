@@ -4,6 +4,9 @@
 
 Le bloc dynamique `WP Seed — Dates de l'événement` expose dans Gutenberg la collection structurée des occurrences d'un événement.
 
+Un événement `to_schedule` produit uniquement son texte de programmation via le
+renderer partagé. Il ne produit ni fausse occurrence, ni date limite, ni action ICS.
+
 Identifiant du bloc :
 
 ```text

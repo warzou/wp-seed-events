@@ -138,6 +138,10 @@ function wp_seed_events_build_occurrence_projection_rows( $event_id ) {
 		return new WP_Error( 'occurrence_projection_invalid_event', 'Occurrence projection requires a valid event.' );
 	}
 
+	if ( function_exists( 'wp_seed_events_event_is_to_schedule' ) && wp_seed_events_event_is_to_schedule( $event_id ) ) {
+		return array();
+	}
+
 	$raw_occurrences = get_post_meta( $event_id, '_wp_seed_event_occurrences', true );
 	$raw_occurrences = is_array( $raw_occurrences ) ? $raw_occurrences : array();
 	$event_type      = wp_seed_events_occurrence_projection_event_type( $event_id );

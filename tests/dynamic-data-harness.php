@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY', '_wp_seed_event_short_description' );
+define( 'WP_SEED_EVENTS_PROGRAMMING_STATUS_META_KEY', '_wp_seed_event_programming_status' );
+define( 'WP_SEED_EVENTS_PROGRAMMING_TEXT_META_KEY', '_wp_seed_event_programming_text' );
+define( 'WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY', '_wp_seed_event_programming_visible_until' );
 
 $GLOBALS['d0_events']      = array();
 $GLOBALS['d0_types']       = array();
@@ -132,6 +135,10 @@ function wp_seed_events_public_event_status_label( $value ) {
 	return $labels[ (string) $value ] ?? '';
 }
 
+function wp_seed_events_programming_status_label( $value ) {
+	return 'to_schedule' === $value ? 'À programmer' : ( 'scheduled' === $value ? 'Programmé' : '' );
+}
+
 class WP_Block {
 	public $context;
 
@@ -154,6 +161,8 @@ function d0_event( $event_id, $title = '' ) {
 		'title'              => $title,
 		'types'              => array( 'Atelier', 'Stage' ),
 		'lifecycle'          => 'upcoming',
+		'programming_status' => 'scheduled',
+		'programming_text'   => '',
 		'next_date_value'    => 'Next ' . (string) $event_id,
 		'next_time_value'    => '10:00',
 		'display_date_value'      => 'Display ' . (string) $event_id,
@@ -229,6 +238,10 @@ function d0_uncached_value( $field, $event_id ) {
 			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
 		case 'status':
 			return wp_seed_events_public_event_status_label( $event['lifecycle'] ?? '' );
+		case 'programming_status':
+			return wp_seed_events_programming_status_label( $event['programming_status'] ?? '' );
+		case 'programming_text':
+			return wp_seed_events_dynamic_data_multiline_text( $event['programming_text'] ?? '' );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
 		case 'next_time':
@@ -413,9 +426,18 @@ d0_case( 'cache preserves all existing values', function () {
 	}
 } );
 
+d0_case( 'programming Dynamic Data exposes status and multiline text only', function () {
+	d0_event( 99113 );
+	$GLOBALS['d0_events'][99113]['programming_status'] = 'to_schedule';
+	$GLOBALS['d0_events'][99113]['programming_text']   = "Deux jeudis\nDates à confirmer";
+	d0_assert( 'À programmer' === wp_seed_events_dynamic_data_get_value( 'programming_status', 99113 ), 'programming status differs' );
+	d0_assert( "Deux jeudis\nDates à confirmer" === wp_seed_events_dynamic_data_get_value( 'programming_text', 99113 ), 'programming text differs' );
+	d0_assert( ! array_key_exists( 'programming_visible_until', wp_seed_events_dynamic_data_fields() ), 'technical cutoff leaked into Dynamic Data' );
+} );
+
 d0_case( 'registry declares the exact D3 keys once', function () {
 	$expected = array(
-		'title', 'types', 'status', 'next_date', 'next_time', 'display_date', 'display_time',
+		'title', 'types', 'status', 'programming_status', 'programming_text', 'next_date', 'next_time', 'display_date', 'display_time',
 		'place', 'place_address', 'contact', 'description', 'excerpt', 'practical_info',
 		'event_document_filename', 'url', 'place_url', 'event_document_url',
 		'communication_visual',
@@ -798,7 +820,8 @@ d0_case( 'guard event Query Loop exposes every text binding', function () {
 		$values[ $field ] = d0_bind( $field, $context );
 	}
 	d0_assert( array(
-		'title' => 'Loop', 'types' => 'Atelier, Stage', 'status' => 'À venir', 'next_date' => 'Next 306',
+		'title' => 'Loop', 'types' => 'Atelier, Stage', 'status' => 'À venir',
+		'programming_status' => 'Programmé', 'programming_text' => '', 'next_date' => 'Next 306',
 		'next_time' => '10:00', 'display_date' => 'Display 306', 'display_time' => '10:00 - 12:00',
 		'place' => 'Place 306', 'place_address' => 'Address 306',
 		'contact' => 'Claire 306 · +33 1 23 45 67 89 · claire@example.test · https://example.test/claire',

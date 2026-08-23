@@ -4,6 +4,8 @@
 declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'WP_SEED_EVENTS_PROGRAMMING_STATUS_META_KEY', '_wp_seed_event_programming_status' );
+define( 'WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY', '_wp_seed_event_programming_visible_until' );
 
 $GLOBALS['index_event_data_calls'] = array();
 $GLOBALS['index_cases']            = 0;

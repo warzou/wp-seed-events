@@ -55,7 +55,7 @@ check( 'all required controls are present', () => {
 } );
 
 check( 'status values are complete', () => {
-  [ 'upcoming', 'past', 'all' ].forEach( ( value ) =>
+  [ 'upcoming', 'to_schedule', 'past', 'all' ].forEach( ( value ) =>
     assert.ok( source.includes( `value: '${ value }'` ) ),
   );
 } );

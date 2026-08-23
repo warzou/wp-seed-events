@@ -993,6 +993,16 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		$event = wp_seed_events_public_event_data( absint( $event ) );
 	}
 
+	if ( 'to_schedule' === ( $event['programming_status'] ?? '' ) ) {
+		$programming_text = trim( (string) ( $event['programming_text'] ?? '' ) );
+
+		if ( '' === $programming_text ) {
+			return '';
+		}
+
+		return '<section class="wp-seed-event-section wp-seed-event-section--dates wp-seed-event-single__section wp-seed-event-single__dates is-to-schedule" aria-label="' . esc_attr__( 'Programmation de l’événement', 'wp-seed-events' ) . '"><p class="wp-seed-event-programming-text wp-seed-event-date__date">' . nl2br( esc_html( $programming_text ) ) . '</p></section>';
+	}
+
 	if ( empty( $event['occurrences'] ) || ! is_array( $event['occurrences'] ) ) {
 		return '';
 	}

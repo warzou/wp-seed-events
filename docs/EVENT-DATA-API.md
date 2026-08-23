@@ -35,6 +35,9 @@ $event = wp_seed_events_get_event_data( 123 );
 | `last_occurrence` | `array` | Derniere occurrence active chronologique, ou `array()`. |
 | `display_occurrence` | `array` | `next_occurrence`, sinon `last_occurrence`. |
 | `lifecycle` | `string` | `upcoming`, `past`, `undated` ou `cancelled_only`. |
+| `programming_status` | `string` | État canonique `scheduled` ou `to_schedule`. |
+| `programming_text` | `string` | Texte public multiligne lorsque les dates restent à programmer. |
+| `programming_visible_until` | `string` | Date technique `YYYY-MM-DD` limitant les listings, jamais une date d'événement. |
 | `place` | `array` | `id`, `name`, `address`, `details`, `link`, ou `array()`. |
 | `place_address` | `string` | Projection texte de l'adresse. |
 | `place_url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |

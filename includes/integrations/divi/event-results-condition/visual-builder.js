@@ -45,6 +45,7 @@
                     style: { width: '100%' }
                 },
                 React.createElement('option', { value: 'upcoming' }, 'À venir'),
+                React.createElement('option', { value: 'to_schedule' }, 'À programmer'),
                 React.createElement('option', { value: 'past' }, 'Passés'),
                 React.createElement('option', { value: 'all' }, 'Tous')
             )),

@@ -93,12 +93,17 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 			continue;
 		}
 
+		if ( 'to_schedule' === $status && ! $timing['is_to_schedule'] ) {
+			continue;
+		}
+
 		$items[] = array(
 			'id'        => $event_id,
 			'event'     => $event,
 			'is_pinned' => $is_pinned,
 			'has_date'  => $timing['has_date'],
 			'sort'      => $timing['sort'],
+			'title_sort'=> remove_accents( strtolower( (string) ( $event['title'] ?? '' ) ) ),
 		);
 	}
 
@@ -107,6 +112,12 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 		static function ( $first, $second ) use ( $order ) {
 			if ( $first['is_pinned'] !== $second['is_pinned'] ) {
 				return $first['is_pinned'] ? -1 : 1;
+			}
+
+			if ( 'to_schedule' === $status ) {
+				$comparison = strcmp( (string) $first['title_sort'], (string) $second['title_sort'] );
+
+				return 0 !== $comparison ? $comparison : $first['id'] <=> $second['id'];
 			}
 
 			if ( $first['has_date'] !== $second['has_date'] ) {
@@ -254,6 +265,15 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		LEFT JOIN {$wpdb->postmeta} occurrence_meta
 			ON occurrence_meta.post_id = event_posts.ID
 			AND occurrence_meta.meta_key = '_wp_seed_event_collection_occurrence_sort'
+		LEFT JOIN {$wpdb->postmeta} raw_occurrence_meta
+			ON raw_occurrence_meta.post_id = event_posts.ID
+			AND raw_occurrence_meta.meta_key = '_wp_seed_event_occurrences'
+		LEFT JOIN {$wpdb->postmeta} programming_meta
+			ON programming_meta.post_id = event_posts.ID
+			AND programming_meta.meta_key = '" . esc_sql( WP_SEED_EVENTS_PROGRAMMING_STATUS_META_KEY ) . "'
+		LEFT JOIN {$wpdb->postmeta} programming_cutoff_meta
+			ON programming_cutoff_meta.post_id = event_posts.ID
+			AND programming_cutoff_meta.meta_key = '" . esc_sql( WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY ) . "'
 		LEFT JOIN {$wpdb->postmeta} pinned_meta
 			ON pinned_meta.post_id = event_posts.ID
 			AND pinned_meta.meta_key = '_wp_seed_event_pinned'
@@ -278,12 +298,23 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		$where .= ' AND pinned_meta.post_id IS NOT NULL';
 	}
 
+	$programming_status_sql = "COALESCE(NULLIF(programming_meta.meta_value, ''), 'scheduled')";
+
+	if ( in_array( $args['status'], array( 'upcoming', 'past' ), true ) ) {
+		$where .= " AND {$programming_status_sql} = 'scheduled'";
+	} elseif ( 'to_schedule' === $args['status'] ) {
+		$today_date = esc_sql( current_time( 'Y-m-d' ) );
+		$where     .= " AND {$programming_status_sql} = 'to_schedule' AND programming_cutoff_meta.meta_value >= '{$today_date}'";
+	}
+
 	$having = '';
 
 	if ( 'upcoming' === $args['status'] ) {
 		$having = "HAVING {$next_sort} IS NOT NULL";
 	} elseif ( 'past' === $args['status'] ) {
 		$having = "HAVING {$next_sort} IS NULL AND {$last_sort} IS NOT NULL";
+	} elseif ( 'to_schedule' === $args['status'] ) {
+		$having = 'HAVING COUNT(raw_occurrence_meta.meta_id) = 0';
 	}
 
 	$from_sql = "
@@ -302,6 +333,9 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 	}
 
 	$order_sql  = 'DESC' === $args['order'] ? 'DESC' : 'ASC';
+	$ordering   = 'to_schedule' === $args['status']
+		? 'event_posts.post_title ASC, event_posts.ID ASC'
+		: "CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC, {$business_sort} {$order_sql}, event_posts.ID ASC";
 	$select_sql = "
 		SELECT event_posts.ID
 		{$from_sql}
@@ -423,7 +457,7 @@ function wp_seed_events_apply_collection_to_query_args( $query_args, $collection
 function wp_seed_events_public_collection_status( $value ) {
 	$value = strtolower( trim( (string) $value ) );
 
-	return in_array( $value, array( 'upcoming', 'past', 'all' ), true ) ? $value : 'upcoming';
+	return in_array( $value, array( 'upcoming', 'to_schedule', 'past', 'all' ), true ) ? $value : 'upcoming';
 }
 
 function wp_seed_events_public_collection_pinned( $value ) {
@@ -468,11 +502,25 @@ function wp_seed_events_public_collection_event_matches_type( $event_id, $type )
  */
 function wp_seed_events_public_collection_event_timing( $event ) {
 	$lifecycle = isset( $event['lifecycle'] ) ? (string) $event['lifecycle'] : '';
+	$is_to_schedule = 'to_schedule' === ( $event['programming_status'] ?? '' )
+		&& empty( $event['occurrences'] )
+		&& wp_seed_events_programming_is_publicly_listable( $event['id'] ?? 0 );
+
+	if ( $is_to_schedule ) {
+		return array(
+			'has_date'      => false,
+			'is_upcoming'   => false,
+			'is_to_schedule'=> true,
+			'is_past'       => false,
+			'sort'          => '',
+		);
+	}
 
 	if ( 'upcoming' === $lifecycle && ! empty( $event['next_occurrence']['start_sort'] ) ) {
 		return array(
 			'has_date'    => true,
 			'is_upcoming' => true,
+			'is_to_schedule' => false,
 			'is_past'     => false,
 			'sort'        => (string) $event['next_occurrence']['start_sort'],
 		);
@@ -482,6 +530,7 @@ function wp_seed_events_public_collection_event_timing( $event ) {
 		return array(
 			'has_date'    => true,
 			'is_upcoming' => false,
+			'is_to_schedule' => false,
 			'is_past'     => true,
 			'sort'        => (string) $event['last_occurrence']['start_sort'],
 		);
@@ -490,6 +539,7 @@ function wp_seed_events_public_collection_event_timing( $event ) {
 	return array(
 		'has_date'    => false,
 		'is_upcoming' => false,
+		'is_to_schedule' => false,
 		'is_past'     => false,
 		'sort'        => '',
 	);

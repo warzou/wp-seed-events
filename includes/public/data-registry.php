@@ -32,6 +32,18 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Statut metier public de l\'evenement.',
 		),
+		'programming_status' => array(
+			'key'         => 'programming_status',
+			'label'       => 'État de programmation',
+			'type'        => 'text',
+			'description' => 'État de programmation canonique de l’événement.',
+		),
+		'programming_text' => array(
+			'key'         => 'programming_text',
+			'label'       => 'Texte de programmation',
+			'type'        => 'text',
+			'description' => 'Information publique affichée quand les dates restent à programmer.',
+		),
 		'next_date'   => array(
 			'key'         => 'next_date',
 			'label'       => 'Prochaine date',
@@ -178,7 +190,18 @@ function wp_seed_events_dynamic_data_invalidate_event_cache( $event_id = 0 ) {
 function wp_seed_events_dynamic_data_invalidate_description_meta_cache( $meta_id, $event_id, $meta_key ) {
 	unset( $meta_id );
 
-	if ( WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY === (string) $meta_key ) {
+	if (
+		in_array(
+			(string) $meta_key,
+			array(
+				WP_SEED_EVENTS_SHORT_DESCRIPTION_META_KEY,
+				WP_SEED_EVENTS_PROGRAMMING_STATUS_META_KEY,
+				WP_SEED_EVENTS_PROGRAMMING_TEXT_META_KEY,
+				WP_SEED_EVENTS_PROGRAMMING_VISIBLE_UNTIL_META_KEY,
+			),
+			true
+		)
+	) {
 		wp_seed_events_dynamic_data_invalidate_event_cache( $event_id );
 	}
 }
@@ -319,6 +342,10 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return empty( $event['types'] ) || ! is_array( $event['types'] ) ? '' : implode( ', ', array_map( 'wp_strip_all_tags', $event['types'] ) );
 		case 'status':
 			return wp_seed_events_public_event_status_label( $event['lifecycle'] ?? '' );
+		case 'programming_status':
+			return wp_seed_events_programming_status_label( $event['programming_status'] ?? '' );
+		case 'programming_text':
+			return wp_seed_events_dynamic_data_multiline_text( $event['programming_text'] ?? '' );
 		case 'next_date':
 			return trim( wp_strip_all_tags( wp_seed_events_public_event_next_date_line( $event ) ) );
 		case 'next_time':

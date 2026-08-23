@@ -46,6 +46,9 @@ function wp_seed_events_normalize_parcours_year( $value ) { return absint( $valu
 function wp_seed_events_get_next_active_occurrence() { return array(); }
 function wp_seed_events_get_last_active_occurrence() { return array(); }
 function wp_seed_events_get_event_lifecycle() { return 'undated'; }
+function wp_seed_events_get_programming_data() {
+	return array( 'status' => 'scheduled', 'text' => '', 'visible_until' => '' );
+}
 function wp_seed_events_get_event_media() {
 	return array(
 		'featured_image' => null,

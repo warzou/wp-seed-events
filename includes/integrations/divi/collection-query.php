@@ -691,7 +691,7 @@ function wp_seed_events_divi_apply_collection_query( $query_args, $requested_ord
 
 	$options['status'] = strtolower( trim( (string) $options['status'] ) );
 
-	if ( ! in_array( $options['status'], array( 'upcoming', 'past', 'all' ), true ) ) {
+	if ( ! in_array( $options['status'], array( 'upcoming', 'to_schedule', 'past', 'all' ), true ) ) {
 		$query_args['post__in'] = array( 0 );
 		$query_args['orderby']  = 'post__in';
 		$query_args['order']    = 'ASC';

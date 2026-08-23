@@ -45,7 +45,7 @@ public_docs_case( 'Event Data signature and empty result are definitive', functi
 } );
 
 public_docs_case( 'Event Data complete top-level keys are documented', function () use ( $event_data ) {
-	foreach ( array( 'slug', 'primary_type', 'secondary_types', 'all_types', 'is_pinned', 'active_occurrences', 'display_occurrence', 'promotions', 'parcours_years', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
+	foreach ( array( 'slug', 'primary_type', 'secondary_types', 'all_types', 'is_pinned', 'programming_status', 'programming_text', 'programming_visible_until', 'active_occurrences', 'display_occurrence', 'promotions', 'parcours_years', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
 		public_docs_assert( false !== strpos( $event_data, '`' . $key . '`' ), 'Missing Event Data key: ' . $key );
 	}
 } );

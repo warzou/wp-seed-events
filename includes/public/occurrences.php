@@ -9,6 +9,11 @@ defined( 'ABSPATH' ) || exit;
 
 function wp_seed_events_get_event_occurrences( $event_id, $args = array() ) {
 	$event_id = absint( $event_id );
+
+	if ( function_exists( 'wp_seed_events_event_is_to_schedule' ) && wp_seed_events_event_is_to_schedule( $event_id ) ) {
+		return array();
+	}
+
 	$args     = wp_parse_args(
 		$args,
 		array(

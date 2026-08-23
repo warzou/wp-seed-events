@@ -40,7 +40,7 @@ function wp_seed_events_gutenberg_collection_settings( $source ) {
 	$order  = strtoupper( trim( (string) ( $source['wpSeedEventsOrder'] ?? 'ASC' ) ) );
 
 	if (
-		! in_array( $status, array( 'upcoming', 'past', 'all' ), true )
+		! in_array( $status, array( 'upcoming', 'to_schedule', 'past', 'all' ), true )
 		|| ! in_array( $pinned, array( 'all', 'only' ), true )
 		|| ! in_array( $order, array( 'ASC', 'DESC' ), true )
 	) {
@@ -149,7 +149,7 @@ function wp_seed_events_gutenberg_collection_rest_params( $params ) {
 	$params['wpSeedEventsStatus']     = array(
 		'description' => 'Filter the event collection by public lifecycle.',
 		'type'        => 'string',
-		'enum'        => array( 'upcoming', 'past', 'all' ),
+		'enum'        => array( 'upcoming', 'to_schedule', 'past', 'all' ),
 	);
 	$params['wpSeedEventsPinned']     = array(
 		'description' => 'Filter the event collection by pinned state.',

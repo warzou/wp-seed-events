@@ -28,6 +28,8 @@ Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
 | `title` | Titre | `text` | `title` | chaîne vide |
 | `types` | Types | `text` | `types[]`, séparés par une virgule | chaîne vide |
 | `status` | Statut | `text` | `lifecycle`, libellé public localisé | chaîne vide |
+| `programming_status` | État de programmation | `text` | `programming_status`, libellé Programmé / À programmer | chaîne vide |
+| `programming_text` | Texte de programmation | `text` multiligne | `programming_text` | chaîne vide |
 | `next_date` | Prochaine date | `text` | `next_occurrence` formatée | chaîne vide |
 | `next_time` | Prochaine heure | `text` | heure de `next_occurrence` | chaîne vide |
 | `display_date` | Date affichée | `text` | `display_occurrence` formatée | chaîne vide |
