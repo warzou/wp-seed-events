@@ -91,7 +91,7 @@ function wp_seed_events_divi_apply_collection_query( $args, $orderby, $controls 
 
 function get_posts( $args ) {
 	$GLOBALS['event_condition_last_get_posts'] = $args;
-	return $GLOBALS['event_condition_results'];
+	return array_slice( $GLOBALS['event_condition_results'], 0, (int) $args['posts_per_page'] );
 }
 
 require dirname( __DIR__ ) . '/includes/integrations/divi/event-results-condition.php';
@@ -144,6 +144,52 @@ event_condition_case( 'condition delegates all criteria to the shared adapter', 
 	event_condition_assert( 1 === $GLOBALS['event_condition_last_get_posts']['posts_per_page'], 'Existence query is not bounded.' );
 } );
 
+event_condition_case( 'historical settings default to at least one result', function () use ( $settings ) {
+	$normalized = wp_seed_events_divi_event_results_condition_settings( $settings );
+	event_condition_assert( 'at_least' === $normalized['operator'], 'Legacy operator default changed.' );
+	event_condition_assert( 1 === $normalized['count'], 'Legacy count default changed.' );
+	$GLOBALS['event_condition_results'] = array( 101 );
+	event_condition_assert( wp_seed_events_divi_event_results_condition_matches_count( $settings ), 'Legacy condition no longer matches one result.' );
+} );
+
+event_condition_case( 'exactly one distinguishes one from multiple results', function () use ( $settings ) {
+	$exactly_one = array_merge( $settings, array( 'resultCountOperator' => 'equals', 'resultCount' => 1 ) );
+	$GLOBALS['event_condition_results'] = array( 101 );
+	event_condition_assert( wp_seed_events_divi_event_results_condition_matches_count( $exactly_one ), 'One result did not match exactly one.' );
+	event_condition_assert( 2 === $GLOBALS['event_condition_last_get_posts']['posts_per_page'], 'Exact comparison did not request the sentinel result.' );
+	$GLOBALS['event_condition_results'] = array( 101, 102 );
+	event_condition_assert( ! wp_seed_events_divi_event_results_condition_matches_count( $exactly_one ), 'Two results matched exactly one.' );
+} );
+
+event_condition_case( 'at least two distinguishes zero and one from two and three', function () use ( $settings ) {
+	$at_least_two = array_merge( $settings, array( 'resultCountOperator' => 'at_least', 'resultCount' => 2 ) );
+	foreach ( array( 0 => false, 1 => false, 2 => true, 3 => true ) as $count => $expected ) {
+		$GLOBALS['event_condition_results'] = array_slice( array( 101, 102, 103 ), 0, $count );
+		event_condition_assert(
+			$expected === wp_seed_events_divi_event_results_condition_matches_count( $at_least_two ),
+			'At-least-two comparison differs for count ' . $count . '.'
+		);
+	}
+	event_condition_assert( 2 === $GLOBALS['event_condition_last_get_posts']['posts_per_page'], 'Minimum comparison queried beyond its decision threshold.' );
+} );
+
+event_condition_case( 'greater-than comparison supports reusable cardinality thresholds', function () use ( $settings ) {
+	$greater_than_two = array_merge( $settings, array( 'resultCountOperator' => 'greater_than', 'resultCount' => 2 ) );
+	$GLOBALS['event_condition_results'] = array( 101, 102 );
+	event_condition_assert( ! wp_seed_events_divi_event_results_condition_matches_count( $greater_than_two ), 'Two results matched greater than two.' );
+	$GLOBALS['event_condition_results'] = array( 101, 102, 103, 104 );
+	event_condition_assert( wp_seed_events_divi_event_results_condition_matches_count( $greater_than_two ), 'Three or more results did not match greater than two.' );
+	event_condition_assert( 3 === $GLOBALS['event_condition_last_get_posts']['posts_per_page'], 'Greater-than comparison did not stop at the decision threshold.' );
+} );
+
+event_condition_case( 'zero cardinality is explicit and does not require an inverse display rule', function () use ( $settings ) {
+	$exactly_zero = array_merge( $settings, array( 'resultCountOperator' => 'equals', 'resultCount' => 0 ) );
+	$GLOBALS['event_condition_results'] = array();
+	event_condition_assert( wp_seed_events_divi_event_results_condition_matches_count( $exactly_zero ), 'Zero results did not match exactly zero.' );
+	$GLOBALS['event_condition_results'] = array( 101 );
+	event_condition_assert( ! wp_seed_events_divi_event_results_condition_matches_count( $exactly_zero ), 'One result matched exactly zero.' );
+} );
+
 event_condition_case( 'other custom conditions remain untouched', function () {
 	event_condition_assert(
 		null === wp_seed_events_divi_evaluate_event_results_condition( null, 'otherCondition', array(), 'x' ),
@@ -184,7 +230,7 @@ event_condition_case( 'delete disappears while a historical saved term remains u
 
 event_condition_case( 'Visual Builder registers settings without frontend behavior', function () {
 	$source = file_get_contents( dirname( __DIR__ ) . '/includes/integrations/divi/event-results-condition/visual-builder.js' );
-	foreach ( array( 'conditionsStore', 'initialCustomItemEdit', 'customSettingsComponent' ) as $contract ) {
+	foreach ( array( 'conditionsStore', 'initialCustomItemEdit', 'customSettingsComponent', 'resultCountOperator', 'resultCount', 'at_least', 'equals', 'greater_than' ) as $contract ) {
 		event_condition_assert( false !== strpos( $source, $contract ), 'Builder hook missing: ' . $contract );
 	}
 	foreach ( array( 'DOMContentLoaded', 'MutationObserver', 'querySelector', 'display:none' ) as $forbidden ) {

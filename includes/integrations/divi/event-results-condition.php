@@ -21,6 +21,8 @@ function wp_seed_events_divi_event_results_condition_settings( $settings ) {
 	$status   = sanitize_key( (string) ( $settings['eventStatus'] ?? 'upcoming' ) );
 	$pinned   = sanitize_key( (string) ( $settings['eventPinned'] ?? 'all' ) );
 	$types    = wp_seed_events_divi_flatten_term_values( $settings['eventTypes'] ?? array() );
+	$operator = sanitize_key( (string) ( $settings['resultCountOperator'] ?? 'at_least' ) );
+	$count    = absint( $settings['resultCount'] ?? 1 );
 
 	if ( ! in_array( $status, array( 'upcoming', 'to_schedule', 'past', 'all' ), true ) ) {
 		$status = 'upcoming';
@@ -30,25 +32,25 @@ function wp_seed_events_divi_event_results_condition_settings( $settings ) {
 		$pinned = 'all';
 	}
 
+	if ( ! in_array( $operator, array( 'equals', 'at_least', 'greater_than' ), true ) ) {
+		$operator = 'at_least';
+	}
+
 	return array(
-		'status' => $status,
-		'types'  => $types,
-		'pinned' => $pinned,
+		'status'   => $status,
+		'types'    => $types,
+		'pinned'   => $pinned,
+		'operator' => $operator,
+		'count'    => $count,
 	);
 }
 
-/**
- * Test whether the condition's Events query has at least one public result.
- *
- * The condition only translates Divi settings. Date, lifecycle and indexed
- * selection remain owned by the canonical collection pipeline.
- */
-function wp_seed_events_divi_event_results_condition_has_results( $settings ) {
-	$settings = wp_seed_events_divi_event_results_condition_settings( $settings );
-	$args     = array(
+/** Build the canonical collection query used by result-count conditions. */
+function wp_seed_events_divi_event_results_condition_query( $settings, $limit ) {
+	$args = array(
 		'post_type'           => array( 'wp_seed_event' ),
 		'post_status'         => 'publish',
-		'posts_per_page'      => 1,
+		'posts_per_page'      => max( 1, absint( $limit ) ),
 		'fields'              => 'ids',
 		'no_found_rows'       => true,
 		'ignore_sticky_posts' => true,
@@ -68,9 +70,53 @@ function wp_seed_events_divi_event_results_condition_has_results( $settings ) {
 		'pinned'         => $settings['pinned'],
 	);
 
-	$args = wp_seed_events_divi_apply_collection_query( $args, '', $controls );
+	return wp_seed_events_divi_apply_collection_query( $args, '', $controls );
+}
 
-	return array() !== get_posts( $args );
+/** Return the smallest query limit that can decide the requested comparison. */
+function wp_seed_events_divi_event_results_condition_query_limit( $operator, $count ) {
+	$count = absint( $count );
+
+	if ( 'at_least' === $operator ) {
+		return max( 1, $count );
+	}
+
+	return max( 1, $count + 1 );
+}
+
+/** Evaluate the optional cardinality rule against the canonical collection. */
+function wp_seed_events_divi_event_results_condition_matches_count( $settings ) {
+	$settings = wp_seed_events_divi_event_results_condition_settings( $settings );
+
+	if ( 'at_least' === $settings['operator'] && 0 === $settings['count'] ) {
+		return true;
+	}
+
+	$limit  = wp_seed_events_divi_event_results_condition_query_limit( $settings['operator'], $settings['count'] );
+	$result = get_posts( wp_seed_events_divi_event_results_condition_query( $settings, $limit ) );
+	$found  = is_array( $result ) ? count( $result ) : 0;
+
+	if ( 'equals' === $settings['operator'] ) {
+		return $found === $settings['count'];
+	}
+
+	if ( 'greater_than' === $settings['operator'] ) {
+		return $found > $settings['count'];
+	}
+
+	return $found >= $settings['count'];
+}
+
+/**
+ * Test whether the condition's Events query has at least one public result.
+ *
+ * The condition only translates Divi settings. Date, lifecycle and indexed
+ * selection remain owned by the canonical collection pipeline.
+ */
+function wp_seed_events_divi_event_results_condition_has_results( $settings ) {
+	$settings = wp_seed_events_divi_event_results_condition_settings( $settings );
+
+	return array() !== get_posts( wp_seed_events_divi_event_results_condition_query( $settings, 1 ) );
 }
 
 /** Evaluate the custom condition during Divi's server render. */
@@ -81,7 +127,7 @@ function wp_seed_events_divi_evaluate_event_results_condition( $result, $conditi
 		return $result;
 	}
 
-	return wp_seed_events_divi_event_results_condition_has_results( $condition_settings );
+	return wp_seed_events_divi_event_results_condition_matches_count( $condition_settings );
 }
 add_filter(
 	'divi_module_options_conditions_is_custom_condition_true',

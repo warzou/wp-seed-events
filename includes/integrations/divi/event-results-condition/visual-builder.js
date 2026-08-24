@@ -33,6 +33,8 @@
     function Settings(props) {
         var settings = props.item.conditionSettings || {};
         var selectedTypes = Array.isArray(settings.eventTypes) ? settings.eventTypes.map(String) : [];
+        var resultCount = Number.parseInt(settings.resultCount, 10);
+        resultCount = Number.isFinite(resultCount) ? Math.max(0, resultCount) : 1;
 
         return React.createElement(
             'div',
@@ -84,6 +86,30 @@
                 React.createElement('option', { value: 'all' }, 'Tous'),
                 React.createElement('option', { value: 'featured_only' }, 'Uniquement les événements épinglés'),
                 React.createElement('option', { value: 'exclude_featured' }, 'Exclure les événements épinglés')
+            )),
+            field('Nombre de résultats', React.createElement(
+                'div',
+                { style: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 88px', gap: '8px' } },
+                React.createElement(
+                    'select',
+                    {
+                        value: settings.resultCountOperator || 'at_least',
+                        onChange: function (event) { updateSetting(props.setItem, 'resultCountOperator', event.target.value); }
+                    },
+                    React.createElement('option', { value: 'at_least' }, 'Au moins'),
+                    React.createElement('option', { value: 'equals' }, 'Exactement'),
+                    React.createElement('option', { value: 'greater_than' }, 'Plus de')
+                ),
+                React.createElement('input', {
+                    type: 'number',
+                    min: 0,
+                    step: 1,
+                    value: resultCount,
+                    onChange: function (event) {
+                        var next = Number.parseInt(event.target.value, 10);
+                        updateSetting(props.setItem, 'resultCount', Number.isFinite(next) ? Math.max(0, next) : 0);
+                    }
+                })
             ))
         );
     }
@@ -118,7 +144,9 @@
                     adminLabel: label,
                     eventStatus: 'upcoming',
                     eventTypes: [],
-                    eventPinned: 'all'
+                    eventPinned: 'all',
+                    resultCountOperator: 'at_least',
+                    resultCount: 1
                 },
                 operator: operator
             };
@@ -140,7 +168,7 @@
         'divi.fieldLibrary.conditionalDisplay.tooltips.customTooltip',
         'wp-seed-events/event-results/tooltip',
         function (tooltip, selectedName) {
-            return conditionName === selectedName ? 'Afficher si au moins un événement correspond.' : tooltip;
+            return conditionName === selectedName ? 'Afficher selon le nombre d’événements correspondant à la collection.' : tooltip;
         }
     );
 }(window));
