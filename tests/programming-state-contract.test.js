@@ -85,9 +85,16 @@ check( 'Dynamic Data exposes status and text but not the technical cutoff', () =
 check( 'collections support upcoming, to-schedule, past and expiration', () => {
   assert.ok( collections.includes( "array( 'upcoming', 'to_schedule', 'past', 'all' )" ) );
   assert.ok( collections.includes( "programming_cutoff_meta.meta_value >=" ) );
-  assert.ok( collections.includes( 'COUNT(raw_occurrence_meta.meta_id) = 0' ) );
+  assert.ok( collections.includes( 'COUNT(DISTINCT raw_occurrence_meta.meta_id) = 0' ) );
   assert.ok( collections.includes( 'event_posts.post_title ASC' ) );
   assert.ok( ! collections.includes( 'programming_cutoff_meta.meta_value ASC' ) );
 } );
 
-process.stdout.write( `Programming state contract: ${ cases }/9 PASS\n` );
+check( 'temporal collections rely on exact occurrence boundaries', () => {
+  assert.ok( collections.includes( 'occurrence_projection.end_sort >=' ) );
+  assert.ok( collections.includes( 'occurrence_projection.end_sort <' ) );
+  assert.ok( occurrences.includes( "return 'undated';" ) );
+  assert.ok( rendering.includes( "empty( $event['occurrences'] )" ) );
+} );
+
+process.stdout.write( `Programming state contract: ${ cases }/${ cases } PASS\n` );

@@ -127,6 +127,21 @@ $GLOBALS['collection_events'][111] = array(
 	'last_occurrence'      => array(),
 );
 $GLOBALS['collection_types'][111] = array( 'atelier' );
+$GLOBALS['collection_events'][112] = array(
+	'id' => 112,
+	'title' => 'Stage en cours',
+	'lifecycle' => 'upcoming',
+	'programming_status' => 'scheduled',
+	'occurrences' => array(),
+	'next_occurrence' => array( 'start_sort' => '2026-08-22 17:00', 'end_sort' => '2026-08-28 15:00', 'is_in_progress' => true ),
+	'last_occurrence' => array(),
+);
+collection_event( 113, 'undated', '', 'stage' );
+collection_event( 115, 'upcoming', '2026-09-01 10:00', 'stage' );
+collection_event( 116, 'past', '2025-08-23 17:00', 'stage' );
+foreach ( array( 112, 113 ) as $stage_id ) {
+	$GLOBALS['collection_types'][ $stage_id ] = array( 'stage' );
+}
 
 collection_case( 'type only', function () {
 	collection_assert( ! in_array( 108, collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ), true ), 'Other type leaked.' );
@@ -144,6 +159,14 @@ collection_case( 'to-schedule', function () {
 	collection_assert( array( 111 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'to_schedule' ) ), 'To-schedule selection differs.' );
 } );
 
+collection_case( 'in-progress event precedes future events', function () {
+	collection_assert( array( 112, 115 ) === collection_ids( array( 'type' => 'stage', 'status' => 'upcoming' ) ), 'In-progress Stage was not selected first.' );
+} );
+
+collection_case( 'scheduled event without occurrences stays out of past', function () {
+	collection_assert( array( 116 ) === collection_ids( array( 'type' => 'stage', 'status' => 'past' ) ), 'Undated Stage leaked into past.' );
+} );
+
 collection_case( 'all', function () {
 	collection_assert( array( 107, 103, 102, 110, 101, 109, 105, 104, 106, 111 ) === collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ), 'All selection differs.' );
 } );
@@ -157,7 +180,7 @@ collection_case( 'type plus past', function () {
 } );
 
 collection_case( 'type plus all', function () {
-	collection_assert( 9 === count( collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ) ), 'Type and all were not combined.' );
+	collection_assert( 10 === count( collection_ids( array( 'type' => 'atelier', 'status' => 'all' ) ) ), 'Type and all were not combined.' );
 } );
 
 collection_case( 'pinned only', function () {
@@ -187,7 +210,7 @@ collection_case( 'pinned priority can be disabled without filtering results', fu
 
 collection_case( 'no type filter remains exhaustive when pinned priority is disabled', function () {
 	$ids = collection_ids( array( 'status' => 'upcoming', 'pinned_priority' => 'none' ) );
-	collection_assert( array( 108, 102, 110, 101, 109, 105, 107 ) === $ids, 'Unfiltered chronological collection is incomplete or misordered.' );
+	collection_assert( array( 112, 108, 102, 110, 101, 109, 105, 115, 107 ) === $ids, 'Unfiltered chronological collection is incomplete or misordered.' );
 } );
 
 collection_case( 'unknown pinned priority falls back to historical behavior', function () {
@@ -213,7 +236,7 @@ collection_case( 'descending order', function () {
 
 collection_case( 'undated and cancelled-only remain last', function () {
 	$ids = collection_ids( array( 'type' => 'atelier', 'status' => 'all', 'order' => 'desc' ) );
-	collection_assert( array( 104, 106 ) === array_slice( $ids, -2 ), 'No-date events are not last.' );
+	collection_assert( array( 104, 106, 111 ) === array_slice( $ids, -3 ), 'No-date events are not last.' );
 } );
 
 collection_case( 'cancelled occurrences do not define upcoming', function () {

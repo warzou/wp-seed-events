@@ -111,10 +111,11 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 	$is_cancelled = ! empty( $raw_occurrence['cancelled'] );
 	$start_sort   = $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) );
 	$end_sort     = ( '' !== $end_date ? $end_date : $start_date ) . ' ' . ( $all_day ? '23:59' : ( '' !== $end_time ? $end_time : ( '' !== $start_time ? $start_time : '00:00' ) ) );
-	$today          = current_time( 'Y-m-d' );
+	$now            = current_time( 'Y-m-d H:i' );
 	$is_active      = ! $is_cancelled;
-	$is_date_future = $start_date >= $today;
-	$is_date_past   = $start_date < $today;
+	$is_date_future = $end_sort >= $now;
+	$is_date_past   = $end_sort < $now;
+	$is_in_progress = $start_sort <= $now && $end_sort >= $now;
 	$is_future      = $is_active && $is_date_future;
 	$is_past        = $is_active && $is_date_past;
 
@@ -139,6 +140,7 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 		'is_active'      => $is_active,
 		'is_date_future' => $is_date_future,
 		'is_date_past'   => $is_date_past,
+		'is_in_progress' => $is_active && $is_in_progress,
 		'is_future'      => $is_future,
 		'is_past'        => $is_past,
 		'is_cancelled'   => $is_cancelled,
@@ -149,6 +151,23 @@ function wp_seed_events_normalize_occurrence( $raw_occurrence, $event_id, $index
 	$occurrence['datetime_label'] = trim( $occurrence['date_label'] . ( '' !== $occurrence['time_label'] ? ' ' . $occurrence['time_label'] : '' ) );
 
 	return $occurrence;
+}
+
+/** Return the canonical local end sort for a raw or normalized occurrence. */
+function wp_seed_events_occurrence_end_sort_value( $occurrence ) {
+	if ( ! is_array( $occurrence ) || empty( $occurrence['start_date'] ) ) {
+		return '';
+	}
+
+	$start_date = trim( (string) $occurrence['start_date'] );
+	$end_date   = trim( (string) ( $occurrence['end_date'] ?? '' ) );
+	$start_time = trim( (string) ( $occurrence['start_time'] ?? '' ) );
+	$end_time   = trim( (string) ( $occurrence['end_time'] ?? '' ) );
+	$all_day    = ! empty( $occurrence['all_day'] );
+
+	return ( '' !== $end_date ? $end_date : $start_date ) . ' ' . (
+		$all_day ? '23:59' : ( '' !== $end_time ? $end_time : ( '' !== $start_time ? $start_time : '00:00' ) )
+	);
 }
 
 /**

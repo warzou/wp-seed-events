@@ -40,10 +40,11 @@ function wp_seed_events_calculate_lifecycle_index( $event_id ) {
 			continue;
 		}
 
-		$start_date = (string) $occurrence['start_date'];
+		$end_date = (string) ( $occurrence['end_date'] ?? '' );
+		$end_date = '' !== $end_date ? $end_date : (string) $occurrence['start_date'];
 
-		if ( '' === $last_active_date || $start_date > $last_active_date ) {
-			$last_active_date = $start_date;
+		if ( '' === $last_active_date || $end_date > $last_active_date ) {
+			$last_active_date = $end_date;
 		}
 
 		if ( ! empty( $occurrence['start_sort'] ) ) {

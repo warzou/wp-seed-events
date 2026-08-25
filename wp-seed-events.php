@@ -1192,7 +1192,7 @@ function wp_seed_events_next_occurrence_sort_value( $occurrences ) {
 	foreach ( $valid_occurrences as $occurrence ) {
 		$sort_value = wp_seed_events_occurrence_sort_value( $occurrence );
 
-		if ( $sort_value >= $now ) {
+		if ( wp_seed_events_occurrence_end_sort_value( $occurrence ) >= $now ) {
 			return $sort_value;
 		}
 	}
@@ -1249,7 +1249,7 @@ function wp_seed_events_next_occurrence_for_event( $post_id ) {
 	$now               = current_time( 'Y-m-d H:i' );
 
 	foreach ( $valid_occurrences as $occurrence ) {
-		if ( wp_seed_events_occurrence_sort_value( $occurrence ) >= $now ) {
+		if ( wp_seed_events_occurrence_end_sort_value( $occurrence ) >= $now ) {
 			return $occurrence;
 		}
 	}

@@ -18,7 +18,7 @@ if ( ! defined( 'WP_SEED_EVENTS_LIFECYCLE_INDEX_LOCK_TTL' ) ) {
 add_action( 'admin_post_wp_seed_events_run_lifecycle_index_backfill', 'wp_seed_events_handle_lifecycle_index_backfill' );
 
 function wp_seed_events_lifecycle_index_expected_version() {
-	return 4;
+	return 5;
 }
 
 function wp_seed_events_lifecycle_index_version_option_name() {

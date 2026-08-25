@@ -35,24 +35,24 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 	$args = wp_parse_args(
 		$args,
 		array(
-			'limit'    => 6,
-			'per_page' => null,
-			'page'     => 1,
-			'status'   => 'upcoming',
-			'type'     => '',
-			'pinned'   => 'all',
+			'limit'           => 6,
+			'per_page'        => null,
+			'page'            => 1,
+			'status'          => 'upcoming',
+			'type'            => '',
+			'pinned'          => 'all',
 			'pinned_priority' => 'first',
-			'order'    => '',
+			'order'           => '',
 		)
 	);
 
-	$status   = wp_seed_events_public_collection_status( $args['status'] );
-	$pinned   = wp_seed_events_public_collection_pinned( $args['pinned'] );
+	$status          = wp_seed_events_public_collection_status( $args['status'] );
+	$pinned          = wp_seed_events_public_collection_pinned( $args['pinned'] );
 	$pinned_priority = wp_seed_events_public_collection_pinned_priority( $args['pinned_priority'] );
-	$type     = sanitize_title( (string) $args['type'] );
-	$order    = wp_seed_events_public_collection_order( $args['order'], $status );
-	$page     = max( 1, absint( $args['page'] ) );
-	$per_page = null === $args['per_page'] ? max( 1, absint( $args['limit'] ) ) : (int) $args['per_page'];
+	$type            = sanitize_title( (string) $args['type'] );
+	$order           = wp_seed_events_public_collection_order( $args['order'], $status );
+	$page            = max( 1, absint( $args['page'] ) );
+	$per_page        = null === $args['per_page'] ? max( 1, absint( $args['limit'] ) ) : (int) $args['per_page'];
 
 	$event_ids = get_posts(
 		array(
@@ -104,7 +104,10 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 			'id'        => $event_id,
 			'event'     => $event,
 			'is_pinned' => $is_pinned,
-			'has_date'  => $timing['has_date'],
+			'has_sort'  => $timing['has_sort'],
+			'is_in_progress' => $timing['is_in_progress'],
+			'sort_period' => $timing['sort_period'],
+			'sort_precision' => $timing['sort_precision'],
 			'sort'      => $timing['sort'],
 			'title_sort'=> remove_accents( strtolower( (string) ( $event['title'] ?? '' ) ) ),
 		);
@@ -123,8 +126,22 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 				return 0 !== $comparison ? $comparison : $first['id'] <=> $second['id'];
 			}
 
-			if ( $first['has_date'] !== $second['has_date'] ) {
-				return $first['has_date'] ? -1 : 1;
+			if ( 'upcoming' === $status && $first['is_in_progress'] !== $second['is_in_progress'] ) {
+				return $first['is_in_progress'] ? -1 : 1;
+			}
+
+			if ( $first['has_sort'] !== $second['has_sort'] ) {
+				return $first['has_sort'] ? -1 : 1;
+			}
+
+			$period_comparison = strcmp( (string) $first['sort_period'], (string) $second['sort_period'] );
+
+			if ( 0 !== $period_comparison ) {
+				return 'DESC' === $order ? -$period_comparison : $period_comparison;
+			}
+
+			if ( $first['sort_precision'] !== $second['sort_precision'] ) {
+				return $first['sort_precision'] ? -1 : 1;
 			}
 
 			$comparison = strcmp( (string) $first['sort'], (string) $second['sort'] );
@@ -153,11 +170,11 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 		'page'        => $page,
 		'per_page'    => $per_page,
 		'args'        => array(
-			'type'   => $type,
-			'status' => $status,
-			'pinned' => $pinned,
+			'type'            => $type,
+			'status'          => $status,
+			'pinned'          => $pinned,
 			'pinned_priority' => $pinned_priority,
-			'order'  => $order,
+			'order'           => $order,
 		),
 	);
 }
@@ -201,24 +218,24 @@ function wp_seed_events_public_collection_normalize_args( $args = array() ) {
 	$args = wp_parse_args(
 		$args,
 		array(
-			'limit'    => 6,
-			'per_page' => null,
-			'page'     => 1,
-			'status'   => 'upcoming',
-			'type'     => '',
-			'pinned'   => 'all',
+			'limit'           => 6,
+			'per_page'        => null,
+			'page'            => 1,
+			'status'          => 'upcoming',
+			'type'            => '',
+			'pinned'          => 'all',
 			'pinned_priority' => 'first',
-			'order'    => '',
+			'order'           => '',
 		)
 	);
 
-	$args['status']   = wp_seed_events_public_collection_status( $args['status'] );
-	$args['pinned']   = wp_seed_events_public_collection_pinned( $args['pinned'] );
+	$args['status']          = wp_seed_events_public_collection_status( $args['status'] );
+	$args['pinned']          = wp_seed_events_public_collection_pinned( $args['pinned'] );
 	$args['pinned_priority'] = wp_seed_events_public_collection_pinned_priority( $args['pinned_priority'] );
-	$args['type']     = sanitize_title( (string) $args['type'] );
-	$args['order']    = wp_seed_events_public_collection_order( $args['order'], $args['status'] );
-	$args['page']     = max( 1, absint( $args['page'] ) );
-	$args['per_page'] = null === $args['per_page'] ? max( 1, absint( $args['limit'] ) ) : (int) $args['per_page'];
+	$args['type']            = sanitize_title( (string) $args['type'] );
+	$args['order']           = wp_seed_events_public_collection_order( $args['order'], $args['status'] );
+	$args['page']            = max( 1, absint( $args['page'] ) );
+	$args['per_page']        = null === $args['per_page'] ? max( 1, absint( $args['limit'] ) ) : (int) $args['per_page'];
 
 	return $args;
 }
@@ -233,11 +250,11 @@ function wp_seed_events_public_collection_empty_result( $args ) {
 		'page'        => $args['page'],
 		'per_page'    => $args['per_page'],
 		'args'        => array(
-			'type'   => $args['type'],
-			'status' => $args['status'],
-			'pinned' => $args['pinned'],
+			'type'            => $args['type'],
+			'status'          => $args['status'],
+			'pinned'          => $args['pinned'],
 			'pinned_priority' => $args['pinned_priority'],
-			'order'  => $args['order'],
+			'order'           => $args['order'],
 		),
 	);
 }
@@ -254,7 +271,12 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 
 	$args = wp_seed_events_public_collection_normalize_args( $raw_args );
 
-	if ( ! isset( $wpdb->posts, $wpdb->postmeta ) ) {
+	if (
+		! isset( $wpdb->posts, $wpdb->postmeta )
+		|| ! function_exists( 'wp_seed_events_occurrence_projection_table_name' )
+		|| ! function_exists( 'wp_seed_events_occurrence_projection_table_exists' )
+		|| ! wp_seed_events_occurrence_projection_table_exists()
+	) {
 		return new WP_Error( 'event_collection_index_unavailable', 'The event collection index is unavailable.' );
 	}
 
@@ -264,14 +286,17 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		return wp_seed_events_public_collection_empty_result( $args );
 	}
 
-	$today_sql     = "'" . esc_sql( current_time( 'Y-m-d' ) . ' 00:00' ) . "'";
-	$next_sort     = "MIN(CASE WHEN occurrence_meta.meta_value >= {$today_sql} THEN occurrence_meta.meta_value ELSE NULL END)";
-	$last_sort     = "MAX(CASE WHEN occurrence_meta.meta_value < {$today_sql} THEN occurrence_meta.meta_value ELSE NULL END)";
-	$business_sort = "COALESCE({$next_sort}, {$last_sort})";
+	$projection_table = wp_seed_events_occurrence_projection_table_name();
+	$now_sql          = "'" . esc_sql( current_time( 'Y-m-d H:i' ) ) . "'";
+	$next_sort        = "MIN(CASE WHEN occurrence_projection.end_sort >= {$now_sql} THEN occurrence_projection.start_sort ELSE NULL END)";
+	$last_sort        = "MAX(CASE WHEN occurrence_projection.end_sort < {$now_sql} THEN occurrence_projection.start_sort ELSE NULL END)";
+	$in_progress      = "MAX(CASE WHEN occurrence_projection.start_sort <= {$now_sql} AND occurrence_projection.end_sort >= {$now_sql} THEN 1 ELSE 0 END)";
+	$business_sort    = "COALESCE({$next_sort}, {$last_sort})";
+	$business_period  = "LEFT({$business_sort}, 4)";
 	$joins         = "
-		LEFT JOIN {$wpdb->postmeta} occurrence_meta
-			ON occurrence_meta.post_id = event_posts.ID
-			AND occurrence_meta.meta_key = '_wp_seed_event_collection_occurrence_sort'
+		LEFT JOIN {$projection_table} occurrence_projection
+			ON occurrence_projection.event_id = event_posts.ID
+			AND occurrence_projection.is_cancelled = 0
 		LEFT JOIN {$wpdb->postmeta} raw_occurrence_meta
 			ON raw_occurrence_meta.post_id = event_posts.ID
 			AND raw_occurrence_meta.meta_key = '_wp_seed_event_occurrences'
@@ -321,7 +346,7 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 	} elseif ( 'past' === $args['status'] ) {
 		$having = "HAVING {$next_sort} IS NULL AND {$last_sort} IS NOT NULL";
 	} elseif ( 'to_schedule' === $args['status'] ) {
-		$having = 'HAVING COUNT(raw_occurrence_meta.meta_id) = 0';
+		$having = 'HAVING COUNT(DISTINCT raw_occurrence_meta.meta_id) = 0';
 	}
 
 	$from_sql = "
@@ -339,10 +364,14 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		return new WP_Error( 'event_collection_index_query_failed', 'The indexed event collection count failed.' );
 	}
 
-	$order_sql  = 'DESC' === $args['order'] ? 'DESC' : 'ASC';
-	$ordering   = 'to_schedule' === $args['status']
-		? 'event_posts.post_title ASC, event_posts.ID ASC'
-		: "CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC, {$business_sort} {$order_sql}, event_posts.ID ASC";
+	$order_sql = 'DESC' === $args['order'] ? 'DESC' : 'ASC';
+	if ( 'to_schedule' === $args['status'] ) {
+		$ordering = 'event_posts.post_title ASC, event_posts.ID ASC';
+	} elseif ( 'upcoming' === $args['status'] ) {
+		$ordering = "{$in_progress} DESC, {$next_sort} {$order_sql}, event_posts.ID ASC";
+	} else {
+		$ordering = "CASE WHEN {$business_period} IS NULL THEN 1 ELSE 0 END ASC, {$business_period} {$order_sql}, CASE WHEN {$business_sort} IS NULL THEN 0 ELSE 1 END DESC, {$business_sort} {$order_sql}, event_posts.ID ASC";
+	}
 	$pinned_ordering = 'first' === $args['pinned_priority']
 		? 'MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC, '
 		: '';
@@ -350,10 +379,7 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		SELECT event_posts.ID
 		{$from_sql}
 		ORDER BY
-			{$pinned_ordering}
-			CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC,
-			{$business_sort} {$order_sql},
-			event_posts.ID ASC";
+			{$pinned_ordering}{$ordering}";
 
 	if ( $args['per_page'] > 0 ) {
 		$offset      = ( $args['page'] - 1 ) * $args['per_page'];
@@ -391,11 +417,11 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 		'page'        => $args['page'],
 		'per_page'    => $args['per_page'],
 		'args'        => array(
-			'type'   => $args['type'],
-			'status' => $args['status'],
-			'pinned' => $args['pinned'],
+			'type'            => $args['type'],
+			'status'          => $args['status'],
+			'pinned'          => $args['pinned'],
 			'pinned_priority' => $args['pinned_priority'],
-			'order'  => $args['order'],
+			'order'           => $args['order'],
 		),
 	);
 }
@@ -527,38 +553,56 @@ function wp_seed_events_public_collection_event_timing( $event ) {
 	if ( $is_to_schedule ) {
 		return array(
 			'has_date'      => false,
+			'has_sort'      => false,
 			'is_upcoming'   => false,
 			'is_to_schedule'=> true,
 			'is_past'       => false,
+			'is_in_progress'=> false,
+			'sort_period'   => '',
+			'sort_precision'=> 0,
 			'sort'          => '',
 		);
 	}
 
 	if ( 'upcoming' === $lifecycle && ! empty( $event['next_occurrence']['start_sort'] ) ) {
+		$sort = (string) $event['next_occurrence']['start_sort'];
 		return array(
 			'has_date'    => true,
+			'has_sort'    => true,
 			'is_upcoming' => true,
 			'is_to_schedule' => false,
 			'is_past'     => false,
-			'sort'        => (string) $event['next_occurrence']['start_sort'],
+			'is_in_progress' => ! empty( $event['next_occurrence']['is_in_progress'] ),
+			'sort_period' => substr( $sort, 0, 4 ),
+			'sort_precision' => 1,
+			'sort'        => $sort,
 		);
 	}
 
 	if ( 'past' === $lifecycle && ! empty( $event['last_occurrence']['start_sort'] ) ) {
+		$sort = (string) $event['last_occurrence']['start_sort'];
 		return array(
 			'has_date'    => true,
+			'has_sort'    => true,
 			'is_upcoming' => false,
 			'is_to_schedule' => false,
 			'is_past'     => true,
-			'sort'        => (string) $event['last_occurrence']['start_sort'],
+			'is_in_progress' => false,
+			'sort_period' => substr( $sort, 0, 4 ),
+			'sort_precision' => 1,
+			'sort'        => $sort,
 		);
 	}
 
 	return array(
 		'has_date'    => false,
+		'has_sort'    => false,
 		'is_upcoming' => false,
 		'is_to_schedule' => false,
 		'is_past'     => false,
+		'is_in_progress' => false,
+		'sort_period' => '',
+		'sort_precision' => 0,
 		'sort'        => '',
 	);
 }

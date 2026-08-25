@@ -44,10 +44,13 @@ function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function sanitize_title( $value ) { return trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $value ) ), '-' ); }
+function remove_accents( $value ) { return (string) $value; }
 function wp_parse_args( $args, $defaults = array() ) { return array_merge( $defaults, is_array( $args ) ? $args : array() ); }
 function esc_sql( $value ) { return addslashes( (string) $value ); }
-function current_time() { return '2026-07-26'; }
+function current_time( $format = '' ) { return 'Y-m-d H:i' === $format ? '2026-07-26 12:00' : '2026-07-26'; }
 function wp_seed_events_is_lifecycle_index_ready() { return true; }
+function wp_seed_events_occurrence_projection_table_name() { return 'wp_wp_seed_event_occurrences'; }
+function wp_seed_events_occurrence_projection_table_exists() { return true; }
 function wp_seed_events_event_type_options() { return array( 'atelier' => 'Atelier', 'conference' => 'Conférence' ); }
 function wp_seed_events_get_event_data( $event_id ) {
 	$GLOBALS['index_event_data_calls'][] = absint( $event_id );
@@ -81,22 +84,23 @@ index_case( 'public collection hydrates only selected page IDs', function () {
 	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[1], 'LIMIT 2 OFFSET 4' ), 'SQL pagination is missing.' );
 } );
 
-index_case( 'upcoming selection uses the next active projection', function () {
+index_case( 'upcoming selection uses occurrence end and prioritizes in-progress events', function () {
 	wp_seed_events_query_indexed_event_collection( array( 'status' => 'upcoming' ), false );
-	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[0], 'MIN(CASE WHEN occurrence_meta.meta_value >=' ), 'Upcoming aggregate is absent.' );
+	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[0], 'occurrence_projection.end_sort >=' ), 'Upcoming end aggregate is absent.' );
 	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[0], 'IS NOT NULL' ), 'Upcoming HAVING differs.' );
+	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[1], 'occurrence_projection.start_sort <=' ), 'In-progress priority is absent.' );
 } );
 
 index_case( 'past selection excludes events that still have a future date', function () {
 	wp_seed_events_query_indexed_event_collection( array( 'status' => 'past' ), false );
 	$sql = $GLOBALS['wpdb']->queries[0];
-	index_assert( false !== strpos( $sql, 'IS NULL AND MAX(' ) && false !== strpos( $sql, 'IS NOT NULL' ), 'Past HAVING differs.' );
+	index_assert( false !== strpos( $sql, 'end_sort <' ) && false !== strpos( $sql, 'IS NULL AND MAX(' ) && false !== strpos( $sql, 'IS NOT NULL' ), 'Past occurrence HAVING differs.' );
 } );
 
 index_case( 'all selection keeps undated events after dated events', function () {
 	wp_seed_events_query_indexed_event_collection( array( 'status' => 'all', 'order' => 'desc' ), false );
 	$sql = $GLOBALS['wpdb']->queries[1];
-	index_assert( false !== strpos( $sql, 'CASE WHEN COALESCE(' ) && false !== strpos( $sql, 'THEN 1 ELSE 0 END ASC' ), 'Undated ordering differs.' );
+	index_assert( false !== strpos( $sql, 'CASE WHEN LEFT(COALESCE(' ), 'Undated ordering differs.' );
 	index_assert( false !== strpos( $sql, ' DESC,' ), 'Descending business order is absent.' );
 } );
 
@@ -104,15 +108,15 @@ index_case( 'pinned priority precedes business date', function () {
 	wp_seed_events_query_indexed_event_collection( array( 'status' => 'all' ), false );
 	$sql = $GLOBALS['wpdb']->queries[1];
 	$pin = strpos( $sql, 'pinned_meta.post_id IS NULL' );
-	$date = strpos( $sql, 'CASE WHEN COALESCE(' );
+	$date = strpos( $sql, 'CASE WHEN LEFT(COALESCE(' );
 	index_assert( false !== $pin && false !== $date && $pin < $date, 'Pinned priority moved after date.' );
 } );
 
-index_case( 'pinned priority can be removed from indexed ordering', function () {
+index_case( 'pinned priority can be omitted from indexed ordering', function () {
 	$result = wp_seed_events_query_indexed_event_collection( array( 'status' => 'all', 'pinned_priority' => 'none' ), false );
 	$sql = $GLOBALS['wpdb']->queries[1];
 	index_assert( false === strpos( $sql, 'MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC' ), 'Pinned priority remains in chronological-only SQL.' );
-	index_assert( false !== strpos( $sql, 'CASE WHEN COALESCE(' ), 'Canonical business ordering disappeared.' );
+	index_assert( false !== strpos( $sql, 'CASE WHEN LEFT(COALESCE(' ), 'Canonical business ordering disappeared.' );
 	index_assert( 'none' === $result['args']['pinned_priority'], 'Effective priority differs.' );
 } );
 

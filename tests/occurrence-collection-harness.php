@@ -98,7 +98,7 @@ function sanitize_title( $value ) { return trim( strtolower( preg_replace( '/[^a
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function wp_parse_args( $args, $defaults = array() ) { return array_merge( $defaults, is_array( $args ) ? $args : array() ); }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
-function current_time( $type, $gmt = false ) { return 'Y-m-d' === $type ? '2026-01-01' : ( 'mysql' === $type ? '2026-01-01 00:00:00' : 0 ); }
+function current_time( $type, $gmt = false ) { return 'Y-m-d' === $type ? '2026-01-01' : ( 'Y-m-d H:i' === $type ? '2026-01-01 12:00' : ( 'mysql' === $type ? '2026-01-01 12:00:00' : 0 ) ); }
 function update_meta_cache( $type, $ids ) { return true; }
 function get_post( $id ) { return $GLOBALS['occurrence_collection_posts'][ absint( $id ) ] ?? null; }
 function get_posts( $args ) {
@@ -172,9 +172,8 @@ class Occurrence_Collection_Wpdb {
 			$rows = array_values( array_filter( $rows, static function ( $row ) use ( $types ) { return array() !== array_intersect( $types, wp_seed_events_event_type_keys_for_event( $row['event_id'] ) ); } ) );
 		}
 		$bounds = array(
-			'/projection\.start_sort >= \'([^\']+)\'/' => array( 'start_sort', '>=' ),
-			'/projection\.start_sort < \'([^\']+)\'/' => array( 'start_sort', '<' ),
 			'/projection\.end_sort >= \'([^\']+)\'/' => array( 'end_sort', '>=' ),
+			'/projection\.end_sort < \'([^\']+)\'/' => array( 'end_sort', '<' ),
 			'/projection\.start_sort <= \'([^\']+)\'/' => array( 'start_sort', '<=' ),
 		);
 		foreach ( $bounds as $pattern => $definition ) {
@@ -228,6 +227,11 @@ function occurrence_collection_assert_parity( $args, $label ) {
 	occurrence_collection_assert( $fallback === $indexed, $label . ' index/fallback parity' );
 }
 $default = occurrence_collection_query();
+$in_progress_row = occurrence_collection_row( 100, 'in-progress', '2025-12-31 17:00', 10, 1, false, false, 'atelier', 9, '2026-01-02 15:00' );
+$upcoming_args   = wp_seed_events_occurrence_collection_normalize_args( array( 'status' => 'upcoming' ) );
+$past_args       = wp_seed_events_occurrence_collection_normalize_args( array( 'status' => 'past' ) );
+occurrence_collection_assert( wp_seed_events_occurrence_collection_row_matches( $in_progress_row, $upcoming_args, 100 ), 'in-progress occurrence remains upcoming through its end' );
+occurrence_collection_assert( ! wp_seed_events_occurrence_collection_row_matches( $in_progress_row, $past_args, 100 ), 'in-progress occurrence is not past' );
 occurrence_collection_assert( 6 === $default['total_items'], 'default excludes cancelled, drafts and private events' );
 occurrence_collection_assert( array( 'a', 'i', 'd', 'f', 'h', 'e' ) === occurrence_collection_ids( $default ), 'default order is pinned then chronological and deterministic' );
 occurrence_collection_assert( 1 === $default['page'] && 20 === $default['per_page'], 'default pagination' );

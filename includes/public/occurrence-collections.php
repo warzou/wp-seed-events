@@ -319,13 +319,13 @@ function wp_seed_events_occurrence_collection_row_matches( $row, $args, $event_i
 
 	$start_sort = (string) ( $row['start_sort'] ?? '' );
 	$end_sort   = (string) ( $row['end_sort'] ?? $start_sort );
-	$today      = current_time( 'Y-m-d' ) . ' 00:00';
+	$now        = current_time( 'Y-m-d H:i' );
 
-	if ( 'upcoming' === $args['status'] && $start_sort < $today ) {
+	if ( 'upcoming' === $args['status'] && $end_sort < $now ) {
 		return false;
 	}
 
-	if ( 'past' === $args['status'] && $start_sort >= $today ) {
+	if ( 'past' === $args['status'] && $end_sort >= $now ) {
 		return false;
 	}
 
@@ -531,14 +531,14 @@ function wp_seed_events_occurrence_collection_sql_parts( $args ) {
 		$params       = array_merge( $params, $args['type_keys'] );
 	}
 
-	$today = current_time( 'Y-m-d' ) . ' 00:00';
+	$now = current_time( 'Y-m-d H:i' );
 
 	if ( 'upcoming' === $args['status'] ) {
-		$where[]  = 'projection.start_sort >= %s';
-		$params[] = $today;
+		$where[]  = 'projection.end_sort >= %s';
+		$params[] = $now;
 	} elseif ( 'past' === $args['status'] ) {
-		$where[]  = 'projection.start_sort < %s';
-		$params[] = $today;
+		$where[]  = 'projection.end_sort < %s';
+		$params[] = $now;
 	}
 
 	if ( '' !== $args['from'] ) {
