@@ -170,6 +170,19 @@ function wp_seed_events_divi_resolve_event_id( $context = array() ) {
 }
 
 /**
+ * Resolve only an explicit Divi Loop Builder item.
+ *
+ * Loop-aware Dynamic Content aliases must never fall back to the queried event
+ * page or to another global event context when Divi has not supplied a loop ID.
+ */
+function wp_seed_events_divi_resolve_loop_event_id( $context = array() ) {
+	$context = is_array( $context ) ? $context : array();
+	$loop_id = absint( $context['loop_id'] ?? 0 );
+
+	return wp_seed_events_divi_is_event( $loop_id ) ? $loop_id : 0;
+}
+
+/**
  * Add public WP Seed event fields to Divi's Visual Builder loop items.
  *
  * Divi resolves `loop_*` variables in the browser from the corresponding

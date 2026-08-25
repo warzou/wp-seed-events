@@ -134,7 +134,9 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 			return $value;
 		}
 
-		$event_id = wp_seed_events_divi_resolve_event_id( $data_args );
+		$event_id = $this->get_loop_name() === $name
+			? wp_seed_events_divi_resolve_loop_event_id( $data_args )
+			: wp_seed_events_divi_resolve_event_id( $data_args );
 
 		if ( 0 === $event_id ) {
 			return '';
