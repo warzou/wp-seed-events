@@ -39,7 +39,7 @@ function wp_seed_events_register_gutenberg_block_bindings_source() {
 }
 
 function wp_seed_events_gutenberg_block_binding_preview_fields() {
-	return array( 'types', 'status', 'programming_status', 'programming_text', 'display_date', 'place', 'contact', 'excerpt', 'url' );
+	return array( 'types', 'status', 'programming_status', 'programming_text', 'display_date', 'place', 'contact', 'excerpt', 'url', 'calendar_all_occurrences_url' );
 }
 
 function wp_seed_events_gutenberg_multiline_excerpt_block( $block_content, $block ) {

@@ -44,7 +44,7 @@ function wp_seed_events_event_calendar_url( $event, $occurrences = null ) {
 		$occurrences = wp_seed_events_calendar_active_future_occurrences( $occurrences );
 	}
 
-	if ( count( $occurrences ) < 2 ) {
+	if ( count( $occurrences ) < 1 ) {
 		return '';
 	}
 
@@ -153,7 +153,7 @@ function wp_seed_events_handle_event_ics_download() {
 
 	$occurrences = wp_seed_events_calendar_active_future_occurrences( $event['occurrences'] ?? array() );
 
-	if ( count( $occurrences ) < 2 ) {
+	if ( count( $occurrences ) < 1 ) {
 		wp_seed_events_calendar_download_not_found();
 	}
 

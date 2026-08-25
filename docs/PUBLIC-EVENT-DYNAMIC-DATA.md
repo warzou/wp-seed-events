@@ -21,7 +21,7 @@ Les données simples sont destinées aux champs natifs des builders. Les composa
 ## Registre canonique
 
 Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
-17 sources : 13 textes, 3 URL et 1 image.
+22 sources : 17 textes, 4 URL et 1 image.
 
 | Clé | Libellé | Type | Projection Event Data | Valeur absente |
 | --- | --- | --- | --- | --- |
@@ -43,6 +43,7 @@ Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
 | `url` | URL de l'événement | `url` | `url` canonique | chaîne vide |
 | `place_url` | URL du lieu | `url` | `place_url` | chaîne vide |
 | `event_document_url` | URL du document | `url` | `event_document_url` | chaîne vide |
+| `calendar_all_occurrences_url` | Ajouter toutes les dates au calendrier | `url` | `calendar_all_occurrences_url` | chaîne vide |
 | `communication_visual` | Visuel de communication | `image` | `communication_visual` | objet vide |
 
 Ces clés sont canoniques. Aucun alias supplémentaire ne doit être ajouté pour
@@ -111,13 +112,23 @@ registre n'invente aucun libellé de remplacement.
 
 ## Contrat URL
 
-Les trois URL acceptent uniquement une URL absolue dont le schéma est `http` ou
+Les quatre URL acceptent uniquement une URL absolue dont le schéma est `http` ou
 `https` et dont l'hôte est présent. Les URL relatives et les schémas
 `javascript:`, `data:`, `file:`, `mailto:` et `tel:` sont rejetés.
 
 Le document complémentaire est exposé seulement lorsque l'Event Data API
 fournit un document PDF valide. Une valeur refusée devient une chaîne vide ;
 aucun chemin serveur n'est jamais exposé.
+
+`calendar_all_occurrences_url` pointe vers le téléchargement ICS canonique de
+l'événement. L'URL est disponible dès qu'au moins une occurrence future active
+existe et le fichier regroupe toutes ces occurrences. Un événement à programmer,
+sans occurrence future active, ou un contexte invalide renvoie une chaîne vide.
+La source page est `wp_seed_events_calendar_all_occurrences_url`; dans une Loop
+Divi, l'alias strict est
+`loop_wp_seed_events_calendar_all_occurrences_url`. Un bouton ou un lien natif du
+builder porte la présentation et consomme cette URL sans logique calendrier
+locale.
 
 ## Contrat image
 
@@ -141,7 +152,7 @@ utilisée comme fallback et n'est jamais ajoutée à `communication_visuals`.
 ## Divi 5
 
 Divi enregistre un provider générique par type logique : texte, URL et image.
-Les 17 options sont générées depuis le registre et apparaissent une seule fois
+Les 22 options sont générées depuis le registre et apparaissent une seule fois
 dans le groupe `WP Seed Events` avec leurs libellés français.
 
 - les textes alimentent les champs texte natifs ;
@@ -178,7 +189,7 @@ d’occurrences Gutenberg ou Divi. Les deux adaptateurs installent le même cont
 canonique et le restaurent après chaque élément. La source n’infère jamais une
 occurrence depuis le seul post événement.
 
-L'argument `field` sélectionne l'une des 17 clés du registre. Les usages validés
+L'argument `field` sélectionne l'une des 22 clés du registre. Les usages validés
 sont :
 
 - `core/paragraph` et `core/heading` pour `content` ;

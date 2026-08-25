@@ -134,6 +134,12 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'url',
 			'description' => 'URL publique du document PDF complementaire.',
 		),
+		'calendar_all_occurrences_url' => array(
+			'key'         => 'calendar_all_occurrences_url',
+			'label'       => 'Ajouter toutes les dates au calendrier',
+			'type'        => 'url',
+			'description' => 'URL publique du fichier calendrier contenant toutes les occurrences futures actives.',
+		),
 		'communication_visual' => array(
 			'key'         => 'communication_visual',
 			'label'       => 'Visuel de communication',
@@ -377,6 +383,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return wp_seed_events_sanitize_public_http_url( $event['place_url'] ?? '' );
 		case 'event_document_url':
 			return wp_seed_events_sanitize_public_http_url( $event['event_document_url'] ?? '' );
+		case 'calendar_all_occurrences_url':
+			return wp_seed_events_sanitize_public_http_url( $event['calendar_all_occurrences_url'] ?? '' );
 		case 'communication_visual':
 			return wp_seed_events_dynamic_data_image_value( $event['communication_visual'] ?? null );
 		default:

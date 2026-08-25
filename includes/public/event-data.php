@@ -104,6 +104,9 @@ function wp_seed_events_get_event_data( $event_id ) {
 			'only_active'       => true,
 		)
 	);
+	$calendar_all_occurrences_url = function_exists( 'wp_seed_events_event_calendar_url' )
+		? wp_seed_events_event_calendar_url( array( 'id' => $event_id ), $active_occurrences )
+		: '';
 	$next_occurrence    = wp_seed_events_get_next_active_occurrence( $event_id );
 	$last_occurrence    = wp_seed_events_get_last_active_occurrence( $event_id );
 	$display_occurrence = array() !== $next_occurrence ? $next_occurrence : $last_occurrence;
@@ -172,6 +175,7 @@ function wp_seed_events_get_event_data( $event_id ) {
 		'promotions'         => $promotions,
 		'parcours_years'     => array_values( $parcours_years ),
 		'active_occurrences' => $active_occurrences,
+		'calendar_all_occurrences_url' => $calendar_all_occurrences_url,
 		'next_occurrence'    => $next_occurrence,
 		'last_occurrence'    => $last_occurrence,
 		'display_occurrence' => $display_occurrence,
