@@ -69,6 +69,7 @@ function collection_event( $id, $lifecycle, $date = '', $type = 'atelier', $pinn
 		'last_occurrence' => array(),
 		'programming_status' => 'scheduled',
 		'occurrences'     => array(),
+		'is_pinned'       => $pinned,
 	);
 
 	if ( 'upcoming' === $lifecycle && '' !== $date ) {
@@ -166,6 +167,40 @@ collection_case( 'pinned only', function () {
 collection_case( 'pinned priority then date', function () {
 	$ids = collection_ids( array( 'type' => 'atelier', 'status' => 'upcoming' ) );
 	collection_assert( 107 === $ids[0] && 102 === $ids[1], 'Pinned priority or chronological order differs.' );
+} );
+
+collection_case( 'pinned priority can be disabled without filtering results', function () {
+	$result = wp_seed_events_query_event_collection(
+		array(
+			'type'            => 'atelier',
+			'status'          => 'upcoming',
+			'pinned_priority' => 'none',
+			'per_page'        => -1,
+		)
+	);
+	collection_assert( array( 102, 110, 101, 109, 105, 107 ) === $result['ids'], 'Chronological ordering still prioritizes pinned events.' );
+	collection_assert( 6 === count( $result['ids'] ), 'Neutral priority changed collection inclusion.' );
+	$pinned_event = $result['events'][ array_search( 107, $result['ids'], true ) ];
+	collection_assert( true === $pinned_event['is_pinned'], 'Pinned flag was removed from Event Data.' );
+	collection_assert( 'none' === $result['args']['pinned_priority'], 'Effective priority was not reported.' );
+} );
+
+collection_case( 'no type filter remains exhaustive when pinned priority is disabled', function () {
+	$ids = collection_ids( array( 'status' => 'upcoming', 'pinned_priority' => 'none' ) );
+	collection_assert( array( 108, 102, 110, 101, 109, 105, 107 ) === $ids, 'Unfiltered chronological collection is incomplete or misordered.' );
+} );
+
+collection_case( 'unknown pinned priority falls back to historical behavior', function () {
+	$result = wp_seed_events_query_event_collection(
+		array(
+			'type'            => 'atelier',
+			'status'          => 'upcoming',
+			'pinned_priority' => 'unexpected',
+			'per_page'        => -1,
+		)
+	);
+	collection_assert( array( 107, 102, 110, 101, 109, 105 ) === $result['ids'], 'Invalid priority did not preserve pinned-first.' );
+	collection_assert( 'first' === $result['args']['pinned_priority'], 'Invalid priority normalization differs.' );
 } );
 
 collection_case( 'ascending order', function () {

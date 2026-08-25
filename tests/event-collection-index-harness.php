@@ -108,6 +108,20 @@ index_case( 'pinned priority precedes business date', function () {
 	index_assert( false !== $pin && false !== $date && $pin < $date, 'Pinned priority moved after date.' );
 } );
 
+index_case( 'pinned priority can be removed from indexed ordering', function () {
+	$result = wp_seed_events_query_indexed_event_collection( array( 'status' => 'all', 'pinned_priority' => 'none' ), false );
+	$sql = $GLOBALS['wpdb']->queries[1];
+	index_assert( false === strpos( $sql, 'MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC' ), 'Pinned priority remains in chronological-only SQL.' );
+	index_assert( false !== strpos( $sql, 'CASE WHEN COALESCE(' ), 'Canonical business ordering disappeared.' );
+	index_assert( 'none' === $result['args']['pinned_priority'], 'Effective priority differs.' );
+} );
+
+index_case( 'unknown pinned priority preserves historical SQL', function () {
+	$result = wp_seed_events_query_indexed_event_collection( array( 'status' => 'all', 'pinned_priority' => 'invalid' ), false );
+	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[1], 'MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC' ), 'Invalid priority disabled historical sorting.' );
+	index_assert( 'first' === $result['args']['pinned_priority'], 'Invalid priority did not normalize to first.' );
+} );
+
 index_case( 'pinned-only is constrained in SQL', function () {
 	wp_seed_events_query_indexed_event_collection( array( 'pinned' => 'only', 'status' => 'all' ), false );
 	index_assert( false !== strpos( $GLOBALS['wpdb']->queries[0], 'pinned_meta.post_id IS NOT NULL' ), 'Pinned-only SQL filter is absent.' );

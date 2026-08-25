@@ -41,6 +41,8 @@ function wp_seed_events_divi_collection_controls_from_loop_values( $loop_values 
 		'types'                  => $loop_values['wpSeedEventTypes'] ?? array(),
 		'pinned_present'         => array_key_exists( 'wpSeedEventPinned', $loop_values ),
 		'pinned'                 => (string) ( $loop_values['wpSeedEventPinned'] ?? 'all' ),
+		'pinned_priority_present' => array_key_exists( 'wpSeedEventPinnedPriority', $loop_values ),
+		'pinned_priority'         => (string) ( $loop_values['wpSeedEventPinnedPriority'] ?? 'first' ),
 		'empty_behavior_present' => array_key_exists( 'wpSeedEventEmptyBehavior', $loop_values ),
 		'empty_behavior'         => (string) ( $loop_values['wpSeedEventEmptyBehavior'] ?? 'divi_default' ),
 		'empty_message_present'  => array_key_exists( 'wpSeedEventEmptyMessage', $loop_values ),
@@ -74,6 +76,8 @@ function wp_seed_events_divi_collection_controls_from_rest_params( $params ) {
 		'types'                  => $params['wp_seed_event_types'] ?? array(),
 		'pinned_present'         => array_key_exists( 'wp_seed_event_pinned', $params ),
 		'pinned'                 => (string) ( $params['wp_seed_event_pinned'] ?? 'all' ),
+		'pinned_priority_present' => array_key_exists( 'wp_seed_event_pinned_priority', $params ),
+		'pinned_priority'         => (string) ( $params['wp_seed_event_pinned_priority'] ?? 'first' ),
 		'empty_behavior_present' => array_key_exists( 'wp_seed_event_empty_behavior', $params ),
 		'empty_behavior'         => (string) ( $params['wp_seed_event_empty_behavior'] ?? 'divi_default' ),
 		'empty_message_present'  => array_key_exists( 'wp_seed_event_empty_message', $params ),
@@ -650,9 +654,10 @@ function wp_seed_events_divi_apply_collection_query( $query_args, $requested_ord
 	}
 
 	$options = array(
-		'type'   => '',
-		'status' => 'all',
-		'pinned' => 'all',
+		'type'            => '',
+		'status'          => 'all',
+		'pinned'          => 'all',
+		'pinned_priority' => 'first',
 	);
 	$found   = false;
 
@@ -674,6 +679,10 @@ function wp_seed_events_divi_apply_collection_query( $query_args, $requested_ord
 
 	if ( ! empty( $controls['pinned_present'] ) ) {
 		$options['pinned'] = 'all';
+	}
+
+	if ( ! empty( $controls['pinned_priority_present'] ) ) {
+		$options['pinned_priority'] = (string) ( $controls['pinned_priority'] ?? 'first' );
 	}
 
 	$query_args = wp_seed_events_divi_apply_taxonomy_controls( $query_args, $controls );
@@ -700,11 +709,12 @@ function wp_seed_events_divi_apply_collection_query( $query_args, $requested_ord
 
 	$result = wp_seed_events_query_event_collection(
 		array(
-			'type'     => $options['type'],
-			'status'   => $options['status'],
-			'pinned'   => $options['pinned'],
-			'order'    => $query_args['order'] ?? 'ASC',
-			'per_page' => -1,
+			'type'            => $options['type'],
+			'status'          => $options['status'],
+			'pinned'          => $options['pinned'],
+			'pinned_priority' => $options['pinned_priority'],
+			'order'           => $query_args['order'] ?? 'ASC',
+			'per_page'        => -1,
 		)
 	);
 

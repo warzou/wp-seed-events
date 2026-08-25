@@ -80,6 +80,9 @@ check(fields.wpSeedEventPinned.label === 'Épinglage', 'pinned label differs');
 check(Object.keys(fields.wpSeedEventPinned.component.props.options).length === 3, 'pinned choices differ');
 check(fields.wpSeedEventPinned.component.props.options.featured_only.label.includes('épinglés'), 'featured-only label differs');
 check(fields.wpSeedEventPinned.component.props.options.exclude_featured.label.includes('Exclure'), 'featured exclusion label differs');
+check(fields.wpSeedEventPinnedPriority.label === 'Priorité des épinglés', 'pinned priority label differs');
+check(fields.wpSeedEventPinnedPriority.component.props.defaultValue === 'first', 'historical pinned-first default changed');
+check(Object.keys(fields.wpSeedEventPinnedPriority.component.props.options).join(',') === 'first,none', 'pinned priority choices differ');
 check(fields.wpSeedEventEmptyBehavior.label === 'Si aucun événement n’est trouvé', 'empty behavior label differs');
 check(fields.wpSeedEventEmptyBehavior.component.props.defaultValue === 'divi_default', 'missing behavior does not preserve Divi output');
 check(Object.keys(fields.wpSeedEventEmptyBehavior.component.props.options).join(',') === 'hide,custom_message,divi_default', 'empty behavior choices differ');
@@ -91,6 +94,7 @@ const expectedFieldOrder = [
 	'subTypes',
 	'wpSeedEventTypes',
 	'wpSeedEventPinned',
+	'wpSeedEventPinnedPriority',
 	'wpSeedEventEmptyBehavior',
 	'wpSeedEventEmptyMessage',
 	'includePostWithSpecificTerms',
@@ -145,6 +149,7 @@ const compactFields = fieldsFilter(nativeFields, {
 });
 check(Boolean(compactFields.wpSeedEventTypes), 'compact Divi column omitted event types control');
 check(Boolean(compactFields.wpSeedEventPinned), 'compact Divi column omitted pinned control');
+check(Boolean(compactFields.wpSeedEventPinnedPriority), 'compact Divi column omitted pinned priority control');
 
 const categorizedCompactLoop = {
 	enable: 'on',
@@ -160,12 +165,14 @@ const categorizedCompactFields = fieldsFilter(nativeFields, {
 });
 check(Boolean(categorizedCompactFields.wpSeedEventTypes), 'categorized compact loop omitted event types control');
 check(Boolean(categorizedCompactFields.wpSeedEventPinned), 'categorized compact loop omitted pinned control');
+check(Boolean(categorizedCompactFields.wpSeedEventPinnedPriority), 'categorized compact loop omitted pinned priority control');
 
 const compactAttrs = {
 	module: { advanced: { loop: { desktop: { value: {
 		...compactEventLoop,
 		wpSeedEventTypes: [{ value: '11', label: 'Journee decouverte' }],
 		wpSeedEventPinned: 'all',
+		wpSeedEventPinnedPriority: 'none',
 		wpSeedEventEmptyBehavior: 'hide',
 		wpSeedEventEmptyMessage: '',
 	} } } } },
@@ -174,6 +181,7 @@ const compactParams = new URLSearchParams();
 adapter.createQueryParamsFilter()(compactParams, compactAttrs, 'compact-column', undefined);
 check(compactParams.get('wp_seed_event_types') === '11', 'compact loop types were not sent to REST');
 check(compactParams.get('wp_seed_event_pinned') === 'all', 'compact loop pinned state was not sent to REST');
+check(compactParams.get('wp_seed_event_pinned_priority') === 'none', 'compact loop pinned priority was not sent to REST');
 check(compactParams.get('wp_seed_event_empty_behavior') === 'hide', 'compact loop empty behavior was not sent to REST');
 check(compactParams.get('wp_seed_event_empty_message') === '', 'explicit empty message was not sent to REST');
 const attrs = {
@@ -192,6 +200,7 @@ const attrs = {
 							],
 						}],
 						wpSeedEventPinned: 'exclude_featured',
+						wpSeedEventPinnedPriority: 'none',
 						wpSeedEventEmptyBehavior: 'custom_message',
 						wpSeedEventEmptyMessage: '<b>Aucun événement</b>',
 					},
@@ -206,6 +215,7 @@ const filteredParams = adapter.createQueryParamsFilter()(params, attrs, 'module-
 check(filteredParams === params, 'query params object was replaced');
 check(params.get('wp_seed_event_types') === '11,12', 'multiple type IDs differ');
 check(params.get('wp_seed_event_pinned') === 'exclude_featured', 'pinned value differs');
+check(params.get('wp_seed_event_pinned_priority') === 'none', 'pinned priority differs');
 check(params.get('wp_seed_event_empty_behavior') === 'custom_message', 'empty behavior differs');
 check(params.get('wp_seed_event_empty_message') === '<b>Aucun événement</b>', 'empty message differs');
 check(
@@ -228,12 +238,14 @@ adapter.createQueryParamsFilter()(ordinaryParams, {
 }, 'module-c', 'post_types');
 check(!ordinaryParams.has('wp_seed_event_types'), 'ordinary query received event types');
 check(!ordinaryParams.has('wp_seed_event_pinned'), 'ordinary query received pinned state');
+check(!ordinaryParams.has('wp_seed_event_pinned_priority'), 'ordinary query received pinned priority');
 check(!ordinaryParams.has('wp_seed_event_empty_behavior'), 'ordinary query received empty behavior');
 check(!ordinaryParams.has('wp_seed_event_empty_message'), 'ordinary query received empty message');
 
 const untouchedEventLoop = adapter.migrateLoopValues(eventLoop, nativeFields.includePostWithSpecificTerms.component.props.options);
 check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventTypes'), 'new event loop received automatic types');
 check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventPinned'), 'new event loop received automatic featured state');
+check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventPinnedPriority'), 'existing event loop received an implicit pinned priority');
 check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventEmptyBehavior'), 'existing loop received an implicit empty behavior');
 check(!Object.prototype.hasOwnProperty.call(untouchedEventLoop, 'wpSeedEventEmptyMessage'), 'existing loop received an implicit empty message');
 

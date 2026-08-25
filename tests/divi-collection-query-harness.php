@@ -232,6 +232,20 @@ divi_collection_case( 'descending order reaches canonical query', function () {
 	divi_collection_assert( 'DESC' === $call['order'], 'Descending order was lost.' );
 } );
 
+divi_collection_case( 'pinned ranking priority reaches canonical query', function () {
+	wp_seed_events_divi_apply_collection_query(
+		divi_collection_query( 'upcoming' ),
+		'',
+		array( 'pinned_priority_present' => true, 'pinned_priority' => 'none' )
+	);
+	$call = end( $GLOBALS['divi_collection_calls'] );
+	divi_collection_assert( 'none' === $call['pinned_priority'], 'Chronological-only pinned priority was lost.' );
+
+	wp_seed_events_divi_apply_collection_query( divi_collection_query( 'upcoming' ) );
+	$legacy = end( $GLOBALS['divi_collection_calls'] );
+	divi_collection_assert( 'first' === $legacy['pinned_priority'], 'Historical default priority changed.' );
+} );
+
 divi_collection_case( 'native post inclusion is intersected', function () {
 	$query             = divi_collection_query( 'upcoming' );
 	$query['post__in'] = array( 2, 5, 99 );
@@ -454,16 +468,19 @@ divi_collection_case( 'frontend and REST controls produce identical clauses', fu
 	$loop_values = array(
 		'wpSeedEventTypes'  => array( array( 'value' => '11' ), array( 'value' => '12' ) ),
 		'wpSeedEventPinned' => 'exclude_featured',
+		'wpSeedEventPinnedPriority' => 'none',
 	);
 	$loop = wp_seed_events_divi_filter_collection_loop_data(
-		array( 'query_args' => array( 'post_type' => array( 'wp_seed_event' ) ) ),
+		array( 'query_args' => array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'wp_seed_events_business_date' ) ),
 		array( 'module' => array( 'advanced' => array( 'loop' => array( 'desktop' => array( 'value' => $loop_values ) ) ) ) )
 	);
 	$rest = wp_seed_events_divi_filter_collection_rest_query_args(
-		array( 'post_type' => array( 'wp_seed_event' ) ),
-		array( 'wp_seed_event_types' => '11,12', 'wp_seed_event_pinned' => 'exclude_featured' )
+		array( 'post_type' => array( 'wp_seed_event' ), 'orderby' => 'wp_seed_events_business_date' ),
+		array( 'wp_seed_event_types' => '11,12', 'wp_seed_event_pinned' => 'exclude_featured', 'wp_seed_event_pinned_priority' => 'none' )
 	);
 	divi_collection_assert( $loop['query_args']['tax_query'] === $rest['tax_query'], 'Frontend and REST clauses differ.' );
+	$recent_calls = array_slice( $GLOBALS['divi_collection_calls'], -2 );
+	divi_collection_assert( 'none' === $recent_calls[0]['pinned_priority'] && 'none' === $recent_calls[1]['pinned_priority'], 'Frontend and REST priorities differ.' );
 } );
 
 divi_collection_case( 'two dedicated loops remain isolated', function () {

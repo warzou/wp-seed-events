@@ -7,7 +7,10 @@
     var data = window.WpSeedEventsDiviEventResultsConditionData || {};
     var conditionName = 'wpSeedEventsHasResults';
     var label = 'WP Seed Events — Événements disponibles';
+    var currentTypeConditionName = 'wpSeedEventsCurrentEventHasType';
+    var currentTypeLabel = 'WPSEvents — Type de l’événement courant';
     var eventTypes = Array.isArray(data.eventTypes) ? data.eventTypes : [];
+    var currentEventTypes = Array.isArray(data.currentEventTypes) ? data.currentEventTypes : [];
 
     if (!hooks || !React) {
         return;
@@ -30,7 +33,7 @@
         );
     }
 
-    function Settings(props) {
+    function ResultsSettings(props) {
         var settings = props.item.conditionSettings || {};
         var selectedTypes = Array.isArray(settings.eventTypes) ? settings.eventTypes.map(String) : [];
         var resultCount = Number.parseInt(settings.resultCount, 10);
@@ -114,16 +117,52 @@
         );
     }
 
+    function CurrentEventTypeSettings(props) {
+        var settings = props.item.conditionSettings || {};
+        var selectedTypes = Array.isArray(settings.eventTypes) ? settings.eventTypes.map(String) : [];
+
+        return field('Types d’événement', React.createElement(
+            'div',
+            null,
+            currentEventTypes.length === 0
+                ? React.createElement('span', null, 'Aucun type actif')
+                : currentEventTypes.map(function (option) {
+                    var value = String(option.value);
+                    return React.createElement(
+                        'label',
+                        { key: value, style: { display: 'block', marginBottom: '6px' } },
+                        React.createElement('input', {
+                            type: 'checkbox',
+                            checked: selectedTypes.indexOf(value) !== -1,
+                            onChange: function (event) {
+                                var next = event.target.checked
+                                    ? selectedTypes.concat([value])
+                                    : selectedTypes.filter(function (selected) { return selected !== value; });
+                                updateSetting(props.setItem, 'eventTypes', next);
+                            }
+                        }),
+                        ' ',
+                        option.label
+                    );
+                })
+        ));
+    }
+
     hooks.addFilter(
         'divi.fieldLibrary.conditionalDisplay.conditionsStore',
         'wp-seed-events/event-results/conditions-store',
         function (conditions) {
-            var exists = conditions.some(function (condition) { return condition.name === conditionName; });
-            return exists ? conditions : conditions.concat([{
-                name: conditionName,
-                label: label,
-                category: 'postInfo'
-            }]);
+            var next = conditions.slice();
+
+            if (!next.some(function (condition) { return condition.name === conditionName; })) {
+                next.push({ name: conditionName, label: label, category: 'postInfo' });
+            }
+
+            if (!next.some(function (condition) { return condition.name === currentTypeConditionName; })) {
+                next.push({ name: currentTypeConditionName, label: currentTypeLabel, category: 'postInfo' });
+            }
+
+            return next;
         }
     );
 
@@ -131,8 +170,22 @@
         'divi.fieldLibrary.conditionalDisplay.initialCustomItemEdit',
         'wp-seed-events/event-results/initial-item',
         function (item, selectedName, id, operator) {
-            if (conditionName !== selectedName) {
+            if (conditionName !== selectedName && currentTypeConditionName !== selectedName) {
                 return item;
+            }
+
+            if (currentTypeConditionName === selectedName) {
+                return {
+                    id: id,
+                    conditionName: currentTypeConditionName,
+                    conditionSettings: {
+                        displayRule: 'is',
+                        enableCondition: 'on',
+                        adminLabel: currentTypeLabel,
+                        eventTypes: []
+                    },
+                    operator: operator
+                };
             }
 
             return {
@@ -157,10 +210,19 @@
         'divi.fieldLibrary.conditionalDisplay.customSettingsComponent',
         'wp-seed-events/event-results/settings',
         function (component, item, setItem) {
-            if (!item || conditionName !== item.conditionName) {
+            if (!item) {
                 return component;
             }
-            return React.createElement(Settings, { item: item, setItem: setItem });
+
+            if (conditionName === item.conditionName) {
+                return React.createElement(ResultsSettings, { item: item, setItem: setItem });
+            }
+
+            if (currentTypeConditionName === item.conditionName) {
+                return React.createElement(CurrentEventTypeSettings, { item: item, setItem: setItem });
+            }
+
+            return component;
         }
     );
 
@@ -168,7 +230,13 @@
         'divi.fieldLibrary.conditionalDisplay.tooltips.customTooltip',
         'wp-seed-events/event-results/tooltip',
         function (tooltip, selectedName) {
-            return conditionName === selectedName ? 'Afficher selon le nombre d’événements correspondant à la collection.' : tooltip;
+            if (conditionName === selectedName) {
+                return 'Afficher selon le nombre d’événements correspondant à la collection.';
+            }
+
+            return currentTypeConditionName === selectedName
+                ? 'Afficher lorsque l’événement courant possède au moins un des types sélectionnés.'
+                : tooltip;
         }
     );
 }(window));

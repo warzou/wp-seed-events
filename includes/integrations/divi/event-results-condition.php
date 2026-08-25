@@ -15,6 +15,14 @@ function wp_seed_events_divi_event_results_condition_label() {
 	return 'WP Seed Events — Événements disponibles';
 }
 
+function wp_seed_events_divi_current_event_type_condition_name() {
+	return 'wpSeedEventsCurrentEventHasType';
+}
+
+function wp_seed_events_divi_current_event_type_condition_label() {
+	return 'WPSEvents — Type de l’événement courant';
+}
+
 /** Normalize the query controls stored by the custom Divi condition. */
 function wp_seed_events_divi_event_results_condition_settings( $settings ) {
 	$settings = is_array( $settings ) ? $settings : array();
@@ -123,11 +131,15 @@ function wp_seed_events_divi_event_results_condition_has_results( $settings ) {
 function wp_seed_events_divi_evaluate_event_results_condition( $result, $condition_name, $condition_settings, $condition_id ) {
 	unset( $condition_id );
 
-	if ( wp_seed_events_divi_event_results_condition_name() !== $condition_name ) {
-		return $result;
+	if ( wp_seed_events_divi_event_results_condition_name() === $condition_name ) {
+		return wp_seed_events_divi_event_results_condition_matches_count( $condition_settings );
 	}
 
-	return wp_seed_events_divi_event_results_condition_matches_count( $condition_settings );
+	if ( wp_seed_events_divi_current_event_type_condition_name() === $condition_name ) {
+		return wp_seed_events_divi_current_event_type_condition_matches( $condition_settings );
+	}
+
+	return $result;
 }
 add_filter(
 	'divi_module_options_conditions_is_custom_condition_true',
@@ -156,6 +168,68 @@ function wp_seed_events_divi_event_results_condition_type_options() {
 	}
 
 	return $options;
+}
+
+/** Return canonical type keys for the current-event condition editor. */
+function wp_seed_events_divi_current_event_type_condition_options() {
+	$options = array();
+
+	foreach ( wp_seed_events_event_type_options() as $type_key => $type_label ) {
+		$type_key = sanitize_key( $type_key );
+
+		if ( '' === $type_key ) {
+			continue;
+		}
+
+		$options[] = array(
+			'value' => $type_key,
+			'label' => (string) $type_label,
+		);
+	}
+
+	return $options;
+}
+
+/** Resolve the current Divi item without falling back to an unrelated page. */
+function wp_seed_events_divi_current_event_type_condition_event_id() {
+	if ( ! function_exists( 'get_the_ID' ) || ! function_exists( 'wp_seed_events_divi_resolve_event_id' ) ) {
+		return 0;
+	}
+
+	$current_post_id = absint( get_the_ID() );
+	$current_type    = $current_post_id && function_exists( 'get_post_type' )
+		? sanitize_key( (string) get_post_type( $current_post_id ) )
+		: '';
+
+	return wp_seed_events_divi_resolve_event_id(
+		array(
+			'post_id'     => $current_post_id,
+			'post_type'   => $current_type,
+			'strict_post' => true,
+		)
+	);
+}
+
+/** Evaluate selected canonical type keys with OR semantics. */
+function wp_seed_events_divi_current_event_type_condition_matches( $settings ) {
+	$settings = is_array( $settings ) ? $settings : array();
+	$selected = wp_seed_events_divi_flatten_term_values( $settings['eventTypes'] ?? array() );
+	$selected = array_values( array_unique( array_filter( array_map( 'sanitize_key', $selected ) ) ) );
+	$event_id = wp_seed_events_divi_current_event_type_condition_event_id();
+
+	if ( 0 === $event_id || array() === $selected ) {
+		return false;
+	}
+
+	$current = array_values(
+		array_unique(
+			array_filter(
+				array_map( 'sanitize_key', wp_seed_events_event_type_keys_for_event( $event_id ) )
+			)
+		)
+	);
+
+	return array() !== array_intersect( $selected, $current );
 }
 
 function wp_seed_events_divi_event_results_condition_asset_version() {
@@ -189,7 +263,8 @@ function wp_seed_events_divi_register_event_results_condition_assets() {
 				'enqueue_top_window' => false,
 				'enqueue_app_window' => true,
 				'data_app_window'    => array(
-					'eventTypes' => wp_seed_events_divi_event_results_condition_type_options(),
+					'eventTypes'        => wp_seed_events_divi_event_results_condition_type_options(),
+					'currentEventTypes' => wp_seed_events_divi_current_event_type_condition_options(),
 				),
 			),
 		)

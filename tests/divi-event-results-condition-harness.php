@@ -11,6 +11,9 @@ $GLOBALS['event_condition_actions'] = array();
 $GLOBALS['event_condition_count']   = 0;
 $GLOBALS['event_condition_queries'] = array();
 $GLOBALS['event_condition_results'] = array();
+$GLOBALS['event_condition_current_post_id'] = 0;
+$GLOBALS['event_condition_post_types'] = array();
+$GLOBALS['event_condition_event_types'] = array();
 $GLOBALS['event_condition_types']   = array(
 	'atelier'  => 'Atelier',
 	'rencontre' => 'Rencontre',
@@ -92,6 +95,24 @@ function wp_seed_events_divi_apply_collection_query( $args, $orderby, $controls 
 function get_posts( $args ) {
 	$GLOBALS['event_condition_last_get_posts'] = $args;
 	return array_slice( $GLOBALS['event_condition_results'], 0, (int) $args['posts_per_page'] );
+}
+
+function get_the_ID() {
+	return $GLOBALS['event_condition_current_post_id'];
+}
+
+function get_post_type( $post_id ) {
+	return $GLOBALS['event_condition_post_types'][ absint( $post_id ) ] ?? '';
+}
+
+function wp_seed_events_divi_resolve_event_id( $context ) {
+	$post_id = absint( $context['post_id'] ?? 0 );
+
+	return 'wp_seed_event' === ( $context['post_type'] ?? '' ) ? $post_id : 0;
+}
+
+function wp_seed_events_event_type_keys_for_event( $event_id ) {
+	return $GLOBALS['event_condition_event_types'][ absint( $event_id ) ] ?? array();
 }
 
 require dirname( __DIR__ ) . '/includes/integrations/divi/event-results-condition.php';
@@ -197,6 +218,50 @@ event_condition_case( 'other custom conditions remain untouched', function () {
 	);
 } );
 
+event_condition_case( 'current loop event type condition uses canonical event keys', function () {
+	$GLOBALS['event_condition_current_post_id'] = 201;
+	$GLOBALS['event_condition_post_types'][201] = 'wp_seed_event';
+	$GLOBALS['event_condition_event_types'][201] = array( 'stage' );
+	event_condition_assert( wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'stage' ) ) ), 'Stage did not match.' );
+	event_condition_assert( ! wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'atelier' ) ) ), 'Stage matched atelier.' );
+} );
+
+event_condition_case( 'current event type condition supports atelier and excludes rencontre', function () {
+	$GLOBALS['event_condition_current_post_id'] = 202;
+	$GLOBALS['event_condition_post_types'][202] = 'wp_seed_event';
+	$GLOBALS['event_condition_event_types'][202] = array( 'atelier' );
+	event_condition_assert( wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'atelier' ) ) ), 'Atelier did not match.' );
+
+	$GLOBALS['event_condition_current_post_id'] = 203;
+	$GLOBALS['event_condition_post_types'][203] = 'wp_seed_event';
+	$GLOBALS['event_condition_event_types'][203] = array( 'rencontre' );
+	event_condition_assert( ! wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'stage', 'atelier' ) ) ), 'Rencontre matched stage or atelier.' );
+} );
+
+event_condition_case( 'primary and secondary types use OR semantics', function () {
+	$GLOBALS['event_condition_current_post_id'] = 204;
+	$GLOBALS['event_condition_post_types'][204] = 'wp_seed_event';
+	$GLOBALS['event_condition_event_types'][204] = array( 'stage', 'atelier' );
+	event_condition_assert( wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'rencontre', 'atelier' ) ) ), 'Secondary type did not satisfy OR selection.' );
+} );
+
+event_condition_case( 'empty invalid and non-event contexts fail safely', function () {
+	$GLOBALS['event_condition_current_post_id'] = 204;
+	event_condition_assert( ! wp_seed_events_divi_current_event_type_condition_matches( array() ), 'Empty selection matched.' );
+	event_condition_assert( ! wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'unknown' ) ) ), 'Unknown type matched.' );
+	$GLOBALS['event_condition_current_post_id'] = 1901;
+	$GLOBALS['event_condition_post_types'][1901] = 'page';
+	event_condition_assert( ! wp_seed_events_divi_current_event_type_condition_matches( array( 'eventTypes' => array( 'stage' ) ) ), 'Non-event context matched.' );
+} );
+
+event_condition_case( 'current type evaluator is registered under a stable public name', function () {
+	$GLOBALS['event_condition_current_post_id'] = 201;
+	event_condition_assert(
+		true === wp_seed_events_divi_evaluate_event_results_condition( null, 'wpSeedEventsCurrentEventHasType', array( 'eventTypes' => array( 'stage' ) ), 'x' ),
+		'Current type evaluator did not dispatch.'
+	);
+} );
+
 event_condition_case( 'new choices use only the canonical active type registry', function () {
 	$options = wp_seed_events_divi_event_results_condition_type_options();
 	event_condition_assert(
@@ -228,9 +293,16 @@ event_condition_case( 'delete disappears while a historical saved term remains u
 	event_condition_assert( 13 === $GLOBALS['event_condition_terms']['conference']->term_id, 'Historical term identity was rewritten.' );
 } );
 
+event_condition_case( 'current-event choices expose canonical keys rather than term IDs', function () {
+	$GLOBALS['event_condition_types']['stage'] = 'Stage';
+	$options = wp_seed_events_divi_current_event_type_condition_options();
+	event_condition_assert( in_array( 'stage', array_column( $options, 'value' ), true ), 'Canonical Stage key is missing.' );
+	event_condition_assert( ! in_array( '11', array_column( $options, 'value' ), true ), 'Technical term ID leaked into current-event choices.' );
+} );
+
 event_condition_case( 'Visual Builder registers settings without frontend behavior', function () {
 	$source = file_get_contents( dirname( __DIR__ ) . '/includes/integrations/divi/event-results-condition/visual-builder.js' );
-	foreach ( array( 'conditionsStore', 'initialCustomItemEdit', 'customSettingsComponent', 'resultCountOperator', 'resultCount', 'at_least', 'equals', 'greater_than' ) as $contract ) {
+	foreach ( array( 'conditionsStore', 'initialCustomItemEdit', 'customSettingsComponent', 'resultCountOperator', 'resultCount', 'at_least', 'equals', 'greater_than', 'wpSeedEventsCurrentEventHasType', 'currentEventTypes' ) as $contract ) {
 		event_condition_assert( false !== strpos( $source, $contract ), 'Builder hook missing: ' . $contract );
 	}
 	foreach ( array( 'DOMContentLoaded', 'MutationObserver', 'querySelector', 'display:none' ) as $forbidden ) {

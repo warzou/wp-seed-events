@@ -25,6 +25,7 @@
 	const EVENT_FIELD_NAMES = [
 		'wpSeedEventTypes',
 		'wpSeedEventPinned',
+		'wpSeedEventPinnedPriority',
 		'wpSeedEventEmptyBehavior',
 		'wpSeedEventEmptyMessage',
 	];
@@ -297,6 +298,32 @@
 					},
 				},
 			},
+			wpSeedEventPinnedPriority: {
+				attrName: context.attrName,
+				subName: 'wpSeedEventPinnedPriority',
+				label: 'Priorité des épinglés',
+				description: "Choisissez si les événements épinglés passent avant l’ordre métier de la collection.",
+				render: true,
+				visible: true,
+				defaultAttr: { desktop: { value: migrated.wpSeedEventPinnedPriority || 'first' } },
+				features: {
+					dynamicContent: false,
+					hover: false,
+					responsive: false,
+					sticky: false,
+				},
+				component: {
+					type: 'field',
+					name: 'divi/select',
+					props: {
+						defaultValue: migrated.wpSeedEventPinnedPriority || 'first',
+						options: {
+							first: { label: 'Épinglés en premier (historique)' },
+							none: { label: 'Aucune priorité' },
+						},
+					},
+				},
+			},
 			wpSeedEventEmptyBehavior: {
 				attrName: context.attrName,
 				subName: 'wpSeedEventEmptyBehavior',
@@ -387,6 +414,10 @@
 
 		if (Object.prototype.hasOwnProperty.call(loopValues, 'wpSeedEventPinned')) {
 			params.set('wp_seed_event_pinned', String(loopValues.wpSeedEventPinned || 'all'));
+		}
+
+		if (Object.prototype.hasOwnProperty.call(loopValues, 'wpSeedEventPinnedPriority')) {
+			params.set('wp_seed_event_pinned_priority', String(loopValues.wpSeedEventPinnedPriority || 'first'));
 		}
 
 		if (Object.prototype.hasOwnProperty.call(loopValues, 'wpSeedEventEmptyBehavior')) {

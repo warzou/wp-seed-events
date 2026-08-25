@@ -12,7 +12,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * When order is omitted, the historical shortcode order is preserved: past
  * collections are descending, while upcoming and all collections are
- * ascending. Pinned events always remain before non-pinned events.
+ * ascending. Pinned events remain before non-pinned events unless consumers
+ * explicitly disable that ranking priority.
  *
  * @param array $args Collection arguments.
  * @return array
@@ -40,12 +41,14 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 			'status'   => 'upcoming',
 			'type'     => '',
 			'pinned'   => 'all',
+			'pinned_priority' => 'first',
 			'order'    => '',
 		)
 	);
 
 	$status   = wp_seed_events_public_collection_status( $args['status'] );
 	$pinned   = wp_seed_events_public_collection_pinned( $args['pinned'] );
+	$pinned_priority = wp_seed_events_public_collection_pinned_priority( $args['pinned_priority'] );
 	$type     = sanitize_title( (string) $args['type'] );
 	$order    = wp_seed_events_public_collection_order( $args['order'], $status );
 	$page     = max( 1, absint( $args['page'] ) );
@@ -109,8 +112,8 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 
 	usort(
 		$items,
-		static function ( $first, $second ) use ( $order ) {
-			if ( $first['is_pinned'] !== $second['is_pinned'] ) {
+		static function ( $first, $second ) use ( $order, $status, $pinned_priority ) {
+			if ( 'first' === $pinned_priority && $first['is_pinned'] !== $second['is_pinned'] ) {
 				return $first['is_pinned'] ? -1 : 1;
 			}
 
@@ -153,6 +156,7 @@ function wp_seed_events_query_legacy_event_collection( $args = array() ) {
 			'type'   => $type,
 			'status' => $status,
 			'pinned' => $pinned,
+			'pinned_priority' => $pinned_priority,
 			'order'  => $order,
 		),
 	);
@@ -203,12 +207,14 @@ function wp_seed_events_public_collection_normalize_args( $args = array() ) {
 			'status'   => 'upcoming',
 			'type'     => '',
 			'pinned'   => 'all',
+			'pinned_priority' => 'first',
 			'order'    => '',
 		)
 	);
 
 	$args['status']   = wp_seed_events_public_collection_status( $args['status'] );
 	$args['pinned']   = wp_seed_events_public_collection_pinned( $args['pinned'] );
+	$args['pinned_priority'] = wp_seed_events_public_collection_pinned_priority( $args['pinned_priority'] );
 	$args['type']     = sanitize_title( (string) $args['type'] );
 	$args['order']    = wp_seed_events_public_collection_order( $args['order'], $args['status'] );
 	$args['page']     = max( 1, absint( $args['page'] ) );
@@ -230,6 +236,7 @@ function wp_seed_events_public_collection_empty_result( $args ) {
 			'type'   => $args['type'],
 			'status' => $args['status'],
 			'pinned' => $args['pinned'],
+			'pinned_priority' => $args['pinned_priority'],
 			'order'  => $args['order'],
 		),
 	);
@@ -336,11 +343,14 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 	$ordering   = 'to_schedule' === $args['status']
 		? 'event_posts.post_title ASC, event_posts.ID ASC'
 		: "CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC, {$business_sort} {$order_sql}, event_posts.ID ASC";
+	$pinned_ordering = 'first' === $args['pinned_priority']
+		? 'MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC, '
+		: '';
 	$select_sql = "
 		SELECT event_posts.ID
 		{$from_sql}
 		ORDER BY
-			MAX(CASE WHEN pinned_meta.post_id IS NULL THEN 0 ELSE 1 END) DESC,
+			{$pinned_ordering}
 			CASE WHEN {$business_sort} IS NULL THEN 1 ELSE 0 END ASC,
 			{$business_sort} {$order_sql},
 			event_posts.ID ASC";
@@ -384,6 +394,7 @@ function wp_seed_events_query_indexed_event_collection( $raw_args, $hydrate = tr
 			'type'   => $args['type'],
 			'status' => $args['status'],
 			'pinned' => $args['pinned'],
+			'pinned_priority' => $args['pinned_priority'],
 			'order'  => $args['order'],
 		),
 	);
@@ -464,6 +475,13 @@ function wp_seed_events_public_collection_pinned( $value ) {
 	$value = strtolower( trim( (string) $value ) );
 
 	return 'only' === $value ? 'only' : 'all';
+}
+
+/** Normalize whether pinned events receive a ranking priority. */
+function wp_seed_events_public_collection_pinned_priority( $value ) {
+	$value = strtolower( trim( (string) $value ) );
+
+	return in_array( $value, array( 'first', 'none' ), true ) ? $value : 'first';
 }
 
 function wp_seed_events_public_collection_order( $value, $status = 'upcoming' ) {
