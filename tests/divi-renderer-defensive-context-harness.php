@@ -240,7 +240,7 @@ namespace {
 	}
 
 	function wp_seed_events_render_public_event_dates_section( $event, $options ) {
-		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '" data-title="' . (string) ( $options['title'] ?? '' ) . '" data-heading="' . (string) ( $options['heading_level'] ?? '' ) . '" data-marker="' . (string) ( $options['list_marker_type'] ?? '' ) . '" data-position="' . (string) ( $options['list_marker_position'] ?? '' ) . '" data-indent="' . (string) ( $options['list_indent'] ?? '' ) . '" data-gap="' . (string) ( $options['occurrence_gap'] ?? '' ) . '" data-color="' . (string) ( $options['marker_color'] ?? '' ) . '"></section>';
+		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '" data-title="' . (string) ( $options['title'] ?? '' ) . '" data-heading="' . (string) ( $options['heading_level'] ?? '' ) . '" data-calendar="' . ( ! empty( $options['show_calendar_links'] ) ? 'on' : 'off' ) . '" data-marker="' . (string) ( $options['list_marker_type'] ?? '' ) . '" data-position="' . (string) ( $options['list_marker_position'] ?? '' ) . '" data-indent="' . (string) ( $options['list_indent'] ?? '' ) . '" data-gap="' . (string) ( $options['occurrence_gap'] ?? '' ) . '" data-color="' . (string) ( $options['marker_color'] ?? '' ) . '"></section>';
 	}
 
 	function wp_seed_events_render_public_event_visuals_section( $event, $options ) {
@@ -472,7 +472,9 @@ namespace {
 		defensive_assert( '' === $empty['title'], 'Empty legacy title rendered.' );
 		defensive_assert( 'h2' === $invalid_heading['heading_level'], 'Invalid legacy heading did not fall back safely.' );
 	} );
-	defensive_case( 'dates D1 preserves legacy title and calendar while composing date and time', function () use ( $dates_normalize ) {
+	defensive_case( 'dates D1 preserves legacy title while D3 defaults calendar actions off', function () use ( $dates_normalize ) {
+		$untouched = $dates_normalize->invoke( null, array() );
+		$legacy_on = $dates_normalize->invoke( null, array( 'show_calendar_links' => 'on' ) );
 		$options = $dates_normalize->invoke(
 			null,
 			array(
@@ -490,6 +492,8 @@ namespace {
 		defensive_assert( false === $options['show_dates'], 'show_dates was not normalized.' );
 		defensive_assert( true === $options['show_times'], 'show_times was not normalized.' );
 		defensive_assert( 'inline' === $options['time_layout'], 'Inline layout was not normalized.' );
+		defensive_assert( false === $untouched['show_calendar_links'], 'A new Dates instance gained calendar actions.' );
+		defensive_assert( true === $legacy_on['show_calendar_links'], 'Explicit legacy calendar action was not preserved.' );
 		defensive_assert( false === $options['show_calendar_links'], 'Legacy calendar toggle changed.' );
 	} );
 	defensive_case( 'dates D1 resolves responsive time-layout inheritance', function () {
@@ -695,6 +699,20 @@ namespace {
 		defensive_assert( false !== strpos( $legacy['html'], 'data-title="Toutes les dates"' ), 'Explicit legacy preview lost its title.' );
 		defensive_assert( false !== strpos( $legacy['html'], 'data-heading="h3"' ), 'Explicit legacy preview lost its heading.' );
 		defensive_assert( false !== strpos( $disabled['html'], 'data-title=""' ), 'Disabled legacy preview rendered its title.' );
+	} );
+
+	defensive_case( 'dates Visual Builder preview defaults calendar off and preserves explicit legacy values', function () {
+		$untouched = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
+		$legacy_off = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview(
+			new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10, 'show_calendar_links' => 'off' ) )
+		);
+		$legacy_on = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview(
+			new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10, 'show_calendar_links' => 'on' ) )
+		);
+
+		defensive_assert( false !== strpos( $untouched['html'], 'data-calendar="off"' ), 'Untouched preview enabled calendar actions.' );
+		defensive_assert( false !== strpos( $legacy_off['html'], 'data-calendar="off"' ), 'Explicit legacy off changed.' );
+		defensive_assert( false !== strpos( $legacy_on['html'], 'data-calendar="on"' ), 'Explicit legacy on was not preserved.' );
 	} );
 
 	defensive_case( 'dates Visual Builder preview forwards list design values', function () {

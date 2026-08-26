@@ -215,7 +215,10 @@ const normalizeOptions = (attrs) => {
       ? values.separator_character.trim().slice(0, 8)
       : '\u2014',
     format: formats.includes(values.format) ? values.format : 'long',
-    show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on',
+    show_calendar_links: Object.prototype.hasOwnProperty.call(values, 'show_calendar_links')
+      && values.show_calendar_links === 'on'
+      ? 'on'
+      : 'off',
   };
 };
 
@@ -397,7 +400,6 @@ const eventDatesModule = {
             show_separator: 'off',
             separator_character: '\u2014',
             format: 'long',
-            show_calendar_links: 'on',
           },
         },
       },

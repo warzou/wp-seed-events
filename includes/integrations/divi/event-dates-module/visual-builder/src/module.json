@@ -69,8 +69,7 @@
               "time_layout": "below",
               "show_separator": "off",
               "separator_character": "\u2014",
-              "format": "long",
-              "show_calendar_links": "on"
+              "format": "long"
             }
           }
         }
@@ -352,9 +351,10 @@
             "showCalendarLinks": {
               "groupSlug": "contentDates",
               "priority": 60,
-              "render": true,
+              "render": false,
               "subName": "show_calendar_links",
-              "label": "Liens calendrier",
+              "label": "Liens calendrier (historique)",
+              "description": "Attribut conservé pour les anciennes instances. Utilisez la donnée dynamique URL calendrier avec un bouton ou un lien Divi natif.",
               "features": {
                 "sticky": false,
                 "responsive": false,
@@ -426,19 +426,7 @@
     },
     "calendarLinkStyle": {
       "type": "object",
-      "selector": "{{selector}} .wp-seed-event-calendar-link",
-      "settings": {
-        "decoration": {
-          "font": {
-            "component": {
-              "props": {
-                "groupLabel": "Liens calendrier",
-                "fieldLabel": "Liens calendrier"
-              }
-            }
-          }
-        }
-      }
+      "selector": "{{selector}} .wp-seed-event-calendar-link"
     },
     "occurrenceStyle": {
       "type": "object",

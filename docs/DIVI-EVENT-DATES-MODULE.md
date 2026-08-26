@@ -37,8 +37,14 @@ Les valeurs sont stockées dans `content.innerContent.desktop.value` :
 - `scope` : valeur interne historique `all`, `upcoming` ou `past`, conservée pour compatibilité mais non exposée comme contrôle séparé ;
 - `show_cancelled` : `on` ou `off` ;
 - `show_times` : `on` ou `off` ;
-- `show_calendar_links` : `on` ou `off`.
 - `format` : `long` ou `short`.
+
+`show_calendar_links` est un attribut historique caché. Une nouvelle instance ne
+le crée pas et n'affiche aucune action calendrier intégrée. Une ancienne instance
+qui contient explicitement `on` ou `off` conserve transitoirement son rendu lors
+d'un chargement ou d'un Save/Resave. Pour toute nouvelle composition, l'action
+calendrier appartient à un bouton ou un lien Divi natif alimenté par la Dynamic
+Data `calendar_all_occurrences_url`.
 
 Le titre appartient désormais au builder : une nouvelle instance n'expose ni
 `title`, ni `show_title`, ni `heading_level`, et ne reçoit aucun titre implicite.
@@ -59,11 +65,10 @@ Les attributs Design utilisent les mécanismes natifs Divi et ciblent strictemen
 - `dateStyle` : `.wp-seed-event-date__date` ;
 - `timeStyle` : `.wp-seed-event-date__time` ;
 - `statusStyle` : `.wp-seed-event-date__status` ;
-- `calendarLinkStyle` : `.wp-seed-event-calendar-link` ;
 - `occurrenceStyle` : `.wp-seed-event-date` ;
 - `module` : sélecteur racine Divi.
 
-Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Le titre legacy conserve sa classe CSS historique mais n'expose plus de groupe Design : un Heading Divi séparé porte la présentation des nouveaux titres. Les occurrences disposent de leur espacement. Le module global fournit fond, bordure, rayon, ombre, marges, padding, dimensions et réglages responsive. Les liens calendrier bénéficient des états pris en charge par le contrôle de police Divi, notamment le hover.
+Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Le titre legacy conserve sa classe CSS historique mais n'expose plus de groupe Design : un Heading Divi séparé porte la présentation des nouveaux titres. Les occurrences disposent de leur espacement. Le module global fournit fond, bordure, rayon, ombre, marges, padding, dimensions et réglages responsive. `calendarLinkStyle` reste déclaré sans groupe visible afin que les valeurs historiques puissent être relues, mais aucune nouvelle option de style calendrier n'est exposée.
 
 ## Résolution du contexte
 
@@ -86,7 +91,7 @@ Le renderer conserve :
 - une liste `ul`/`li` dans l'ordre canonique ;
 - les balises `time` et leurs attributs `datetime` ;
 - le libellé visible `Annulée` ;
-- des liens calendrier explicites et navigables au clavier ;
+- les éventuels liens calendrier d'une instance legacy explicite restent navigables au clavier ;
 - un heading limité à `h2`–`h6` ;
 - un `aria-label` sur la section lorsque le titre est masqué ;
 - aucun conteneur vide lorsqu'aucune occurrence n'est retenue.
@@ -101,7 +106,8 @@ Le bloc Gutenberg Dates reprend le même renderer, mais conserve pour l'instant 
 contrôles et défauts de titre publiés. Gutenberg omet des attributs égaux à leur
 défaut lors de la sérialisation : une ancienne instance implicite ne peut donc pas
 être distinguée d'une nouvelle instance sans une stratégie de dépréciation ou de
-migration dédiée. Cette évolution est volontairement hors du lot D2 Divi.
+migration dédiée. Le retrait des actions calendrier Gutenberg reste donc séparé
+du lot D3 Divi.
 
 ## Développement et build
 

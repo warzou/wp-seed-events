@@ -111,7 +111,6 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'show_separator'      => $request->get_param( 'show_separator' ),
 				'separator_character' => $request->get_param( 'separator_character' ),
 				'format'              => $request->get_param( 'format' ),
-				'show_calendar_links' => $request->get_param( 'show_calendar_links' ),
 				'list_marker_type'     => $request->get_param( 'list_marker_type' ),
 				'list_marker_position' => $request->get_param( 'list_marker_position' ),
 				'list_indent'          => $request->get_param( 'list_indent' ),
@@ -123,6 +122,10 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			if ( $request->has_param( $legacy_title_key ) ) {
 				$values[ $legacy_title_key ] = $request->get_param( $legacy_title_key );
 			}
+		}
+
+		if ( $request->has_param( 'show_calendar_links' ) ) {
+			$values['show_calendar_links'] = $request->get_param( 'show_calendar_links' );
 		}
 
 		$options = self::normalize_options( $values );
@@ -473,7 +476,9 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'separator_character' => wp_seed_events_public_date_separator_character_option( $values['separator_character'] ?? "\u{2014}" ),
 			'separator_styles'    => is_array( $values['separator_styles'] ?? null ) ? $values['separator_styles'] : array(),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
-			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
+			'show_calendar_links' => array_key_exists( 'show_calendar_links', $values )
+				? self::is_enabled( $values['show_calendar_links'] )
+				: false,
 			'list_marker_type'     => $values['list_marker_type'] ?? 'none',
 			'list_marker_position' => $values['list_marker_position'] ?? 'outside',
 			'list_indent'          => $values['list_indent'] ?? '0px',

@@ -224,6 +224,8 @@ const exerciseDynamicUpdate = async () => {
   ['title', 'show_title', 'heading_level'].forEach((field) => {
     assert.ok(!Object.prototype.hasOwnProperty.call(untouchedRequest, field), `Untouched preview sent ${field}`);
   });
+  assert.strictEqual(untouchedRequest.show_calendar_links, 'off');
+  assert.strictEqual(container.querySelector('.wp-seed-event-calendar-link'), null);
   assert.strictEqual(container.querySelector('.wp-seed-event-dates__title'), null);
   const firstRequestCount = requestLog.length;
   await render(dynamicAttrs);
@@ -498,11 +500,17 @@ assert.ok(registeredModule, 'The Dates module was not registered.');
 (async () => {
   const event2414 = await mountPreview(defaultAttrs, 0);
   const event2417 = await mountPreview(customImmutableAttrs, 1);
+  const legacyCalendar = await mountPreview({
+    content: { innerContent: { desktop: { value: { show_calendar_links: 'on' } } } },
+    module: { decoration: {} },
+  }, 0);
   assert.strictEqual(event2414.error, '', `2414 preview crashed: ${event2414.error}`);
   assert.strictEqual(event2417.error, '', `2417 preview crashed: ${event2417.error}`);
   assert.ok(event2414.text.includes('10/10/2026'));
   assert.ok(event2417.text.includes('13/10/2026'));
   assert.ok(event2417.text.includes('03/11/2026'));
+  assert.ok(!event2414.text.includes('Calendrier'));
+  assert.ok(legacyCalendar.text.includes('Calendrier'));
   assert.deepStrictEqual(event2414.styles, {
     desktopMarker: 'none', tabletMarker: 'none', phoneMarker: 'none',
     desktopPosition: 'outside', desktopIndent: '0px', phoneIndent: '0px',

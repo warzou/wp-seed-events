@@ -40,7 +40,7 @@ assert.strictEqual(defaults.separator_character, '\u2014');
 ['title', 'show_title', 'heading_level'].forEach((field) => {
   assert.ok(!Object.prototype.hasOwnProperty.call(defaults, field), `New instances must not define ${field}`);
 });
-assert.strictEqual(defaults.show_calendar_links, 'on');
+assert.ok(!Object.prototype.hasOwnProperty.call(defaults, 'show_calendar_links'));
 const dateSelection = contentItems.dateSelection;
 assert.ok(dateSelection);
 assert.strictEqual(dateSelection.subName, 'date_selection');
@@ -83,10 +83,18 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
     `Builder-owned title field remains exposed: ${field}`,
   );
 });
+assert.ok(!Object.values(contentItems).some(
+  (item) => item.subName === 'show_calendar_links' && item.render !== false,
+), 'The legacy calendar action remains visible in new Divi instances.');
 assert.deepStrictEqual(
   ['legacyTitle', 'legacyHeadingLevel', 'legacyShowTitle'].map((name) => [contentItems[name].subName, contentItems[name].render]),
   [['title', false], ['heading_level', false], ['show_title', false]],
   'Legacy title schema must survive Divi resaves without becoming visible.',
+);
+assert.deepStrictEqual(
+  [contentItems.showCalendarLinks.subName, contentItems.showCalendarLinks.render],
+  ['show_calendar_links', false],
+  'The legacy calendar attribute must remain readable without exposing a control.',
 );
 assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes, 'titleStyle'));
 assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
@@ -140,7 +148,9 @@ assert.ok(source.includes('...legacyTitleOptions'));
 assert.ok(source.includes('showLegacyTitle'));
 assert.ok(source.includes("className: 'wp-seed-event-dates__title'"));
 assert.ok(!source.includes("title: typeof values.title === 'string' ? values.title : 'Dates'"));
-assert.ok(source.includes("show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on'"));
+assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'show_calendar_links')"));
+assert.ok(source.includes("values.show_calendar_links === 'on'"));
+assert.ok(source.includes(": 'off'"));
 assert.ok(source.includes('getResponsiveContentValue'));
 assert.ok(source.includes("['desktop', 'tablet', 'phone'].forEach"));
 assert.ok(phpModule.includes('get_responsive_time_layouts'));
@@ -279,6 +289,15 @@ assert.deepStrictEqual(
   resavedLegacyContent,
   { ...legacyContent, show_times: 'off' },
   'A normal field update must preserve unknown legacy title attributes.',
+);
+const legacyCalendarContent = JSON.parse(JSON.stringify({
+  show_calendar_links: 'on',
+  show_times: 'off',
+}));
+assert.deepStrictEqual(
+  legacyCalendarContent,
+  { show_calendar_links: 'on', show_times: 'off' },
+  'A normal field update must preserve the explicit legacy calendar attribute.',
 );
 const newContent = JSON.parse(JSON.stringify({ show_dates: 'on' }));
 ['title', 'show_title', 'heading_level'].forEach((field) => {

@@ -24,7 +24,6 @@ const contentFields = {
   showSeparator: ['show_separator', 'divi/toggle', false, false],
   separatorCharacter: ['separator_character', 'divi/text', false, false],
   format: ['format', 'divi/select', false, false],
-  showCalendarLinks: ['show_calendar_links', 'divi/toggle', false, false],
 };
 const contentItems = metadata.attributes.content.settings.innerContent.items;
 const visibleContentItems = Object.fromEntries(
@@ -43,6 +42,10 @@ for (const [name, expected] of Object.entries(contentFields)) {
 assert.deepStrictEqual(
   ['legacyTitle', 'legacyHeadingLevel', 'legacyShowTitle'].map((name) => [contentItems[name].subName, contentItems[name].render]),
   [['title', false], ['heading_level', false], ['show_title', false]],
+);
+assert.deepStrictEqual(
+  [contentItems.showCalendarLinks.subName, contentItems.showCalendarLinks.render],
+  ['show_calendar_links', false],
 );
 assert.deepStrictEqual(Object.keys(contentItems.dateSelection.component.props.options), ['next', 'first', 'last', 'all_upcoming', 'all_past', 'all']);
 assert.deepStrictEqual(Object.keys(contentItems.format.component.props.options), ['long', 'short']);
@@ -85,13 +88,13 @@ const styleAttributes = {
   dateStyle: ['{{selector}} .wp-seed-event-date__date', ['font']],
   timeStyle: ['{{selector}} .wp-seed-event-date__time', ['font']],
   statusStyle: ['{{selector}} .wp-seed-event-date__status', ['font']],
-  calendarLinkStyle: ['{{selector}} .wp-seed-event-calendar-link', ['font']],
+  calendarLinkStyle: ['{{selector}} .wp-seed-event-calendar-link', []],
   occurrenceStyle: ['{{selector}} .wp-seed-event-date', ['spacing']],
 };
 let specificStyleFamilies = 0;
 for (const [name, expected] of Object.entries(styleAttributes)) {
   const attribute = metadata.attributes[name];
-  const decoration = Object.keys(attribute.settings.decoration);
+  const decoration = Object.keys(attribute.settings?.decoration ?? {});
   assert.strictEqual(attribute.selector, expected[0]);
   assert.deepStrictEqual(decoration, expected[1]);
   specificStyleFamilies += decoration.length;
@@ -140,7 +143,7 @@ const exposedFamilies = Object.keys(contentFields).length
   + specificStyleFamilies
   + nativeModuleFamilies.length
   + 2; // Admin label and HTML attributes are native module controls.
-assert.strictEqual(exposedFamilies, 41);
+assert.strictEqual(exposedFamilies, 39);
 assert.strictEqual(metadata.attributes.__loop_post_id.default, '');
 
-console.log(`Divi event Dates functional inventory: ${exposedFamilies} exposed control families verified; hidden loop context is not user-facing.`);
+console.log(`Divi event Dates functional inventory: ${exposedFamilies} exposed control families verified; hidden loop and legacy calendar context are not user-facing.`);
