@@ -11,6 +11,12 @@
 	inline-size: 100%;
 }
 
+.wp-seed-event-section--dates .wp-seed-event-date.is-time-inline > .wp-seed-event-date__date,
+.wp-seed-event-section--dates .wp-seed-event-date.is-time-inline > .wp-seed-event-date__time {
+	display: inline;
+	inline-size: auto;
+}
+
 .wp-seed-event-dates.has-custom-list-style {
 	--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-desktop, var(--wp-seed-event-dates-marker-type, none));
 	--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-desktop, var(--wp-seed-event-dates-marker-position, outside));
@@ -43,6 +49,18 @@
 }
 
 @media (max-width: 980px) {
+	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date > .wp-seed-event-date__date,
+	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date > .wp-seed-event-date__time {
+		display: inline;
+		inline-size: auto;
+	}
+
+	.wp-seed-event-section--dates.is-time-layout-tablet-below .wp-seed-event-date > .wp-seed-event-date__date,
+	.wp-seed-event-section--dates.is-time-layout-tablet-below .wp-seed-event-date > .wp-seed-event-date__time {
+		display: block;
+		inline-size: 100%;
+	}
+
 	.wp-seed-event-dates.has-custom-list-style {
 		--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-tablet, var(--wp-seed-event-dates-marker-type-desktop, none));
 		--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-tablet, var(--wp-seed-event-dates-marker-position-desktop, outside));
@@ -53,6 +71,18 @@
 }
 
 @media (max-width: 767px) {
+	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date > .wp-seed-event-date__date,
+	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date > .wp-seed-event-date__time {
+		display: inline;
+		inline-size: auto;
+	}
+
+	.wp-seed-event-section--dates.is-time-layout-phone-below .wp-seed-event-date > .wp-seed-event-date__date,
+	.wp-seed-event-section--dates.is-time-layout-phone-below .wp-seed-event-date > .wp-seed-event-date__time {
+		display: block;
+		inline-size: 100%;
+	}
+
 	.wp-seed-event-dates.has-custom-list-style {
 		--wp-seed-event-dates-current-marker-type: var(--wp-seed-event-dates-marker-type-phone, var(--wp-seed-event-dates-marker-type-tablet, none));
 		--wp-seed-event-dates-current-marker-position: var(--wp-seed-event-dates-marker-position-phone, var(--wp-seed-event-dates-marker-position-tablet, outside));

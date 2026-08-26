@@ -32,6 +32,13 @@ const defaults = metadata.attributes.content.default.innerContent.desktop.value;
 assert.strictEqual(defaults.mode, 'all');
 assert.strictEqual(defaults.scope, 'all');
 assert.strictEqual(defaults.format, 'long');
+assert.strictEqual(defaults.show_dates, 'on');
+assert.strictEqual(defaults.show_times, 'on');
+assert.strictEqual(defaults.time_layout, 'below');
+assert.strictEqual(defaults.title, 'Dates');
+assert.strictEqual(defaults.show_title, 'on');
+assert.strictEqual(defaults.heading_level, 'h2');
+assert.strictEqual(defaults.show_calendar_links, 'on');
 const dateSelection = contentItems.dateSelection;
 assert.ok(dateSelection);
 assert.strictEqual(dateSelection.subName, 'date_selection');
@@ -57,7 +64,9 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
   'heading_level',
   'date_selection',
   'show_cancelled',
+  'show_dates',
   'show_times',
+  'time_layout',
   'format',
   'show_calendar_links',
 ].forEach((field) => {
@@ -67,6 +76,8 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
   );
 });
 assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
+assert.strictEqual(contentItems.timeLayout.features.responsive, true);
+assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
 
 [
   'wp-seed-event-dates__title',
@@ -109,6 +120,15 @@ assert.ok(source.includes("addFilter('divi.moduleLibrary.moduleMapping'"));
 assert.ok(source.includes('registerFolder({'));
 assert.ok(!source.includes('[wp_seed_event_dates'));
 assert.ok(!source.includes('914'));
+assert.ok(source.includes("title: typeof values.title === 'string' ? values.title : 'Dates'"));
+assert.ok(source.includes("show_title: values.show_title === 'off' ? 'off' : 'on'"));
+assert.ok(source.includes("show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on'"));
+assert.ok(source.includes('getResponsiveContentValue'));
+assert.ok(source.includes("['desktop', 'tablet', 'phone'].forEach"));
+assert.ok(phpModule.includes('get_responsive_time_layouts'));
+assert.ok(phpModule.includes('has_responsive_time_layout_override'));
+assert.ok(renderer.includes("'show_dates'          => true"));
+assert.ok(renderer.includes("'show_calendar_links' => true"));
 
 assert.strictEqual(
   (phpModule.match(/wp_seed_events_render_public_event_dates_section/g) || []).length,

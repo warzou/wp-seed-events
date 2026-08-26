@@ -43,9 +43,14 @@ const useFetch = () => {
       const mode = url.searchParams.get('mode');
       const dates = mode === 'last' ? allDates.slice(-1) : (mode === 'first' || mode === 'next' ? allDates.slice(0, 1) : allDates);
       const title = url.searchParams.get('title') || '';
+      const showDate = url.searchParams.get('show_dates') !== 'off';
       const time = url.searchParams.get('show_times') === 'off' ? '' : '<span class="wp-seed-event-date__time">20:00</span>';
       const calendar = url.searchParams.get('show_calendar_links') === 'off' ? '' : '<a class="wp-seed-event-calendar-link">Calendrier</a>';
-      const html = `<section class="wp-seed-event-section--dates">${title ? `<h2 class="wp-seed-event-dates__title">${title}</h2>` : ''}<ul class="wp-seed-event-dates">${dates.map((date) => `<li class="wp-seed-event-date"><time class="wp-seed-event-date__date">${date}</time>${time}${calendar}</li>`).join('')}</ul></section>`;
+      const layouts = ['desktop', 'tablet', 'phone'].map((breakpoint) => (
+        `is-time-layout-${breakpoint}-${url.searchParams.get(`time_layout${breakpoint === 'desktop' ? '' : `_${breakpoint}`}`) || 'below'}`
+      )).join(' ');
+      const inlineClass = url.searchParams.get('time_layout') === 'inline' ? ' is-time-inline' : '';
+      const html = `<section class="wp-seed-event-section--dates ${layouts}">${title ? `<h2 class="wp-seed-event-dates__title">${title}</h2>` : ''}<ul class="wp-seed-event-dates">${dates.map((date) => `<li class="wp-seed-event-date${inlineClass}">${showDate ? `<time class="wp-seed-event-date__date">${date}</time>` : ''}${time}${calendar}</li>`).join('')}</ul></section>`;
       requestLog.push(Object.fromEntries(url.searchParams.entries()));
       setResult({ response: { html }, isLoading: false });
       return Promise.resolve();
@@ -269,6 +274,32 @@ const exerciseDynamicUpdate = async () => {
   await act(async () => reactRoot.unmount());
   container.remove();
 };
+
+const exerciseComposableLayouts = async (immutable) => {
+  const attrs = {
+    content: {
+      innerContent: {
+        desktop: { value: { show_dates: 'off', show_times: 'on', time_layout: 'inline' } },
+        tablet: { value: { time_layout: 'below' } },
+        phone: { value: {} },
+      },
+    },
+    module: { decoration: {} },
+  };
+  const before = requestLog.length;
+  const result = await mountPreview(immutable ? fromJS(attrs) : attrs, 0);
+  const request = requestLog.at(-1);
+  assert.strictEqual(result.error, '');
+  assert.ok(requestLog.length > before);
+  assert.strictEqual(request.show_dates, 'off');
+  assert.strictEqual(request.show_times, 'on');
+  assert.strictEqual(request.time_layout, 'inline');
+  assert.strictEqual(request.time_layout_tablet, 'below');
+  assert.strictEqual(request.time_layout_phone, 'below');
+  assert.strictEqual(request.responsive_time_layout_requested, 'true');
+  assert.ok(!result.text.includes('10/10/2026'));
+  assert.ok(result.text.includes('20:00'));
+};
 const liveStyleAttrs = (markerType, lineHeight, tabletMarker = markerType, phoneMarker = tabletMarker) => ({
   ...dynamicAttrs,
   dateStyle: { decoration: { font: { font: { desktop: { value: { lineHeight } } } } } },
@@ -366,6 +397,8 @@ assert.ok(registeredModule, 'The Dates module was not registered.');
     desktopGap: '8px', tabletGap: '4px', desktopColor: '#123456',
   });
   await exerciseDynamicUpdate();
+  await exerciseComposableLayouts(false);
+  await exerciseComposableLayouts(true);
   await exerciseLiveStyleSequence(false);
   await exerciseLiveStyleSequence(true);
   assert.deepStrictEqual(unexpectedErrors, [], 'Unexpected console.error during preview mounts.');

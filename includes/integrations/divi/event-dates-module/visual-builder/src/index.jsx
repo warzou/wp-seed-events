@@ -31,7 +31,21 @@ import {
 } from './divi-style-values';
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
-const getContentValues = (attrs) => toPlainObject(attrs)?.content?.innerContent?.desktop?.value ?? {};
+const getContentValues = (attrs, breakpoint = 'desktop') => (
+  toPlainObject(attrs)?.content?.innerContent?.[breakpoint]?.value ?? {}
+);
+const getResponsiveContentValue = (attrs, field, breakpoint, fallback) => {
+  const inheritance = breakpoint === 'desktop'
+    ? ['desktop']
+    : (breakpoint === 'tablet' ? ['tablet', 'desktop'] : ['phone', 'tablet', 'desktop']);
+
+  for (const candidate of inheritance) {
+    const value = getContentValues(attrs, candidate)?.[field];
+    if (typeof value === 'string' && value !== '') return value;
+  }
+
+  return fallback;
+};
 const applyPreviewListStyle = (html, listStyles, documentRef = document) => {
   if (html === '' || !documentRef?.createElement) {
     return html;
@@ -84,11 +98,24 @@ const normalizeOptions = (attrs) => {
   const scopes = ['all', 'upcoming', 'past'];
   const selections = ['next', 'first', 'last', 'all_upcoming', 'all_past', 'all'];
   const formats = ['long', 'short'];
+  const layouts = ['inline', 'below'];
   const legacyMode = modes.includes(values.mode) ? values.mode : 'all';
   const legacyScope = scopes.includes(values.scope) ? values.scope : 'all';
   const selection = selections.includes(values.date_selection) ? values.date_selection : '';
   let mode = legacyMode;
   let scope = legacyScope;
+  const timeLayouts = {};
+  const hasResponsiveTimeLayout = ['tablet', 'phone'].some((breakpoint) => {
+    const breakpointValues = getContentValues(attrs, breakpoint);
+    return Object.prototype.hasOwnProperty.call(breakpointValues, 'time_layout')
+      && typeof breakpointValues.time_layout === 'string'
+      && breakpointValues.time_layout !== '';
+  });
+
+  ['desktop', 'tablet', 'phone'].forEach((breakpoint) => {
+    const value = getResponsiveContentValue(attrs, 'time_layout', breakpoint, 'below');
+    timeLayouts[breakpoint] = layouts.includes(value) ? value : 'below';
+  });
 
   if (selection === 'next') {
     mode = 'next';
@@ -114,7 +141,12 @@ const normalizeOptions = (attrs) => {
     mode,
     scope,
     show_cancelled: values.show_cancelled === 'off' ? 'off' : 'on',
+    show_dates: values.show_dates === 'off' ? 'off' : 'on',
     show_times: values.show_times === 'off' ? 'off' : 'on',
+    time_layout: timeLayouts.desktop,
+    time_layout_tablet: timeLayouts.tablet,
+    time_layout_phone: timeLayouts.phone,
+    responsive_time_layout_requested: hasResponsiveTimeLayout,
     format: formats.includes(values.format) ? values.format : 'long',
     show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on',
   };
@@ -274,7 +306,9 @@ const eventDatesModule = {
             scope: 'all',
             date_selection: 'all',
             show_cancelled: 'on',
+            show_dates: 'on',
             show_times: 'on',
+            time_layout: 'below',
             format: 'long',
             show_calendar_links: 'on',
           },

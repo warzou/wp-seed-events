@@ -21,6 +21,8 @@ const contentFields = {
   dateSelection: ['date_selection', 'divi/select', false, false],
   showCancelled: ['show_cancelled', 'divi/toggle', false, false],
   showTimes: ['show_times', 'divi/toggle', false, false],
+  showDates: ['show_dates', 'divi/toggle', false, false],
+  timeLayout: ['time_layout', 'divi/select', true, false],
   format: ['format', 'divi/select', false, false],
   showCalendarLinks: ['show_calendar_links', 'divi/toggle', false, false],
   showTitle: ['show_title', 'divi/toggle', false, false],
@@ -41,6 +43,8 @@ assert.deepStrictEqual(Object.keys(contentItems.dateSelection.component.props.op
 assert.deepStrictEqual(Object.keys(contentItems.format.component.props.options), ['long', 'short']);
 assert.deepStrictEqual(Object.keys(contentItems.showCancelled.component.props.options), ['off', 'on']);
 assert.deepStrictEqual(Object.keys(contentItems.showTimes.component.props.options), ['off', 'on']);
+assert.deepStrictEqual(Object.keys(contentItems.showDates.component.props.options), ['off', 'on']);
+assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
 assert.deepStrictEqual(Object.keys(contentItems.showCalendarLinks.component.props.options), ['off', 'on']);
 
 const listFields = {
@@ -120,7 +124,7 @@ const exposedFamilies = Object.keys(contentFields).length
   + specificStyleFamilies
   + nativeModuleFamilies.length
   + 2; // Admin label and HTML attributes are native module controls.
-assert.strictEqual(exposedFamilies, 38);
+assert.strictEqual(exposedFamilies, 40);
 assert.strictEqual(metadata.attributes.__loop_post_id.default, '');
 
 console.log(`Divi event Dates functional inventory: ${exposedFamilies} exposed control families verified; hidden loop context is not user-facing.`);

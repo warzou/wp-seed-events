@@ -153,6 +153,10 @@ namespace {
 		return in_array( $value, array( 'long', 'short' ), true ) ? $value : 'long';
 	}
 
+	function wp_seed_events_public_date_component_layout_option( $value ) {
+		return 'inline' === $value ? 'inline' : 'below';
+	}
+
 	function wp_seed_events_public_boolean_option( $value, $default = false ) {
 		if ( is_bool( $value ) ) {
 			return $value;
@@ -420,6 +424,42 @@ namespace {
 		$options = $dates_normalize->invoke( null, array( 'mode' => 'first', 'scope' => 'past' ) );
 		defensive_assert( 'first' === $options['mode'], 'Legacy mode changed.' );
 		defensive_assert( 'past' === $options['scope'], 'Legacy scope changed.' );
+	} );
+	defensive_case( 'dates D1 preserves legacy title and calendar while composing date and time', function () use ( $dates_normalize ) {
+		$options = $dates_normalize->invoke(
+			null,
+			array(
+				'title'               => 'Toutes les dates',
+				'show_title'          => 'on',
+				'heading_level'       => 'h2',
+				'show_dates'          => 'off',
+				'show_times'          => 'on',
+				'time_layout'         => 'inline',
+				'show_calendar_links' => 'off',
+			)
+		);
+		defensive_assert( 'Toutes les dates' === $options['title'], 'Legacy title changed.' );
+		defensive_assert( 'h2' === $options['heading_level'], 'Legacy heading level changed.' );
+		defensive_assert( false === $options['show_dates'], 'show_dates was not normalized.' );
+		defensive_assert( true === $options['show_times'], 'show_times was not normalized.' );
+		defensive_assert( 'inline' === $options['time_layout'], 'Inline layout was not normalized.' );
+		defensive_assert( false === $options['show_calendar_links'], 'Legacy calendar toggle changed.' );
+	} );
+	defensive_case( 'dates D1 resolves responsive time-layout inheritance', function () {
+		$attrs = array(
+			'content' => array(
+				'innerContent' => array(
+					'desktop' => array( 'value' => array( 'time_layout' => 'inline' ) ),
+					'tablet'  => array( 'value' => array( 'time_layout' => 'below' ) ),
+					'phone'   => array( 'value' => array() ),
+				),
+			),
+		);
+		$layouts_method = new ReflectionMethod( WP_Seed_Events_Divi_Event_Dates_Module::class, 'get_responsive_time_layouts' );
+		$override_method = new ReflectionMethod( WP_Seed_Events_Divi_Event_Dates_Module::class, 'has_responsive_time_layout_override' );
+		$layouts = $layouts_method->invoke( null, $attrs );
+		defensive_assert( array( 'desktop' => 'inline', 'tablet' => 'below', 'phone' => 'below' ) === $layouts, 'Responsive layout inheritance differs.' );
+		defensive_assert( true === $override_method->invoke( null, $attrs ), 'Responsive override was not detected.' );
 	} );
 
 	defensive_case( 'strict incompatible context never falls back', function () {

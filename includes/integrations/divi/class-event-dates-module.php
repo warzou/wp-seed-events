@@ -58,7 +58,12 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'scope'               => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_cancelled'      => array( 'sanitize_callback' => 'sanitize_key' ),
 					'format'              => array( 'sanitize_callback' => 'sanitize_key' ),
+					'show_dates'          => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_times'          => array( 'sanitize_callback' => 'sanitize_key' ),
+					'time_layout'         => array( 'sanitize_callback' => 'sanitize_key' ),
+					'time_layout_tablet'  => array( 'sanitize_callback' => 'sanitize_key' ),
+					'time_layout_phone'   => array( 'sanitize_callback' => 'sanitize_key' ),
+					'responsive_time_layout_requested' => array( 'sanitize_callback' => 'rest_sanitize_boolean' ),
 					'show_calendar_links' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_type'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_position' => array( 'sanitize_callback' => 'sanitize_key' ),
@@ -96,7 +101,15 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'mode'                => $request->get_param( 'mode' ),
 				'scope'               => $request->get_param( 'scope' ),
 				'show_cancelled'      => $request->get_param( 'show_cancelled' ),
+				'show_dates'          => $request->get_param( 'show_dates' ),
 				'show_times'          => $request->get_param( 'show_times' ),
+				'time_layout'         => $request->get_param( 'time_layout' ),
+				'time_layouts'        => array(
+					'desktop' => $request->get_param( 'time_layout' ),
+					'tablet'  => $request->get_param( 'time_layout_tablet' ),
+					'phone'   => $request->get_param( 'time_layout_phone' ),
+				),
+				'responsive_time_layout_requested' => $request->get_param( 'responsive_time_layout_requested' ),
 				'format'              => $request->get_param( 'format' ),
 				'show_calendar_links' => $request->get_param( 'show_calendar_links' ),
 				'list_marker_type'     => $request->get_param( 'list_marker_type' ),
@@ -119,8 +132,16 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	 */
 	public static function render_callback( $attrs, $content, $block, $elements ) {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
+		$content_values = self::get_content_values( $attrs );
 		$options  = self::normalize_options(
-			array_merge( self::get_content_values( $attrs ), self::get_list_values( $attrs ) )
+			array_merge(
+				$content_values,
+				self::get_list_values( $attrs ),
+				array(
+					'time_layouts' => self::get_responsive_time_layouts( $attrs ),
+					'responsive_time_layout_requested' => self::has_responsive_time_layout_override( $attrs ),
+				)
+			)
 		);
 		$html     = self::render_dates( $event_id, $options );
 		$html     = self::apply_responsive_list_styles( $html, self::get_responsive_list_values( $attrs ) );
@@ -189,6 +210,46 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			&& is_array( $attrs['content']['innerContent']['desktop']['value'] )
 			? $attrs['content']['innerContent']['desktop']['value']
 			: array();
+	}
+
+	/**
+	 * Resolve the responsive time layout using Divi's breakpoint inheritance.
+	 */
+	private static function get_responsive_time_layouts( $attrs ) {
+		$inheritance = array(
+			'desktop' => array( 'desktop' ),
+			'tablet'  => array( 'tablet', 'desktop' ),
+			'phone'   => array( 'phone', 'tablet', 'desktop' ),
+		);
+		$layouts = array();
+
+		foreach ( $inheritance as $breakpoint => $candidates ) {
+			$value = '';
+			foreach ( $candidates as $candidate ) {
+				$candidate_value = $attrs['content']['innerContent'][ $candidate ]['value']['time_layout'] ?? '';
+				if ( is_scalar( $candidate_value ) && '' !== trim( (string) $candidate_value ) ) {
+					$value = (string) $candidate_value;
+					break;
+				}
+			}
+			$layouts[ $breakpoint ] = wp_seed_events_public_date_component_layout_option( $value );
+		}
+
+		return $layouts;
+	}
+
+	/**
+	 * Tell the renderer whether Divi stored a tablet or phone override.
+	 */
+	private static function has_responsive_time_layout_override( $attrs ) {
+		foreach ( array( 'tablet', 'phone' ) as $breakpoint ) {
+			$value = $attrs['content']['innerContent'][ $breakpoint ]['value']['time_layout'] ?? '';
+			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -351,7 +412,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'mode'                => $mode,
 			'scope'               => $scope,
 			'show_cancelled'      => self::is_enabled( $values['show_cancelled'] ?? 'on' ),
+			'show_dates'          => self::is_enabled( $values['show_dates'] ?? 'on' ),
 			'show_times'          => self::is_enabled( $values['show_times'] ?? 'on' ),
+			'time_layout'         => wp_seed_events_public_date_component_layout_option( $values['time_layout'] ?? 'below' ),
+			'time_layouts'        => is_array( $values['time_layouts'] ?? null ) ? $values['time_layouts'] : array(),
+			'responsive_time_layout_requested' => ! empty( $values['responsive_time_layout_requested'] ),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
 			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
 			'list_marker_type'     => $values['list_marker_type'] ?? 'none',

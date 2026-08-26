@@ -66,7 +66,9 @@
               "mode": "all",
               "scope": "all",
               "show_cancelled": "on",
+              "show_dates": "on",
               "show_times": "on",
+              "time_layout": "below",
               "format": "long",
               "show_calendar_links": "on",
               "show_title": "on"
@@ -214,6 +216,56 @@
                   "options": {
                     "off": "Masquer",
                     "on": "Afficher"
+                  }
+                }
+              }
+            },
+            "showDates": {
+              "groupSlug": "contentDates",
+              "priority": 45,
+              "render": true,
+              "subName": "show_dates",
+              "label": "Afficher la date",
+              "features": {
+                "sticky": false,
+                "responsive": false,
+                "hover": false,
+                "dynamicContent": false
+              },
+              "component": {
+                "name": "divi/toggle",
+                "type": "field",
+                "props": {
+                  "options": {
+                    "off": "Non",
+                    "on": "Oui"
+                  }
+                }
+              }
+            },
+            "timeLayout": {
+              "groupSlug": "contentDates",
+              "priority": 55,
+              "render": true,
+              "subName": "time_layout",
+              "label": "Disposition de l’horaire",
+              "features": {
+                "sticky": false,
+                "responsive": true,
+                "hover": false,
+                "dynamicContent": false
+              },
+              "component": {
+                "name": "divi/select",
+                "type": "field",
+                "props": {
+                  "options": {
+                    "inline": {
+                      "label": "À la suite de la date"
+                    },
+                    "below": {
+                      "label": "En dessous"
+                    }
                   }
                 }
               }

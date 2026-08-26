@@ -1022,9 +1022,13 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 			'mode'                => 'all',
 			'scope'               => 'all',
 			'show_cancelled'      => true,
+			'show_dates'          => true,
 			'show_times'          => true,
 			'show_calendar_links' => true,
 			'format'               => 'long',
+			'time_layout'          => 'below',
+			'time_layouts'         => array(),
+			'responsive_time_layout_requested' => false,
 			'list_marker_type'     => 'none',
 			'list_marker_position' => 'outside',
 			'list_indent'          => '0px',
@@ -1037,8 +1041,22 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 	$heading_level             = wp_seed_events_public_heading_level_option( $options['heading_level'] );
 	$mode                      = wp_seed_events_public_date_mode_option( $options['mode'] );
 	$scope                     = wp_seed_events_public_date_scope_option( $options['scope'] );
-	$options['show_cancelled'] = wp_seed_events_public_boolean_option( $options['show_cancelled'], true );
+	$options['show_cancelled']      = wp_seed_events_public_boolean_option( $options['show_cancelled'], true );
+	$options['show_dates']          = wp_seed_events_public_boolean_option( $options['show_dates'], true );
+	$options['show_times']          = wp_seed_events_public_boolean_option( $options['show_times'], true );
 	$options['format']               = wp_seed_events_public_date_format_option( $options['format'] );
+	$options['time_layout']          = wp_seed_events_public_date_component_layout_option( $options['time_layout'] );
+	$options['responsive_time_layout_requested'] = wp_seed_events_public_boolean_option( $options['responsive_time_layout_requested'], false );
+	$raw_time_layouts                = is_array( $options['time_layouts'] ) ? $options['time_layouts'] : array();
+	$options['time_layouts']         = array();
+	foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
+		$fallback = 'desktop' === $breakpoint
+			? $options['time_layout']
+			: $options['time_layouts'][ 'tablet' === $breakpoint ? 'desktop' : 'tablet' ];
+		$options['time_layouts'][ $breakpoint ] = wp_seed_events_public_date_component_layout_option(
+			$raw_time_layouts[ $breakpoint ] ?? $fallback
+		);
+	}
 	$options['list_marker_type']     = wp_seed_events_public_date_list_marker_type_option( $options['list_marker_type'] );
 	$options['list_marker_position'] = wp_seed_events_public_date_list_marker_position_option( $options['list_marker_position'] );
 	$options['list_indent']          = wp_seed_events_public_date_list_dimension_option( $options['list_indent'], '0px' );
@@ -1142,6 +1160,11 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		'wp-seed-event-single__section',
 		'wp-seed-event-single__dates',
 	);
+	if ( $options['responsive_time_layout_requested'] ) {
+		foreach ( $options['time_layouts'] as $breakpoint => $layout ) {
+			$section_classes[] = 'is-time-layout-' . $breakpoint . '-' . $layout;
+		}
+	}
 
 	ob_start();
 	?>
@@ -1155,7 +1178,7 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 		<ul class="<?php echo esc_attr( implode( ' ', $list_classes ) ); ?>"<?php echo '' !== $list_style ? ' style="' . esc_attr( $list_style ) . '"' : ''; ?>>
 			<?php foreach ( $occurrences as $occurrence ) : ?>
 				<?php
-				$date_line          = wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] );
+				$date_line          = $options['show_dates'] ? wp_seed_events_public_event_occurrence_date_line( $occurrence, $options['format'] ) : '';
 				$time_line          = $options['show_times'] ? wp_seed_events_public_event_occurrence_time_line( $occurrence ) : '';
 				$calendar_link      = $options['show_calendar_links'] ? wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) : '';
 				$is_cancelled       = ! empty( $occurrence['is_cancelled'] );
@@ -1176,9 +1199,23 @@ function wp_seed_events_render_public_event_dates_section( $event, $options = ar
 				if ( ! empty( $occurrence['all_day'] ) ) {
 					$occurrence_classes[] = 'is-all-day';
 				}
+
+				if ( '' !== $date_line ) {
+					$occurrence_classes[] = 'has-date';
+				}
+
+				if ( '' !== $time_line ) {
+					$occurrence_classes[] = 'has-time';
+				}
+
+				if ( 'inline' === $options['time_layouts']['desktop'] ) {
+					$occurrence_classes[] = 'is-time-inline';
+				}
 				?>
 				<li class="<?php echo esc_attr( implode( ' ', $occurrence_classes ) ); ?>"<?php echo '' !== $item_style ? ' style="' . esc_attr( $item_style ) . '"' : ''; ?>>
-					<time class="wp-seed-event-date__date" datetime="<?php echo esc_attr( $occurrence['start_date'] ); ?>"><?php echo esc_html( $date_line ); ?></time>
+					<?php if ( '' !== $date_line ) : ?>
+						<time class="wp-seed-event-date__date" datetime="<?php echo esc_attr( $occurrence['start_date'] ); ?>"><?php echo esc_html( $date_line ); ?></time>
+					<?php endif; ?>
 					<?php if ( $is_cancelled ) : ?>
 						<span class="wp-seed-event-date-status wp-seed-event-date__status wp-seed-event-single__cancelled">Annulée</span>
 					<?php endif; ?>
