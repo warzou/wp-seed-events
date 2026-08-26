@@ -95,11 +95,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			)
 		);
 
-		$options = self::normalize_options(
-			array(
-				'title'               => $request->get_param( 'title' ),
-				'show_title'          => $request->get_param( 'show_title' ),
-				'heading_level'       => $request->get_param( 'heading_level' ),
+		$values = array(
 				'mode'                => $request->get_param( 'mode' ),
 				'scope'               => $request->get_param( 'scope' ),
 				'show_cancelled'      => $request->get_param( 'show_cancelled' ),
@@ -121,8 +117,15 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'list_indent'          => $request->get_param( 'list_indent' ),
 				'occurrence_gap'       => $request->get_param( 'occurrence_gap' ),
 				'marker_color'         => $request->get_param( 'marker_color' ),
-			)
 		);
+
+		foreach ( array( 'title', 'show_title', 'heading_level' ) as $legacy_title_key ) {
+			if ( $request->has_param( $legacy_title_key ) ) {
+				$values[ $legacy_title_key ] = $request->get_param( $legacy_title_key );
+			}
+		}
+
+		$options = self::normalize_options( $values );
 
 		return rest_ensure_response(
 			array(
@@ -137,6 +140,13 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	public static function render_callback( $attrs, $content, $block, $elements ) {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$content_values = self::get_content_values( $attrs );
+		$parsed_content_values = self::get_content_values( $block->parsed_block['attrs'] ?? array() );
+		foreach ( array( 'title', 'show_title', 'heading_level' ) as $legacy_title_key ) {
+			if ( ! array_key_exists( $legacy_title_key, $content_values )
+				&& array_key_exists( $legacy_title_key, $parsed_content_values ) ) {
+				$content_values[ $legacy_title_key ] = $parsed_content_values[ $legacy_title_key ];
+			}
+		}
 		$options  = self::normalize_options(
 			array_merge(
 				$content_values,
@@ -418,7 +428,13 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	 */
 	private static function normalize_options( $values ) {
 		$values = is_array( $values ) ? $values : array();
-		$title  = wp_seed_events_divi_optional_title( $values, 'Dates' );
+		$has_legacy_title = array_key_exists( 'title', $values )
+			&& array_key_exists( 'show_title', $values );
+		$title = $has_legacy_title
+			&& self::is_enabled( $values['show_title'] )
+			&& is_scalar( $values['title'] )
+			? trim( (string) $values['title'] )
+			: '';
 		$mode   = wp_seed_events_public_date_mode_option( $values['mode'] ?? 'all' );
 		$scope  = wp_seed_events_public_date_scope_option( $values['scope'] ?? 'all' );
 		$choice = is_scalar( $values['date_selection'] ?? null )
@@ -513,7 +529,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			),
 		);
 
-		foreach ( array( 'titleStyle', 'dateStyle', 'timeStyle', 'separatorStyle', 'statusStyle', 'calendarLinkStyle', 'occurrenceStyle' ) as $attr_name ) {
+		foreach ( array( 'dateStyle', 'timeStyle', 'separatorStyle', 'statusStyle', 'calendarLinkStyle', 'occurrenceStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 

@@ -37,9 +37,9 @@ assert.strictEqual(defaults.show_times, 'on');
 assert.strictEqual(defaults.time_layout, 'below');
 assert.strictEqual(defaults.show_separator, 'off');
 assert.strictEqual(defaults.separator_character, '\u2014');
-assert.strictEqual(defaults.title, 'Dates');
-assert.strictEqual(defaults.show_title, 'on');
-assert.strictEqual(defaults.heading_level, 'h2');
+['title', 'show_title', 'heading_level'].forEach((field) => {
+  assert.ok(!Object.prototype.hasOwnProperty.call(defaults, field), `New instances must not define ${field}`);
+});
 assert.strictEqual(defaults.show_calendar_links, 'on');
 const dateSelection = contentItems.dateSelection;
 assert.ok(dateSelection);
@@ -62,8 +62,6 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
 ].forEach((label) => assert.ok(JSON.stringify(dateSelection).includes(label)));
 
 [
-  'title',
-  'heading_level',
   'date_selection',
   'show_cancelled',
   'show_dates',
@@ -79,13 +77,24 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
     `Missing persistent field: ${field}`,
   );
 });
+['title', 'show_title', 'heading_level'].forEach((field) => {
+  assert.ok(
+    !Object.values(contentItems).some((item) => item.subName === field && item.render !== false),
+    `Builder-owned title field remains exposed: ${field}`,
+  );
+});
+assert.deepStrictEqual(
+  ['legacyTitle', 'legacyHeadingLevel', 'legacyShowTitle'].map((name) => [contentItems[name].subName, contentItems[name].render]),
+  [['title', false], ['heading_level', false], ['show_title', false]],
+  'Legacy title schema must survive Divi resaves without becoming visible.',
+);
+assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes, 'titleStyle'));
 assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
 assert.strictEqual(contentItems.timeLayout.features.responsive, true);
 assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
 assert.deepStrictEqual(Object.keys(contentItems.showSeparator.component.props.options), ['off', 'on']);
 
 [
-  'wp-seed-event-dates__title',
   'wp-seed-event-date__date',
   'wp-seed-event-date__time',
   'wp-seed-event-date__status',
@@ -125,8 +134,12 @@ assert.ok(source.includes("addFilter('divi.moduleLibrary.moduleMapping'"));
 assert.ok(source.includes('registerFolder({'));
 assert.ok(!source.includes('[wp_seed_event_dates'));
 assert.ok(!source.includes('914'));
-assert.ok(source.includes("title: typeof values.title === 'string' ? values.title : 'Dates'"));
-assert.ok(source.includes("show_title: values.show_title === 'off' ? 'off' : 'on'"));
+assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'title')"));
+assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'show_title')"));
+assert.ok(source.includes('...legacyTitleOptions'));
+assert.ok(source.includes('showLegacyTitle'));
+assert.ok(source.includes("className: 'wp-seed-event-dates__title'"));
+assert.ok(!source.includes("title: typeof values.title === 'string' ? values.title : 'Dates'"));
 assert.ok(source.includes("show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on'"));
 assert.ok(source.includes('getResponsiveContentValue'));
 assert.ok(source.includes("['desktop', 'tablet', 'phone'].forEach"));
@@ -243,7 +256,6 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
   'className="et_pb_module_inner" dangerouslySetInnerHTML={{ __html: previewHtml }}',
 ].forEach((contract) => assert.ok(source.includes(contract), 'Missing Visual Builder marker contract: ' + contract));
 [
-  'titleStyle',
   'dateStyle',
   'timeStyle',
   'separatorStyle',
@@ -253,6 +265,24 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
 ].forEach((attrName) => {
   assert.ok(source.includes("elements.style({ attrName: '" + attrName + "' })"), 'React style pipeline omits ' + attrName);
   assert.ok(phpModule.includes("'" + attrName + "'"), 'PHP style pipeline omits ' + attrName);
+});
+assert.ok(!source.includes("elements.style({ attrName: 'titleStyle' })"));
+assert.ok(!phpModule.includes("'titleStyle'"));
+const legacyContent = {
+  title: 'Toutes les dates',
+  show_title: 'on',
+  heading_level: 'h2',
+  show_dates: 'on',
+};
+const resavedLegacyContent = JSON.parse(JSON.stringify({ ...legacyContent, show_times: 'off' }));
+assert.deepStrictEqual(
+  resavedLegacyContent,
+  { ...legacyContent, show_times: 'off' },
+  'A normal field update must preserve unknown legacy title attributes.',
+);
+const newContent = JSON.parse(JSON.stringify({ show_dates: 'on' }));
+['title', 'show_title', 'heading_level'].forEach((field) => {
+  assert.ok(!Object.prototype.hasOwnProperty.call(newContent, field));
 });
 [
   'wp-seed-event-dates__title',

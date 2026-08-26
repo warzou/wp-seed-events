@@ -87,6 +87,10 @@ namespace {
 		public function get_param( $key ) {
 			return $this->params[ $key ] ?? null;
 		}
+
+		public function has_param( $key ) {
+			return array_key_exists( $key, $this->params );
+		}
 	}
 
 	class Defensive_Elements {
@@ -157,6 +161,11 @@ namespace {
 		return 'inline' === $value ? 'inline' : 'below';
 	}
 
+	function wp_seed_events_public_date_separator_character_option( $value ) {
+		$value = is_scalar( $value ) ? trim( preg_replace( '/[\x00-\x1F\x7F]/u', '', (string) $value ) ) : '';
+		return '' === $value ? "\u{2014}" : substr( $value, 0, 8 );
+	}
+
 	function wp_seed_events_public_boolean_option( $value, $default = false ) {
 		if ( is_bool( $value ) ) {
 			return $value;
@@ -165,6 +174,10 @@ namespace {
 			return $default;
 		}
 		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'on', 'true', 'yes' ), true );
+	}
+
+	function wp_seed_events_public_visuals_click_action_option( $value, $legacy = array() ) {
+		return in_array( $value, array( 'none', 'media', 'lightbox' ), true ) ? $value : 'none';
 	}
 
 	function wp_seed_events_public_date_list_dimension_option( $value, $default ) {
@@ -185,6 +198,19 @@ namespace {
 		$roles = is_array( $value ) ? $value : explode( ',', (string) $value );
 		$roles = array_values( array_intersect( $roles, array( 'organizer', 'speaker', 'registration_contact', 'information_contact' ) ) );
 		return array_values( array_unique( $roles ) );
+	}
+
+	function wp_seed_events_public_people_contact_layout_option( $value ) {
+		$value = 'with-name' === $value ? 'with_name' : $value;
+		return in_array( $value, array( 'inline', 'with_name' ), true ) ? $value : 'stacked';
+	}
+
+	function wp_seed_events_public_people_phone_action_option( $value, $fallback = 'call' ) {
+		return in_array( $value, array( 'none', 'call', 'sms' ), true ) ? $value : $fallback;
+	}
+
+	function wp_seed_events_public_people_site_label_option( $value ) {
+		return is_scalar( $value ) ? trim( (string) $value ) : '';
 	}
 
 	function wp_seed_events_public_event_people_layout_option( $value ) {
@@ -214,7 +240,7 @@ namespace {
 	}
 
 	function wp_seed_events_render_public_event_dates_section( $event, $options ) {
-		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '" data-marker="' . (string) ( $options['list_marker_type'] ?? '' ) . '" data-position="' . (string) ( $options['list_marker_position'] ?? '' ) . '" data-indent="' . (string) ( $options['list_indent'] ?? '' ) . '" data-gap="' . (string) ( $options['occurrence_gap'] ?? '' ) . '" data-color="' . (string) ( $options['marker_color'] ?? '' ) . '"></section>';
+		return '<section data-kind="dates" data-event="' . (int) $event['id'] . '" data-title="' . (string) ( $options['title'] ?? '' ) . '" data-heading="' . (string) ( $options['heading_level'] ?? '' ) . '" data-marker="' . (string) ( $options['list_marker_type'] ?? '' ) . '" data-position="' . (string) ( $options['list_marker_position'] ?? '' ) . '" data-indent="' . (string) ( $options['list_indent'] ?? '' ) . '" data-gap="' . (string) ( $options['occurrence_gap'] ?? '' ) . '" data-color="' . (string) ( $options['marker_color'] ?? '' ) . '"></section>';
 	}
 
 	function wp_seed_events_render_public_event_visuals_section( $event, $options ) {
@@ -425,6 +451,27 @@ namespace {
 		defensive_assert( 'first' === $options['mode'], 'Legacy mode changed.' );
 		defensive_assert( 'past' === $options['scope'], 'Legacy scope changed.' );
 	} );
+	defensive_case( 'dates new instance has no synthetic title', function () use ( $dates_normalize ) {
+		$options = $dates_normalize->invoke( null, array() );
+		defensive_assert( '' === $options['title'], 'An absent title became visible.' );
+		defensive_assert( 'h2' === $options['heading_level'], 'Safe legacy heading fallback changed.' );
+	} );
+	defensive_case( 'dates requires both legacy title attributes', function () use ( $dates_normalize ) {
+		$title_only = $dates_normalize->invoke( null, array( 'title' => 'Toutes les dates' ) );
+		$toggle_only = $dates_normalize->invoke( null, array( 'show_title' => 'on' ) );
+		defensive_assert( '' === $title_only['title'], 'Title without the legacy toggle rendered.' );
+		defensive_assert( '' === $toggle_only['title'], 'Legacy toggle without a title rendered.' );
+	} );
+	defensive_case( 'dates legacy title honors enabled disabled empty and heading states', function () use ( $dates_normalize ) {
+		$enabled = $dates_normalize->invoke( null, array( 'title' => 'Toutes les dates', 'show_title' => 'on', 'heading_level' => 'h4' ) );
+		$disabled = $dates_normalize->invoke( null, array( 'title' => 'Toutes les dates', 'show_title' => 'off', 'heading_level' => 'h4' ) );
+		$empty = $dates_normalize->invoke( null, array( 'title' => '', 'show_title' => 'on', 'heading_level' => 'h4' ) );
+		$invalid_heading = $dates_normalize->invoke( null, array( 'title' => 'Toutes les dates', 'show_title' => 'on', 'heading_level' => 'h1' ) );
+		defensive_assert( 'Toutes les dates' === $enabled['title'] && 'h4' === $enabled['heading_level'], 'Enabled legacy title changed.' );
+		defensive_assert( '' === $disabled['title'], 'Disabled legacy title rendered.' );
+		defensive_assert( '' === $empty['title'], 'Empty legacy title rendered.' );
+		defensive_assert( 'h2' === $invalid_heading['heading_level'], 'Invalid legacy heading did not fall back safely.' );
+	} );
 	defensive_case( 'dates D1 preserves legacy title and calendar while composing date and time', function () use ( $dates_normalize ) {
 		$options = $dates_normalize->invoke(
 			null,
@@ -633,6 +680,21 @@ namespace {
 		defensive_assert( false !== strpos( $first['html'], 'data-event="10"' ), 'First Dates preview item resolved incorrectly.' );
 		defensive_assert( false !== strpos( $second['html'], 'data-event="11"' ), 'Second Dates preview item resolved incorrectly.' );
 		defensive_assert( $first['html'] === $again['html'], 'Dates preview context leaked between loop items.' );
+	} );
+
+	defensive_case( 'dates Visual Builder preview distinguishes absent and explicit legacy titles', function () {
+		$untouched = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview( new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10 ) ) );
+		$legacy = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview(
+			new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10, 'title' => 'Toutes les dates', 'show_title' => 'on', 'heading_level' => 'h3' ) )
+		);
+		$disabled = WP_Seed_Events_Divi_Event_Dates_Module::rest_preview(
+			new WP_REST_Request( array( 'post_id' => 20, 'loop_id' => 10, 'title' => 'Toutes les dates', 'show_title' => 'off', 'heading_level' => 'h3' ) )
+		);
+
+		defensive_assert( false !== strpos( $untouched['html'], 'data-title=""' ), 'Untouched preview received a title.' );
+		defensive_assert( false !== strpos( $legacy['html'], 'data-title="Toutes les dates"' ), 'Explicit legacy preview lost its title.' );
+		defensive_assert( false !== strpos( $legacy['html'], 'data-heading="h3"' ), 'Explicit legacy preview lost its heading.' );
+		defensive_assert( false !== strpos( $disabled['html'], 'data-title=""' ), 'Disabled legacy preview rendered its title.' );
 	} );
 
 	defensive_case( 'dates Visual Builder preview forwards list design values', function () {

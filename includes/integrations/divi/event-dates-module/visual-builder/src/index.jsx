@@ -189,10 +189,18 @@ const normalizeOptions = (attrs) => {
     scope = 'all';
   }
 
+  const hasLegacyTitle = Object.prototype.hasOwnProperty.call(values, 'title')
+    && Object.prototype.hasOwnProperty.call(values, 'show_title');
+  const legacyTitleOptions = hasLegacyTitle
+    ? {
+      title: typeof values.title === 'string' ? values.title : '',
+      show_title: values.show_title === 'off' ? 'off' : 'on',
+      heading_level: headingLevels.includes(values.heading_level) ? values.heading_level : 'h2',
+    }
+    : {};
+
   return {
-    title: typeof values.title === 'string' ? values.title : 'Dates',
-    show_title: values.show_title === 'off' ? 'off' : 'on',
-    heading_level: headingLevels.includes(values.heading_level) ? values.heading_level : 'h2',
+    ...legacyTitleOptions,
     mode,
     scope,
     show_cancelled: values.show_cancelled === 'off' ? 'off' : 'on',
@@ -221,7 +229,6 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
         },
       },
     })}
-    {elements.style({ attrName: 'titleStyle' })}
     {elements.style({ attrName: 'dateStyle' })}
     {elements.style({ attrName: 'timeStyle' })}
     {elements.style({ attrName: 'separatorStyle' })}
@@ -310,6 +317,10 @@ const EventDatesPreview = (props) => {
   );
 
   const previewContent = !isLoading && !hasError && previewHtml !== '';
+  const legacyHeadingLevel = options.heading_level || 'h2';
+  const showLegacyTitle = options.show_title === 'on'
+    && typeof options.title === 'string'
+    && options.title.trim() !== '';
 
   return (
     <ModuleContainer
@@ -331,7 +342,14 @@ const EventDatesPreview = (props) => {
         {isLoading && <div role="status">Chargement des dates…</div>}
         {!isLoading && hasError && <div role="alert">L’aperçu des dates est indisponible.</div>}
         {!isLoading && !hasError && previewHtml === '' && (
-          <div>Aucune date à afficher dans ce contexte.</div>
+          <>
+            {showLegacyTitle && React.createElement(
+              legacyHeadingLevel,
+              { className: 'wp-seed-event-dates__title' },
+              options.title,
+            )}
+            <div>Aucune date à afficher dans ce contexte.</div>
+          </>
         )}
         </div>
       )}
@@ -369,9 +387,6 @@ const eventDatesModule = {
       innerContent: {
         desktop: {
           value: {
-            title: 'Dates',
-            show_title: 'on',
-            heading_level: 'h2',
             mode: 'all',
             scope: 'all',
             date_selection: 'all',

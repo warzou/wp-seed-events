@@ -24,10 +24,13 @@ const fakeList = () => {
   };
 };
 
-for (const metadata of [dates, people, visuals]) {
-  assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.show_title, 'on');
-  assert.strictEqual(metadata.attributes.content.settings.innerContent.items.showTitle.subName, 'show_title');
-}
+assert.strictEqual(people.attributes.content.default.innerContent.desktop.value.show_title, 'on');
+assert.strictEqual(people.attributes.content.settings.innerContent.items.showTitle.subName, 'show_title');
+assert.strictEqual(visuals.attributes.content.default.innerContent.desktop.value.show_title, 'off');
+assert.ok(!visuals.attributes.content.settings.innerContent.items.showTitle);
+assert.ok(!Object.prototype.hasOwnProperty.call(dates.attributes.content.default.innerContent.desktop.value, 'show_title'));
+assert.ok(!Object.values(dates.attributes.content.settings.innerContent.items).some((item) => item.subName === 'show_title' && item.render !== false));
+assert.strictEqual(dates.attributes.content.settings.innerContent.items.legacyShowTitle.render, false);
 
 for (const metadata of [dates, people, visuals]) {
   const attrName = metadata === dates ? 'listStyle' : 'eventListStyle';

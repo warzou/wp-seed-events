@@ -61,8 +61,6 @@
         "innerContent": {
           "desktop": {
             "value": {
-              "title": "Dates",
-              "heading_level": "h2",
               "mode": "all",
               "scope": "all",
               "show_cancelled": "on",
@@ -72,8 +70,7 @@
               "show_separator": "off",
               "separator_character": "\u2014",
               "format": "long",
-              "show_calendar_links": "on",
-              "show_title": "on"
+              "show_calendar_links": "on"
             }
           }
         }
@@ -82,13 +79,12 @@
         "innerContent": {
           "groupType": "group-items",
           "items": {
-            "title": {
+            "legacyTitle": {
               "groupSlug": "contentDates",
-              "priority": 10,
-              "render": true,
+              "priority": 1,
+              "render": false,
               "subName": "title",
               "label": "Titre",
-              "description": "Laissez vide pour masquer le titre.",
               "features": {
                 "sticky": false,
                 "responsive": false,
@@ -100,10 +96,10 @@
                 "type": "field"
               }
             },
-            "headingLevel": {
+            "legacyHeadingLevel": {
               "groupSlug": "contentDates",
-              "priority": 20,
-              "render": true,
+              "priority": 2,
+              "render": false,
               "subName": "heading_level",
               "label": "Niveau du titre",
               "features": {
@@ -117,21 +113,34 @@
                 "type": "field",
                 "props": {
                   "options": {
-                    "h2": {
-                      "label": "H2"
-                    },
-                    "h3": {
-                      "label": "H3"
-                    },
-                    "h4": {
-                      "label": "H4"
-                    },
-                    "h5": {
-                      "label": "H5"
-                    },
-                    "h6": {
-                      "label": "H6"
-                    }
+                    "h2": { "label": "H2" },
+                    "h3": { "label": "H3" },
+                    "h4": { "label": "H4" },
+                    "h5": { "label": "H5" },
+                    "h6": { "label": "H6" }
+                  }
+                }
+              }
+            },
+            "legacyShowTitle": {
+              "groupSlug": "contentDates",
+              "priority": 3,
+              "render": false,
+              "subName": "show_title",
+              "label": "Afficher le titre",
+              "features": {
+                "sticky": false,
+                "responsive": false,
+                "hover": false,
+                "dynamicContent": false
+              },
+              "component": {
+                "name": "divi/toggle",
+                "type": "field",
+                "props": {
+                  "options": {
+                    "off": "Non",
+                    "on": "Oui"
                   }
                 }
               }
@@ -361,54 +370,6 @@
                     "on": "Afficher"
                   }
                 }
-              }
-            },
-            "showTitle": {
-              "groupSlug": "contentDates",
-              "priority": 5,
-              "render": true,
-              "subName": "show_title",
-              "label": "Afficher le titre",
-              "features": {
-                "sticky": false,
-                "responsive": false,
-                "hover": false,
-                "dynamicContent": false
-              },
-              "component": {
-                "name": "divi/toggle",
-                "type": "field",
-                "props": {
-                  "options": {
-                    "off": "Non",
-                    "on": "Oui"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "titleStyle": {
-      "type": "object",
-      "selector": "{{selector}} .wp-seed-event-dates__title",
-      "settings": {
-        "decoration": {
-          "font": {
-            "priority": 10,
-            "component": {
-              "props": {
-                "groupLabel": "Titre",
-                "fieldLabel": "Titre"
-              }
-            }
-          },
-          "spacing": {
-            "priority": 20,
-            "component": {
-              "props": {
-                "groupLabel": "Espacement du titre"
               }
             }
           }

@@ -33,8 +33,6 @@ Le module ne lit aucune meta privée, n'exécute aucune requête SQL, ne persist
 Les valeurs sont stockées dans `content.innerContent.desktop.value` :
 
 - `date_selection` : preset d'interface explicite (`next`, `first`, `last`, `all_upcoming`, `all_past`, `all`) ;
-- `title` : texte, `Dates` par défaut, vide autorisé ;
-- `heading_level` : `h2`, `h3`, `h4`, `h5` ou `h6` ;
 - `mode` : contrat historique `next`, `first`, `last` ou `all`, conservé pour compatibilité ;
 - `scope` : valeur interne historique `all`, `upcoming` ou `past`, conservée pour compatibilité mais non exposée comme contrôle séparé ;
 - `show_cancelled` : `on` ou `off` ;
@@ -42,15 +40,22 @@ Les valeurs sont stockées dans `content.innerContent.desktop.value` :
 - `show_calendar_links` : `on` ou `off`.
 - `format` : `long` ou `short`.
 
+Le titre appartient désormais au builder : une nouvelle instance n'expose ni
+`title`, ni `show_title`, ni `heading_level`, et ne reçoit aucun titre implicite.
+Ces trois attributs restent toutefois interprétés lorsqu'ils sont réellement
+présents dans un module historique. Un titre legacy non vide est rendu uniquement
+avec `show_title=on`; son niveau `h2` à `h6` est conservé et une valeur invalide
+revient à `h2`. Les attributs historiques restent dans le contenu lors de la
+modification d'un autre réglage du module. Aucune migration de contenu n'est faite.
+
 Le choix visible `Dates affichées` traduit le preset en `mode` et `scope` avant le renderer : Prochaine date, Première date, Dernière date, Toutes les prochaines dates, Toutes les dates passées ou Toutes les dates. Première date et Dernière date portent sur toutes les dates de l'événement. Aucun réglage de portée séparé n'est affiché. Un module historique sans `date_selection` continue d'utiliser directement ses valeurs `mode` et `scope`.
 
-Les valeurs invalides reviennent aux valeurs sûres : `h2`, `all` et options activées. Le niveau de titre ne modifie que le heading facultatif ; la structure métier reste `section`, heading éventuel, `ul`, `li`, `time`, `span` et `a`.
+Les valeurs invalides reviennent aux valeurs sûres : `h2`, `all` et options activées. Le niveau de titre legacy ne modifie que le heading facultatif ; la structure métier reste `section`, heading éventuel, `ul`, `li`, `time`, `span` et `a`.
 
 ## Réglages Design
 
 Les attributs Design utilisent les mécanismes natifs Divi et ciblent strictement le module courant :
 
-- `titleStyle` : `.wp-seed-event-dates__title` ;
 - `dateStyle` : `.wp-seed-event-date__date` ;
 - `timeStyle` : `.wp-seed-event-date__time` ;
 - `statusStyle` : `.wp-seed-event-date__status` ;
@@ -58,7 +63,7 @@ Les attributs Design utilisent les mécanismes natifs Divi et ciblent strictemen
 - `occurrenceStyle` : `.wp-seed-event-date` ;
 - `module` : sélecteur racine Divi.
 
-Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Le titre peut aussi être aligné et espacé. Les occurrences disposent de leur espacement. Le module global fournit fond, bordure, rayon, ombre, marges, padding, dimensions et réglages responsive. Les liens calendrier bénéficient des états pris en charge par le contrôle de police Divi, notamment le hover.
+Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Le titre legacy conserve sa classe CSS historique mais n'expose plus de groupe Design : un Heading Divi séparé porte la présentation des nouveaux titres. Les occurrences disposent de leur espacement. Le module global fournit fond, bordure, rayon, ombre, marges, padding, dimensions et réglages responsive. Les liens calendrier bénéficient des états pris en charge par le contrôle de police Divi, notamment le hover.
 
 ## Résolution du contexte
 
@@ -92,7 +97,11 @@ Le responsive visuel est délégué aux réglages standard de Divi et à la stru
 
 `[wp_seed_event_dates]` reste le fallback universel et utilise le même renderer. Il n'est pas l'expérience builder principale. Le provider Divi `next_date` reste réservé à une valeur scalaire ; le module Dates traite la collection complète.
 
-Le bloc Gutenberg Dates reprend le même contrat de contenu et le même renderer. Les composants Visuels et Personnes restent des adaptateurs séparés autour de leurs renderers partagés.
+Le bloc Gutenberg Dates reprend le même renderer, mais conserve pour l'instant ses
+contrôles et défauts de titre publiés. Gutenberg omet des attributs égaux à leur
+défaut lors de la sérialisation : une ancienne instance implicite ne peut donc pas
+être distinguée d'une nouvelle instance sans une stratégie de dépréciation ou de
+migration dédiée. Cette évolution est volontairement hors du lot D2 Divi.
 
 ## Développement et build
 

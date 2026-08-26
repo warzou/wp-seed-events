@@ -16,8 +16,6 @@ const css = fs.readFileSync(path.join(pluginRoot, 'includes', 'public', 'event-d
 const computedTest = fs.readFileSync(path.join(sourceRoot, 'tests', 'computed-style.test.js'), 'utf8');
 
 const contentFields = {
-  title: ['title', 'divi/text', false, false],
-  headingLevel: ['heading_level', 'divi/select', false, false],
   dateSelection: ['date_selection', 'divi/select', false, false],
   showCancelled: ['show_cancelled', 'divi/toggle', false, false],
   showTimes: ['show_times', 'divi/toggle', false, false],
@@ -27,12 +25,14 @@ const contentFields = {
   separatorCharacter: ['separator_character', 'divi/text', false, false],
   format: ['format', 'divi/select', false, false],
   showCalendarLinks: ['show_calendar_links', 'divi/toggle', false, false],
-  showTitle: ['show_title', 'divi/toggle', false, false],
 };
 const contentItems = metadata.attributes.content.settings.innerContent.items;
-assert.deepStrictEqual(Object.keys(contentItems), Object.keys(contentFields));
+const visibleContentItems = Object.fromEntries(
+  Object.entries(contentItems).filter(([, item]) => item.render !== false),
+);
+assert.deepStrictEqual(Object.keys(visibleContentItems), Object.keys(contentFields));
 for (const [name, expected] of Object.entries(contentFields)) {
-  const field = contentItems[name];
+  const field = visibleContentItems[name];
   assert.deepStrictEqual([
     field.subName,
     field.component.name,
@@ -40,7 +40,10 @@ for (const [name, expected] of Object.entries(contentFields)) {
     field.features.hover,
   ], expected, `Content field contract differs: ${name}`);
 }
-assert.deepStrictEqual(Object.keys(contentItems.headingLevel.component.props.options), ['h2', 'h3', 'h4', 'h5', 'h6']);
+assert.deepStrictEqual(
+  ['legacyTitle', 'legacyHeadingLevel', 'legacyShowTitle'].map((name) => [contentItems[name].subName, contentItems[name].render]),
+  [['title', false], ['heading_level', false], ['show_title', false]],
+);
 assert.deepStrictEqual(Object.keys(contentItems.dateSelection.component.props.options), ['next', 'first', 'last', 'all_upcoming', 'all_past', 'all']);
 assert.deepStrictEqual(Object.keys(contentItems.format.component.props.options), ['long', 'short']);
 assert.deepStrictEqual(Object.keys(contentItems.showCancelled.component.props.options), ['off', 'on']);
@@ -79,7 +82,6 @@ assert.ok(reactSource.includes("elements.style({ attrName: 'separatorStyle' })")
 assert.ok(phpSource.includes("'separatorStyle'"));
 
 const styleAttributes = {
-  titleStyle: ['{{selector}} .wp-seed-event-dates__title', ['font', 'spacing']],
   dateStyle: ['{{selector}} .wp-seed-event-date__date', ['font']],
   timeStyle: ['{{selector}} .wp-seed-event-date__time', ['font']],
   statusStyle: ['{{selector}} .wp-seed-event-date__status', ['font']],
@@ -138,7 +140,7 @@ const exposedFamilies = Object.keys(contentFields).length
   + specificStyleFamilies
   + nativeModuleFamilies.length
   + 2; // Admin label and HTML attributes are native module controls.
-assert.strictEqual(exposedFamilies, 46);
+assert.strictEqual(exposedFamilies, 41);
 assert.strictEqual(metadata.attributes.__loop_post_id.default, '');
 
 console.log(`Divi event Dates functional inventory: ${exposedFamilies} exposed control families verified; hidden loop context is not user-facing.`);

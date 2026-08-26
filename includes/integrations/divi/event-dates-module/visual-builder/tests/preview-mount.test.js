@@ -177,6 +177,7 @@ const dynamicAttrs = {
       desktop: {
         value: {
           title: 'Agenda test',
+          show_title: 'on',
           heading_level: 'h4',
           date_selection: 'last',
           show_cancelled: 'off',
@@ -219,6 +220,11 @@ const exerciseDynamicUpdate = async () => {
   };
 
   await render(defaultAttrs);
+  const untouchedRequest = requestLog.at(-1);
+  ['title', 'show_title', 'heading_level'].forEach((field) => {
+    assert.ok(!Object.prototype.hasOwnProperty.call(untouchedRequest, field), `Untouched preview sent ${field}`);
+  });
+  assert.strictEqual(container.querySelector('.wp-seed-event-dates__title'), null);
   const firstRequestCount = requestLog.length;
   await render(dynamicAttrs);
   const dynamicRequest = requestLog.at(-1);
@@ -232,6 +238,7 @@ const exerciseDynamicUpdate = async () => {
     post_id: dynamicRequest.post_id,
     loop_id: dynamicRequest.loop_id,
     title: dynamicRequest.title,
+    show_title: dynamicRequest.show_title,
     heading_level: dynamicRequest.heading_level,
     mode: dynamicRequest.mode,
     scope: dynamicRequest.scope,
@@ -240,11 +247,12 @@ const exerciseDynamicUpdate = async () => {
     format: dynamicRequest.format,
     show_calendar_links: dynamicRequest.show_calendar_links,
   }, {
-    post_id: '2417', loop_id: '2417', title: 'Agenda test', heading_level: 'h4',
+    post_id: '2417', loop_id: '2417', title: 'Agenda test', show_title: 'on', heading_level: 'h4',
     mode: 'last', scope: 'all', show_cancelled: 'off', show_times: 'off',
     format: 'short', show_calendar_links: 'off',
   });
   assert.ok(container.textContent.includes('Agenda test'));
+
   assert.ok(!container.textContent.includes('13/10/2026'));
   assert.ok(container.textContent.includes('03/11/2026'));
   assert.ok(!container.querySelector('.wp-seed-event-date__time'));
@@ -253,6 +261,30 @@ const exerciseDynamicUpdate = async () => {
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-type-tablet'), 'square');
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-type-phone'), 'circle');
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-color-desktop'), 'var(--EventMarker)');
+
+  const resavedLegacyAttrs = JSON.parse(JSON.stringify({
+    ...dynamicAttrs,
+    content: {
+      innerContent: {
+        desktop: {
+          value: {
+            ...dynamicAttrs.content.innerContent.desktop.value,
+            show_times: 'on',
+          },
+        },
+      },
+    },
+  }));
+  await render(resavedLegacyAttrs);
+  const resavedLegacyRequest = requestLog.at(-1);
+  assert.deepStrictEqual({
+    title: resavedLegacyRequest.title,
+    show_title: resavedLegacyRequest.show_title,
+    heading_level: resavedLegacyRequest.heading_level,
+  }, { title: 'Agenda test', show_title: 'on', heading_level: 'h4' });
+  assert.ok(container.textContent.includes('Agenda test'));
+
+  await render(dynamicAttrs);
 
   const requestCountBeforeResponsiveOnly = requestLog.length;
   const responsiveOnlyAttrs = {
