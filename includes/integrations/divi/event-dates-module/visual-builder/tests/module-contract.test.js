@@ -35,6 +35,8 @@ assert.strictEqual(defaults.format, 'long');
 assert.strictEqual(defaults.show_dates, 'on');
 assert.strictEqual(defaults.show_times, 'on');
 assert.strictEqual(defaults.time_layout, 'below');
+assert.strictEqual(defaults.show_separator, 'off');
+assert.strictEqual(defaults.separator_character, '\u2014');
 assert.strictEqual(defaults.title, 'Dates');
 assert.strictEqual(defaults.show_title, 'on');
 assert.strictEqual(defaults.heading_level, 'h2');
@@ -67,6 +69,8 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
   'show_dates',
   'show_times',
   'time_layout',
+  'show_separator',
+  'separator_character',
   'format',
   'show_calendar_links',
 ].forEach((field) => {
@@ -78,6 +82,7 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
 assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
 assert.strictEqual(contentItems.timeLayout.features.responsive, true);
 assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
+assert.deepStrictEqual(Object.keys(contentItems.showSeparator.component.props.options), ['off', 'on']);
 
 [
   'wp-seed-event-dates__title',
@@ -128,6 +133,7 @@ assert.ok(source.includes("['desktop', 'tablet', 'phone'].forEach"));
 assert.ok(phpModule.includes('get_responsive_time_layouts'));
 assert.ok(phpModule.includes('has_responsive_time_layout_override'));
 assert.ok(renderer.includes("'show_dates'          => true"));
+assert.ok(renderer.includes("'show_separator'      => false"));
 assert.ok(renderer.includes("'show_calendar_links' => true"));
 
 assert.strictEqual(
@@ -159,6 +165,12 @@ assert.ok(buildScript.includes('$moduleRuntimeRoot/src/divi-style-values.js'));
 
 const listStyle = metadata.attributes.listStyle;
 const listItems = listStyle.settings.advanced;
+const separatorStyle = metadata.attributes.separatorStyle;
+const separatorItems = separatorStyle.settings.advanced;
+assert.strictEqual(metadata.settings.groups.designDateTimeSeparator.panel, 'design');
+assert.strictEqual(metadata.settings.groups.designDateTimeSeparator.component.props.groupLabel, 'Séparateur date / heure');
+assert.deepStrictEqual(Object.keys(separatorItems), ['color', 'fontSize', 'spaceBefore', 'spaceAfter']);
+Object.values(separatorItems).forEach((field) => assert.strictEqual(field.item.features.responsive, true));
 assert.strictEqual(metadata.settings.groups.designDateList.panel, 'design');
 assert.strictEqual(metadata.settings.groups.designDateList.component.props.groupLabel, 'Liste des dates');
 assert.deepStrictEqual(Object.keys(listItems.markerType.item.component.props.options), [
@@ -183,6 +195,9 @@ Object.values(listItems).forEach((field) => assert.strictEqual(field.item.featur
 assert.ok(source.includes("markerType: { desktop: { value: 'none' } }"));
 assert.ok(source.includes("leftIndent: { desktop: { value: '0px' } }"));
 assert.ok(source.includes('normalizeListStyles(attrs)'));
+assert.ok(source.includes('normalizeSeparatorStyles(attrs)'));
+assert.ok(source.includes("show_separator: values.show_separator === 'on' ? 'on' : 'off'"));
+assert.ok(source.includes('separator_character:'));
 assert.ok(!source.includes('listRequestOptions(listStyles)'));
 assert.ok(!source.includes('...listOptions'));
 assert.ok(source.includes('const optionsKey = JSON.stringify(options)'));
@@ -231,6 +246,7 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
   'titleStyle',
   'dateStyle',
   'timeStyle',
+  'separatorStyle',
   'statusStyle',
   'calendarLinkStyle',
   'occurrenceStyle',
@@ -245,6 +261,10 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
   'wp-seed-event-date__status',
   'wp-seed-event-calendar-link',
 ].forEach((target) => assert.ok(publicCss.includes('.wp-seed-event-section--dates .' + target), 'Block style target missing: ' + target));
+assert.ok(
+  publicCss.includes('.wp-seed-event-section--dates .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator'),
+  'The separator style target must be scoped to an occurrence that actually renders the date/time separator.',
+);
 assert.ok(!renderer.includes('<br /><span class="wp-seed-event-date__time">'));
 assert.ok(!renderer.includes('<br /><?php echo wp_kses_post( $calendar_link ); ?>'));
 assert.ok(phpModule.includes('resolve_divi_style_value'));

@@ -823,6 +823,80 @@ wp_seed_events_harness_case(
 );
 
 wp_seed_events_harness_case(
+	'D4 separator is opt-in and uses a neutral real element',
+	function () use ( $future ) {
+		$event      = wp_seed_events_harness_event( array( $future ) );
+		$historical = wp_seed_events_render_public_event_dates_section( $event, array( 'time_layout' => 'inline' ) );
+		$enabled    = wp_seed_events_render_public_event_dates_section(
+			$event,
+			array( 'time_layout' => 'inline', 'show_separator' => true )
+		);
+
+		wp_seed_events_harness_not_contains( 'wp-seed-event-date__separator', $historical, 'Historical instance gained a separator.' );
+		wp_seed_events_harness_contains( 'class="wp-seed-event-date__separator" aria-hidden="true"', $enabled, 'Separator is not a neutral real element.' );
+		wp_seed_events_harness_contains( ">\u{2014}</span>", $enabled, 'Safe default separator differs.' );
+		wp_seed_events_harness_assert( 1 === substr_count( $enabled, 'wp-seed-event-date__separator' ), 'One timed occurrence rendered more than one separator.' );
+	}
+);
+
+wp_seed_events_harness_case(
+	'D4 separator is absent without a real inline date and time pair',
+	function () use ( $future, $all_day ) {
+		$no_time = wp_seed_events_harness_occurrence( 'no-time-separator', '2026-12-01', 'future' );
+		$cases = array(
+			array( wp_seed_events_harness_event( array( $future ) ), array( 'time_layout' => 'inline', 'show_separator' => false ) ),
+			array( wp_seed_events_harness_event( array( $future ) ), array( 'time_layout' => 'below', 'show_separator' => true ) ),
+			array( wp_seed_events_harness_event( array( $future ) ), array( 'time_layout' => 'inline', 'show_separator' => true, 'show_dates' => false ) ),
+			array( wp_seed_events_harness_event( array( $future ) ), array( 'time_layout' => 'inline', 'show_separator' => true, 'show_times' => false ) ),
+			array( wp_seed_events_harness_event( array( $all_day ) ), array( 'time_layout' => 'inline', 'show_separator' => true ) ),
+			array( wp_seed_events_harness_event( array( $no_time ) ), array( 'time_layout' => 'inline', 'show_separator' => true ) ),
+		);
+
+		foreach ( $cases as $case ) {
+			$html = wp_seed_events_render_public_event_dates_section( $case[0], $case[1] );
+			wp_seed_events_harness_not_contains( 'wp-seed-event-date__separator', $html, 'Separator leaked into an unsupported composition.' );
+		}
+	}
+);
+
+wp_seed_events_harness_case(
+	'D4 separator character styles and responsive visibility are normalized',
+	function () use ( $future, $future_two ) {
+		$event = wp_seed_events_harness_event( array( $future, $future_two ) );
+		foreach ( array( "\u{2014}", '·', '|' ) as $character ) {
+			$html = wp_seed_events_render_public_event_dates_section(
+				$event,
+				array(
+					'time_layout'        => 'inline',
+					'time_layouts'       => array( 'desktop' => 'inline', 'tablet' => 'below', 'phone' => 'inline' ),
+					'show_separator'     => true,
+					'separator_character' => $character,
+					'separator_styles'   => array(
+						'desktop' => array( 'color' => '#123456', 'fontSize' => '1.2em', 'spaceBefore' => '4px', 'spaceAfter' => '6px' ),
+						'tablet'  => array( 'fontSize' => '18px' ),
+						'phone'   => array( 'spaceAfter' => '10px' ),
+					),
+				)
+			);
+
+			wp_seed_events_harness_assert( 2 === substr_count( $html, 'wp-seed-event-date__separator' ), 'Separator count does not match timed occurrences.' );
+			wp_seed_events_harness_contains( 'is-time-layout-desktop-inline is-time-layout-tablet-below is-time-layout-phone-inline', $html, 'Responsive layout classes differ.' );
+			wp_seed_events_harness_contains( '--wp-seed-event-dates-separator-color-desktop:#123456', $html, 'Separator color is absent.' );
+			wp_seed_events_harness_contains( '--wp-seed-event-dates-separator-size-tablet:18px', $html, 'Responsive separator size is absent.' );
+			wp_seed_events_harness_contains( '--wp-seed-event-dates-separator-after-phone:10px', $html, 'Responsive separator spacing is absent.' );
+			wp_seed_events_harness_contains( '>' . esc_html( $character ) . '</span>', $html, 'Separator character differs.' );
+		}
+
+		$fallback = wp_seed_events_render_public_event_dates_section(
+			wp_seed_events_harness_event( array( $future ) ),
+			array( 'time_layout' => 'inline', 'show_separator' => true, 'separator_character' => "<script>\x01</script>" )
+		);
+		wp_seed_events_harness_contains( ">\u{2014}</span>", $fallback, 'Unsafe empty separator did not use the safe fallback.' );
+		wp_seed_events_harness_not_contains( '<script>', $fallback, 'Separator character was not sanitized.' );
+	}
+);
+
+wp_seed_events_harness_case(
 	'D1 preserves legacy title and calendar contracts',
 	function () use ( $future, $future_two ) {
 		$event = wp_seed_events_harness_event( array( $future, $future_two ) );

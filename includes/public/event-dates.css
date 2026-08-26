@@ -11,9 +11,26 @@
 	inline-size: 100%;
 }
 
+.wp-seed-event-section--dates .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+	--wp-seed-event-dates-separator-current-color: var(--wp-seed-event-dates-separator-color-desktop, currentColor);
+	--wp-seed-event-dates-separator-current-size: var(--wp-seed-event-dates-separator-size-desktop, 1em);
+	--wp-seed-event-dates-separator-current-before: var(--wp-seed-event-dates-separator-before-desktop, 0.35em);
+	--wp-seed-event-dates-separator-current-after: var(--wp-seed-event-dates-separator-after-desktop, 0.35em);
+	display: none;
+	color: var(--wp-seed-event-dates-separator-current-color);
+	font-size: var(--wp-seed-event-dates-separator-current-size);
+	margin-inline-start: var(--wp-seed-event-dates-separator-current-before);
+	margin-inline-end: var(--wp-seed-event-dates-separator-current-after);
+}
+
 .wp-seed-event-section--dates .wp-seed-event-date.is-time-inline > .wp-seed-event-date__date,
 .wp-seed-event-section--dates .wp-seed-event-date.is-time-inline > .wp-seed-event-date__time {
 	display: inline;
+	inline-size: auto;
+}
+
+.wp-seed-event-section--dates.is-time-layout-desktop-inline .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+	display: inline !important;
 	inline-size: auto;
 }
 
@@ -50,8 +67,9 @@
 
 @media (max-width: 980px) {
 	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date > .wp-seed-event-date__date,
-	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date > .wp-seed-event-date__time {
-		display: inline;
+	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date > .wp-seed-event-date__time,
+	.wp-seed-event-section--dates.is-time-layout-tablet-inline .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		display: inline !important;
 		inline-size: auto;
 	}
 
@@ -59,6 +77,17 @@
 	.wp-seed-event-section--dates.is-time-layout-tablet-below .wp-seed-event-date > .wp-seed-event-date__time {
 		display: block;
 		inline-size: 100%;
+	}
+
+	.wp-seed-event-section--dates.is-time-layout-tablet-below .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		display: none !important;
+	}
+
+	.wp-seed-event-section--dates .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		--wp-seed-event-dates-separator-current-color: var(--wp-seed-event-dates-separator-color-tablet, var(--wp-seed-event-dates-separator-color-desktop, currentColor));
+		--wp-seed-event-dates-separator-current-size: var(--wp-seed-event-dates-separator-size-tablet, var(--wp-seed-event-dates-separator-size-desktop, 1em));
+		--wp-seed-event-dates-separator-current-before: var(--wp-seed-event-dates-separator-before-tablet, var(--wp-seed-event-dates-separator-before-desktop, 0.35em));
+		--wp-seed-event-dates-separator-current-after: var(--wp-seed-event-dates-separator-after-tablet, var(--wp-seed-event-dates-separator-after-desktop, 0.35em));
 	}
 
 	.wp-seed-event-dates.has-custom-list-style {
@@ -72,8 +101,9 @@
 
 @media (max-width: 767px) {
 	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date > .wp-seed-event-date__date,
-	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date > .wp-seed-event-date__time {
-		display: inline;
+	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date > .wp-seed-event-date__time,
+	.wp-seed-event-section--dates.is-time-layout-phone-inline .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		display: inline !important;
 		inline-size: auto;
 	}
 
@@ -81,6 +111,17 @@
 	.wp-seed-event-section--dates.is-time-layout-phone-below .wp-seed-event-date > .wp-seed-event-date__time {
 		display: block;
 		inline-size: 100%;
+	}
+
+	.wp-seed-event-section--dates.is-time-layout-phone-below .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		display: none !important;
+	}
+
+	.wp-seed-event-section--dates .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator {
+		--wp-seed-event-dates-separator-current-color: var(--wp-seed-event-dates-separator-color-phone, var(--wp-seed-event-dates-separator-color-tablet, currentColor));
+		--wp-seed-event-dates-separator-current-size: var(--wp-seed-event-dates-separator-size-phone, var(--wp-seed-event-dates-separator-size-tablet, 1em));
+		--wp-seed-event-dates-separator-current-before: var(--wp-seed-event-dates-separator-before-phone, var(--wp-seed-event-dates-separator-before-tablet, 0.35em));
+		--wp-seed-event-dates-separator-current-after: var(--wp-seed-event-dates-separator-after-phone, var(--wp-seed-event-dates-separator-after-tablet, 0.35em));
 	}
 
 	.wp-seed-event-dates.has-custom-list-style {

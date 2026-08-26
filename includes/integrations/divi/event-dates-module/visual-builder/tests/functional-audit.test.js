@@ -23,6 +23,8 @@ const contentFields = {
   showTimes: ['show_times', 'divi/toggle', false, false],
   showDates: ['show_dates', 'divi/toggle', false, false],
   timeLayout: ['time_layout', 'divi/select', true, false],
+  showSeparator: ['show_separator', 'divi/toggle', false, false],
+  separatorCharacter: ['separator_character', 'divi/text', false, false],
   format: ['format', 'divi/select', false, false],
   showCalendarLinks: ['show_calendar_links', 'divi/toggle', false, false],
   showTitle: ['show_title', 'divi/toggle', false, false],
@@ -45,6 +47,7 @@ assert.deepStrictEqual(Object.keys(contentItems.showCancelled.component.props.op
 assert.deepStrictEqual(Object.keys(contentItems.showTimes.component.props.options), ['off', 'on']);
 assert.deepStrictEqual(Object.keys(contentItems.showDates.component.props.options), ['off', 'on']);
 assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
+assert.deepStrictEqual(Object.keys(contentItems.showSeparator.component.props.options), ['off', 'on']);
 assert.deepStrictEqual(Object.keys(contentItems.showCalendarLinks.component.props.options), ['off', 'on']);
 
 const listFields = {
@@ -65,6 +68,15 @@ for (const [name, expected] of Object.entries(listFields)) {
 }
 assert.deepStrictEqual(Object.keys(listSettings.markerType.item.component.props.options), ['none', 'disc', 'circle', 'square']);
 assert.deepStrictEqual(Object.keys(listSettings.markerPosition.item.component.props.options), ['outside', 'inside']);
+
+const separatorSettings = metadata.attributes.separatorStyle.settings.advanced;
+assert.deepStrictEqual(Object.keys(separatorSettings), ['color', 'fontSize', 'spaceBefore', 'spaceAfter']);
+Object.values(separatorSettings).forEach((field) => {
+  assert.strictEqual(field.item.features.responsive, true);
+  assert.strictEqual(field.item.features.hover, false);
+});
+assert.ok(reactSource.includes("elements.style({ attrName: 'separatorStyle' })"));
+assert.ok(phpSource.includes("'separatorStyle'"));
 
 const styleAttributes = {
   titleStyle: ['{{selector}} .wp-seed-event-dates__title', ['font', 'spacing']],
@@ -107,6 +119,7 @@ const domContracts = [
   '<section class=', 'wp-seed-event-section--dates', 'wp-seed-event-dates__title',
   '<ul class=', '<li class=', '<time class="wp-seed-event-date__date"',
   'wp-seed-event-date__time', 'wp-seed-event-date__status', 'wp-seed-event-calendar-link',
+  'wp-seed-event-date__separator',
 ];
 for (const contract of domContracts) assert.ok(publicRenderSource.includes(contract), `DOM contract missing: ${contract}`);
 for (const target of ['wp-seed-event-dates__title', 'wp-seed-event-date__date', 'wp-seed-event-date__time', 'wp-seed-event-date__status', 'wp-seed-event-calendar-link']) {
@@ -121,10 +134,11 @@ assert.ok(!phpSource.includes('get_post_meta('));
 
 const exposedFamilies = Object.keys(contentFields).length
   + Object.keys(listFields).length
+  + Object.keys(separatorSettings).length
   + specificStyleFamilies
   + nativeModuleFamilies.length
   + 2; // Admin label and HTML attributes are native module controls.
-assert.strictEqual(exposedFamilies, 40);
+assert.strictEqual(exposedFamilies, 46);
 assert.strictEqual(metadata.attributes.__loop_post_id.default, '');
 
 console.log(`Divi event Dates functional inventory: ${exposedFamilies} exposed control families verified; hidden loop context is not user-facing.`);

@@ -64,6 +64,8 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'time_layout_tablet'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'time_layout_phone'   => array( 'sanitize_callback' => 'sanitize_key' ),
 					'responsive_time_layout_requested' => array( 'sanitize_callback' => 'rest_sanitize_boolean' ),
+					'show_separator'      => array( 'sanitize_callback' => 'sanitize_key' ),
+					'separator_character' => array( 'sanitize_callback' => 'sanitize_text_field' ),
 					'show_calendar_links' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_type'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_position' => array( 'sanitize_callback' => 'sanitize_key' ),
@@ -110,6 +112,8 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'phone'   => $request->get_param( 'time_layout_phone' ),
 				),
 				'responsive_time_layout_requested' => $request->get_param( 'responsive_time_layout_requested' ),
+				'show_separator'      => $request->get_param( 'show_separator' ),
+				'separator_character' => $request->get_param( 'separator_character' ),
 				'format'              => $request->get_param( 'format' ),
 				'show_calendar_links' => $request->get_param( 'show_calendar_links' ),
 				'list_marker_type'     => $request->get_param( 'list_marker_type' ),
@@ -140,6 +144,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				array(
 					'time_layouts' => self::get_responsive_time_layouts( $attrs ),
 					'responsive_time_layout_requested' => self::has_responsive_time_layout_override( $attrs ),
+					'separator_styles' => self::get_responsive_separator_values( $attrs ),
 				)
 			)
 		);
@@ -250,6 +255,37 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Normalize the lightweight separator styles with Divi breakpoint inheritance.
+	 */
+	private static function get_responsive_separator_values( $attrs ) {
+		$advanced = is_array( $attrs['separatorStyle']['advanced'] ?? null )
+			? $attrs['separatorStyle']['advanced']
+			: array();
+		$config = array(
+			'color'       => array( 'default' => '', 'color' => true ),
+			'fontSize'    => array( 'default' => '1em' ),
+			'spaceBefore' => array( 'default' => '0.35em' ),
+			'spaceAfter'  => array( 'default' => '0.35em' ),
+		);
+		$styles = array();
+
+		foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
+			$styles[ $breakpoint ] = array();
+			foreach ( $config as $field => $field_config ) {
+				$fallback = 'desktop' === $breakpoint
+					? $field_config['default']
+					: $styles[ 'tablet' === $breakpoint ? 'desktop' : 'tablet' ][ $field ];
+				$value = self::resolve_divi_style_value( $advanced[ $field ] ?? array(), $breakpoint, 'value', $field, $fallback );
+				$styles[ $breakpoint ][ $field ] = ! empty( $field_config['color'] )
+					? wp_seed_events_public_date_list_marker_color_option( $value )
+					: wp_seed_events_public_date_list_dimension_option( $value, $fallback );
+			}
+		}
+
+		return $styles;
 	}
 
 	/**
@@ -417,6 +453,9 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'time_layout'         => wp_seed_events_public_date_component_layout_option( $values['time_layout'] ?? 'below' ),
 			'time_layouts'        => is_array( $values['time_layouts'] ?? null ) ? $values['time_layouts'] : array(),
 			'responsive_time_layout_requested' => ! empty( $values['responsive_time_layout_requested'] ),
+			'show_separator'      => self::is_enabled( $values['show_separator'] ?? 'off' ),
+			'separator_character' => wp_seed_events_public_date_separator_character_option( $values['separator_character'] ?? "\u{2014}" ),
+			'separator_styles'    => is_array( $values['separator_styles'] ?? null ) ? $values['separator_styles'] : array(),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
 			'show_calendar_links' => self::is_enabled( $values['show_calendar_links'] ?? 'on' ),
 			'list_marker_type'     => $values['list_marker_type'] ?? 'none',
@@ -474,7 +513,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			),
 		);
 
-		foreach ( array( 'titleStyle', 'dateStyle', 'timeStyle', 'statusStyle', 'calendarLinkStyle', 'occurrenceStyle' ) as $attr_name ) {
+		foreach ( array( 'titleStyle', 'dateStyle', 'timeStyle', 'separatorStyle', 'statusStyle', 'calendarLinkStyle', 'occurrenceStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 

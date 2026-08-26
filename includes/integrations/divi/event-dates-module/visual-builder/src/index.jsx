@@ -28,6 +28,7 @@ import {
   normalizeListStyles,
   previewListStyleCss,
   previewListStyleScope,
+  resolveDiviStyleValue,
 } from './divi-style-values';
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
@@ -46,7 +47,57 @@ const getResponsiveContentValue = (attrs, field, breakpoint, fallback) => {
 
   return fallback;
 };
-const applyPreviewListStyle = (html, listStyles, documentRef = document) => {
+const normalizeSeparatorStyles = (attrs) => {
+  const advanced = toPlainObject(attrs)?.separatorStyle?.advanced ?? {};
+  const config = {
+    color: { defaultValue: '', color: true },
+    fontSize: { defaultValue: '1em' },
+    spaceBefore: { defaultValue: '0.35em' },
+    spaceAfter: { defaultValue: '0.35em' },
+  };
+  const styles = {};
+
+  ['desktop', 'tablet', 'phone'].forEach((breakpoint) => {
+    styles[breakpoint] = {};
+    Object.entries(config).forEach(([field, fieldConfig]) => {
+      let value = resolveDiviStyleValue(
+        advanced[field],
+        breakpoint,
+        'value',
+        field,
+        fieldConfig.defaultValue,
+      );
+      value = String(value ?? '').trim();
+      if (fieldConfig.color) {
+        value = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^;{}]+\)|var\(--[a-z0-9_-]+\))$/i.test(value)
+          ? value
+          : '';
+      } else if (!/^(?:0|(?:\d+(?:\.\d+)?|\.\d+)(?:px|em|rem|%|ch))$/.test(value)) {
+        value = fieldConfig.defaultValue;
+      }
+      styles[breakpoint][field] = value;
+    });
+  });
+
+  return styles;
+};
+const applySeparatorStyleVariables = (separator, styles) => {
+  if (!separator?.style) return;
+  const propertyMap = {
+    color: 'color',
+    fontSize: 'size',
+    spaceBefore: 'before',
+    spaceAfter: 'after',
+  };
+
+  ['desktop', 'tablet', 'phone'].forEach((breakpoint) => {
+    Object.entries(propertyMap).forEach(([field, property]) => {
+      const value = field === 'color' ? (styles[breakpoint][field] || 'currentColor') : styles[breakpoint][field];
+      separator.style.setProperty(`--wp-seed-event-dates-separator-${property}-${breakpoint}`, value);
+    });
+  });
+};
+const applyPreviewStyles = (html, listStyles, separatorStyles, documentRef = document) => {
   if (html === '' || !documentRef?.createElement) {
     return html;
   }
@@ -86,6 +137,10 @@ const applyPreviewListStyle = (html, listStyles, documentRef = document) => {
     item.style.setProperty('display', 'list-item', 'important');
     item.style.setProperty('list-style-type', 'var(--wp-seed-event-dates-current-marker-type)', 'important');
     item.style.setProperty('list-style-position', 'var(--wp-seed-event-dates-current-marker-position)', 'important');
+  });
+
+  template.content.querySelectorAll('.wp-seed-event-date__separator').forEach((separator) => {
+    applySeparatorStyleVariables(separator, separatorStyles);
   });
 
   return template.innerHTML;
@@ -147,6 +202,10 @@ const normalizeOptions = (attrs) => {
     time_layout_tablet: timeLayouts.tablet,
     time_layout_phone: timeLayouts.phone,
     responsive_time_layout_requested: hasResponsiveTimeLayout,
+    show_separator: values.show_separator === 'on' ? 'on' : 'off',
+    separator_character: typeof values.separator_character === 'string' && values.separator_character.trim() !== ''
+      ? values.separator_character.trim().slice(0, 8)
+      : '\u2014',
     format: formats.includes(values.format) ? values.format : 'long',
     show_calendar_links: values.show_calendar_links === 'off' ? 'off' : 'on',
   };
@@ -165,6 +224,7 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
     {elements.style({ attrName: 'titleStyle' })}
     {elements.style({ attrName: 'dateStyle' })}
     {elements.style({ attrName: 'timeStyle' })}
+    {elements.style({ attrName: 'separatorStyle' })}
     {elements.style({ attrName: 'statusStyle' })}
     {elements.style({ attrName: 'calendarLinkStyle' })}
     {elements.style({ attrName: 'occurrenceStyle' })}
@@ -197,7 +257,9 @@ const EventDatesPreview = (props) => {
   const [hasError, setHasError] = useState(false);
   const options = normalizeOptions(attrs);
   const listStyles = normalizeListStyles(attrs);
+  const separatorStyles = normalizeSeparatorStyles(attrs);
   const listStylesKey = JSON.stringify(listStyles);
+  const separatorStylesKey = JSON.stringify(separatorStyles);
   const optionsKey = JSON.stringify(options);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const parentId = typeof props.parentId === 'string' ? props.parentId : '';
@@ -243,8 +305,8 @@ const EventDatesPreview = (props) => {
 
   const html = typeof response?.html === 'string' ? response.html : '';
   const previewHtml = useMemo(
-    () => applyPreviewListStyle(html, listStyles),
-    [html, listStylesKey],
+    () => applyPreviewStyles(html, listStyles, separatorStyles),
+    [html, listStylesKey, separatorStylesKey],
   );
 
   const previewContent = !isLoading && !hasError && previewHtml !== '';
@@ -295,6 +357,14 @@ const eventDatesModule = {
         markerColor: { desktop: { value: '' } },
       },
     },
+    separatorStyle: {
+      advanced: {
+        color: { desktop: { value: '' } },
+        fontSize: { desktop: { value: '1em' } },
+        spaceBefore: { desktop: { value: '0.35em' } },
+        spaceAfter: { desktop: { value: '0.35em' } },
+      },
+    },
     content: {
       innerContent: {
         desktop: {
@@ -309,6 +379,8 @@ const eventDatesModule = {
             show_dates: 'on',
             show_times: 'on',
             time_layout: 'below',
+            show_separator: 'off',
+            separator_character: '\u2014',
             format: 'long',
             show_calendar_links: 'on',
           },

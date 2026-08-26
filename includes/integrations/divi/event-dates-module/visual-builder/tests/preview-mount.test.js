@@ -50,7 +50,12 @@ const useFetch = () => {
         `is-time-layout-${breakpoint}-${url.searchParams.get(`time_layout${breakpoint === 'desktop' ? '' : `_${breakpoint}`}`) || 'below'}`
       )).join(' ');
       const inlineClass = url.searchParams.get('time_layout') === 'inline' ? ' is-time-inline' : '';
-      const html = `<section class="wp-seed-event-section--dates ${layouts}">${title ? `<h2 class="wp-seed-event-dates__title">${title}</h2>` : ''}<ul class="wp-seed-event-dates">${dates.map((date) => `<li class="wp-seed-event-date${inlineClass}">${showDate ? `<time class="wp-seed-event-date__date">${date}</time>` : ''}${time}${calendar}</li>`).join('')}</ul></section>`;
+      const hasInlineLayout = ['time_layout', 'time_layout_tablet', 'time_layout_phone']
+        .some((parameter) => url.searchParams.get(parameter) === 'inline');
+      const separator = url.searchParams.get('show_separator') === 'on' && showDate && time && hasInlineLayout
+        ? `<span class="wp-seed-event-date__separator" aria-hidden="true">${url.searchParams.get('separator_character') || '\u2014'}</span>`
+        : '';
+      const html = `<section class="wp-seed-event-section--dates ${layouts}">${title ? `<h2 class="wp-seed-event-dates__title">${title}</h2>` : ''}<ul class="wp-seed-event-dates">${dates.map((date) => `<li class="wp-seed-event-date${inlineClass}">${showDate ? `<time class="wp-seed-event-date__date">${date}</time>` : ''}${separator}${time}${calendar}</li>`).join('')}</ul></section>`;
       requestLog.push(Object.fromEntries(url.searchParams.entries()));
       setResult({ response: { html }, isLoading: false });
       return Promise.resolve();
@@ -300,6 +305,86 @@ const exerciseComposableLayouts = async (immutable) => {
   assert.ok(!result.text.includes('10/10/2026'));
   assert.ok(result.text.includes('20:00'));
 };
+
+const exerciseSeparator = async (immutable) => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const reactRoot = createRoot(container);
+  const render = async (attrs) => {
+    await act(async () => {
+      reactRoot.render(React.createElement(ErrorBoundary, null, registeredModule.renderers.edit({
+        attrs: immutable ? fromJS(attrs) : attrs,
+        elements,
+        id: 'dates-separator-module',
+        name: 'wp-seed-events/event-dates',
+        parentId: immutable ? 'loop-separator-immutable' : 'loop-separator-simple',
+        loopIndex: 1,
+      })));
+      await Promise.resolve();
+    });
+  };
+  const attrs = {
+    content: {
+      innerContent: {
+        desktop: { value: { show_dates: 'on', show_times: 'on', time_layout: 'inline', show_separator: 'on', separator_character: '·' } },
+        tablet: { value: { time_layout: 'below' } },
+        phone: { value: { time_layout: 'inline' } },
+      },
+    },
+    separatorStyle: {
+      advanced: {
+        color: { desktop: { value: '#123456' } },
+        fontSize: { desktop: { value: '1.25em' }, tablet: { value: '18px' } },
+        spaceBefore: { desktop: { value: '4px' } },
+        spaceAfter: { desktop: { value: '6px' }, phone: { value: '10px' } },
+      },
+    },
+    module: { decoration: {} },
+  };
+
+  await render(attrs);
+  const separator = container.querySelector('.wp-seed-event-date__separator');
+  assert.ok(separator, 'Opt-in separator did not mount.');
+  assert.strictEqual(separator.textContent, '·');
+  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-color-desktop'), '#123456');
+  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-size-tablet'), '18px');
+  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-after-phone'), '10px');
+  const request = requestLog.at(-1);
+  assert.deepStrictEqual({
+    show_separator: request.show_separator,
+    separator_character: request.separator_character,
+    time_layout: request.time_layout,
+    time_layout_tablet: request.time_layout_tablet,
+    time_layout_phone: request.time_layout_phone,
+  }, {
+    show_separator: 'on', separator_character: '·', time_layout: 'inline', time_layout_tablet: 'below', time_layout_phone: 'inline',
+  });
+
+  const requestCount = requestLog.length;
+  await render({
+    ...attrs,
+    separatorStyle: {
+      ...attrs.separatorStyle,
+      advanced: { ...attrs.separatorStyle.advanced, color: { desktop: { value: '#654321' } } },
+    },
+  });
+  assert.strictEqual(requestLog.length, requestCount, 'Separator-only live style change triggered a REST request.');
+  assert.strictEqual(
+    container.querySelector('.wp-seed-event-date__separator').style.getPropertyValue('--wp-seed-event-dates-separator-color-desktop'),
+    '#654321',
+  );
+
+  await render({
+    ...attrs,
+    content: { innerContent: { desktop: { value: { show_dates: 'on', show_times: 'on', time_layout: 'below', show_separator: 'on' } } } },
+  });
+  assert.strictEqual(container.querySelector('.wp-seed-event-date__separator'), null, 'Stacked-only layout rendered a separator.');
+  await render(defaultAttrs);
+  assert.strictEqual(container.querySelector('.wp-seed-event-date__separator'), null, 'Untouched historical attrs rendered a separator.');
+
+  await act(async () => reactRoot.unmount());
+  container.remove();
+};
 const liveStyleAttrs = (markerType, lineHeight, tabletMarker = markerType, phoneMarker = tabletMarker) => ({
   ...dynamicAttrs,
   dateStyle: { decoration: { font: { font: { desktop: { value: { lineHeight } } } } } },
@@ -399,6 +484,8 @@ assert.ok(registeredModule, 'The Dates module was not registered.');
   await exerciseDynamicUpdate();
   await exerciseComposableLayouts(false);
   await exerciseComposableLayouts(true);
+  await exerciseSeparator(false);
+  await exerciseSeparator(true);
   await exerciseLiveStyleSequence(false);
   await exerciseLiveStyleSequence(true);
   assert.deepStrictEqual(unexpectedErrors, [], 'Unexpected console.error during preview mounts.');
