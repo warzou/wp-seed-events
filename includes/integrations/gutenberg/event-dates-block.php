@@ -62,6 +62,20 @@ function wp_seed_events_gutenberg_event_dates_boolean_option( $value, $default =
 }
 
 /**
+ * Preserve legacy calendar links while disabling them for new compositions.
+ */
+function wp_seed_events_gutenberg_event_dates_calendar_links_option( $attributes ) {
+	$attributes = is_array( $attributes ) ? $attributes : array();
+	$version    = $attributes['calendar_behavior_version'] ?? null;
+
+	if ( 2 === $version ) {
+		return false;
+	}
+
+	return wp_seed_events_gutenberg_event_dates_boolean_option( $attributes['show_calendar_links'] ?? true );
+}
+
+/**
  * Normalize block attributes to the shared public renderer contract.
  */
 function wp_seed_events_gutenberg_event_dates_options( $attributes = array() ) {
@@ -78,7 +92,7 @@ function wp_seed_events_gutenberg_event_dates_options( $attributes = array() ) {
 		'mode'                => wp_seed_events_public_date_mode_option( $attributes['mode'] ?? 'all' ),
 		'show_times'          => wp_seed_events_gutenberg_event_dates_boolean_option( $attributes['show_times'] ?? true ),
 		'format'              => wp_seed_events_public_date_format_option( $attributes['format'] ?? 'long' ),
-		'show_calendar_links' => wp_seed_events_gutenberg_event_dates_boolean_option( $attributes['show_calendar_links'] ?? true ),
+		'show_calendar_links' => wp_seed_events_gutenberg_event_dates_calendar_links_option( $attributes ),
 	);
 }
 

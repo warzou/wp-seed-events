@@ -20,7 +20,7 @@ function wp_seed_events_event_collection_compact_pattern_content() {
 	<!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
 		<!-- wp:wp-seed-events/event-visuals-block {"title":"","show_visuals":false,"show_document":false,"layout":"list"} /-->
 		<!-- wp:post-title {"isLink":true,"level":3} /-->
-		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"next","scope":"upcoming","show_cancelled":false,"show_times":false,"format":"long","show_calendar_links":false} /-->
+		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"next","scope":"upcoming","show_cancelled":false,"show_times":false,"format":"long","calendar_behavior_version":2} /-->
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"place"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->
@@ -63,7 +63,7 @@ function wp_seed_events_event_collection_detailed_pattern_content() {
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"excerpt"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->
-		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"all","scope":"upcoming","show_cancelled":false,"show_times":true,"format":"long","show_calendar_links":false} /-->
+		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"all","scope":"upcoming","show_cancelled":false,"show_times":true,"format":"long","calendar_behavior_version":2} /-->
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"place"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->

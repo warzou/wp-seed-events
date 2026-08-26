@@ -52,7 +52,7 @@ L'enregistrement PHP utilise `register_block_type_from_metadata()` une seule foi
 
 ## Attributs
 
-Le bloc expose huit attributs :
+Le bloc expose huit attributs publics historiques et un sentinel interne :
 
 | Attribut | Type | Défaut | Valeurs |
 | --- | --- | --- | --- |
@@ -63,7 +63,10 @@ Le bloc expose huit attributs :
 | `show_cancelled` | booléen | `true` | afficher ou masquer les occurrences annulées |
 | `show_times` | booléen | `true` | afficher ou masquer les horaires |
 | `show_calendar_links` | booléen | `true` | afficher ou masquer les actions calendrier |
+| `calendar_behavior_version` | entier | aucun | `2` pour une nouvelle composition sans action calendrier intégrée |
 | `format` | chaîne | `long` | `long`, `short` |
+
+`show_calendar_links` conserve volontairement son défaut historique `true`. Un ancien commentaire qui omettait cet attribut reste donc lisible sans changement. La variation par défaut de l'inserter crée les nouveaux blocs avec `calendar_behavior_version=2`; ce sentinel n'a aucun défaut de métadonnées et désactive toujours l'action intégrée. Les nouvelles compositions utilisent `calendar_all_occurrences_url` dans un bouton ou un lien Gutenberg natif.
 
 Les valeurs invalides reviennent aux valeurs sûres du contrat : `h2`, `all` et options booléennes activées. Un titre vide supprime le heading sans produire de wrapper vide.
 
@@ -75,7 +78,7 @@ Le callback du bloc :
 
 1. résout l'événement depuis le contexte Gutenberg ;
 2. charge son contrat Event Data ;
-3. normalise les huit attributs ;
+3. normalise les attributs et applique la politique calendrier legacy/version 2 ;
 4. délègue au renderer partagé ;
 5. ajoute le wrapper natif Gutenberg avec `get_block_wrapper_attributes()` uniquement lorsque le renderer retourne du HTML.
 
@@ -117,7 +120,9 @@ L'inspecteur propose des choix explicites en français :
 - `Toutes les dates passées` : `mode=all`, `scope=past` ;
 - `Toutes les dates` : `mode=all`, `scope=all`.
 
-Aucun réglage de portée séparé n'est affiché : le choix principal détermine un résultat non ambigu. Les autres contrôles restent : titre, niveau du titre, occurrences annulées, horaires, format court ou long et liens calendrier. Les attributs persistants `mode` et `scope` restent inchangés.
+Aucun réglage de portée séparé n'est affiché : le choix principal détermine un résultat non ambigu. Les autres contrôles restent : titre, niveau du titre, occurrences annulées, horaires et format court ou long. Le contrôle calendrier n'est plus proposé aux nouvelles compositions. Les attributs persistants `mode` et `scope` restent inchangés.
+
+Un bloc legacy sans sentinel continue de transmettre sa valeur historique au renderer, y compris lorsque `show_calendar_links` était implicitement omis car égal à son ancien défaut. L'éditeur ne réécrit pas ce bloc et n'ajoute pas le sentinel lors d'une simple réouverture. Aucun `deprecated.migrate()` n'est utilisé : pour un bloc dynamique, les commentaires ancien implicite et nouveau sans sentinel seraient identiques, donc une migration ne pourrait pas déterminer leur origine de manière sûre.
 
 L'aperçu éditeur utilise le HTML réel du renderer serveur. Il présente des états distincts :
 
@@ -214,7 +219,7 @@ Le renderer partagé conserve :
 - une liste `ul`/`li` dans l'ordre canonique ;
 - une balise `time` avec `datetime` par occurrence ;
 - le statut visible `Annulée` ;
-- des liens calendrier explicites et accessibles au clavier ;
+- des liens calendrier legacy explicites et accessibles au clavier ;
 - des icônes décoratives avec `aria-hidden="true"` ;
 - aucune sortie partielle pour une date invalide ;
 - aucun wrapper vide lorsqu'aucune occurrence n'est retenue.
@@ -304,6 +309,7 @@ Le module Divi `wp-seed-events/event-dates` est l'adaptateur équivalent pour Di
 - aucune mise en page galerie, grille ou carrousel ;
 - aucune intégration Astra ou Spectra spécifique ;
 - aucune exposition REST des metas métier privées ;
+- les actions calendrier intégrées restent rendues uniquement pour les blocs legacy ;
 - les composants Visuels et Personnes restent indépendants du bloc Dates.
 
 Les blocs Visuels et Personnes utilisent leurs propres renderers partagés ; Dynamic Data reste réservé aux valeurs simples.

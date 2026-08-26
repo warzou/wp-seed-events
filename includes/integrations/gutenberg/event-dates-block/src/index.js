@@ -56,6 +56,12 @@ function booleanOption( value ) {
   return typeof value === 'boolean' ? value : true;
 }
 
+function showIntegratedCalendarLinks( attributes ) {
+  return attributes.calendar_behavior_version === 2
+    ? false
+    : booleanOption( attributes.show_calendar_links );
+}
+
 function displayOption( mode, scope ) {
   if ( mode === 'next' || mode === 'first' || mode === 'last' ) {
     return mode;
@@ -162,7 +168,7 @@ function Edit( { attributes, setAttributes, context = {} } ) {
   const displayedDates = displayOption( mode, scope );
   const showCancelled = booleanOption( attributes.show_cancelled );
   const showTimes = booleanOption( attributes.show_times );
-  const showCalendarLinks = booleanOption( attributes.show_calendar_links );
+  const showCalendarLinks = showIntegratedCalendarLinks( attributes );
   const format = validOption( FORMAT_OPTIONS, attributes.format, 'long' );
   const [ preview, setPreview ] = useState( {
     status: 'loading',
@@ -302,11 +308,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
             options={ FORMAT_OPTIONS }
             onChange={ ( value ) => setAttributes( { format: value } ) }
           />
-          <ToggleControl
-            label={ __( 'Afficher les liens calendrier', 'wp-seed-events' ) }
-            checked={ showCalendarLinks }
-            onChange={ ( value ) => setAttributes( { show_calendar_links: value } ) }
-          />
         </PanelBody>
       </InspectorControls>
       <div { ...blockProps }>
@@ -318,6 +319,15 @@ function Edit( { attributes, setAttributes, context = {} } ) {
 
 registerBlockType( metadata.name, {
   ...metadata,
+  variations: [
+    {
+      name: 'calendar-actions-composable',
+      title: metadata.title,
+      isDefault: true,
+      scope: [ 'inserter' ],
+      attributes: { calendar_behavior_version: 2 },
+    },
+  ],
   edit: Edit,
   save: () => null,
 } );

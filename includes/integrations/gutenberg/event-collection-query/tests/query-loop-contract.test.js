@@ -102,7 +102,8 @@ check( 'compact pattern uses the real Dates block in next mode', () => {
   assert.equal( ( compact.match( /event-dates-block/g ) || [] ).length, 1 );
   assert.ok( compact.includes( '"mode":"next"' ) );
   assert.ok( compact.includes( '"show_times":false' ) );
-  assert.ok( compact.includes( '"show_calendar_links":false' ) );
+  assert.ok( compact.includes( '"calendar_behavior_version":2' ) );
+  assert.ok( ! compact.includes( '"show_calendar_links"' ) );
   assert.ok( ! compact.includes( '"field":"display_date"' ) );
 } );
 
