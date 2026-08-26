@@ -13,7 +13,7 @@ add_action( 'updated_post_meta', 'wp_seed_events_dynamic_data_invalidate_descrip
 add_action( 'deleted_post_meta', 'wp_seed_events_dynamic_data_invalidate_description_meta_cache', 10, 3 );
 
 function wp_seed_events_dynamic_data_fields() {
-	return array(
+	$fields = array(
 		'title'       => array(
 			'key'         => 'title',
 			'label'       => 'Titre',
@@ -147,6 +147,44 @@ function wp_seed_events_dynamic_data_fields() {
 			'description' => 'Premier visuel de communication normalise.',
 		),
 	);
+
+	$formats = array(
+		'title'                          => 'plain_text',
+		'types'                          => 'plain_text',
+		'status'                         => 'plain_text',
+		'programming_status'             => 'plain_text',
+		'programming_text'               => 'multiline_text',
+		'next_date'                      => 'plain_text',
+		'next_time'                      => 'plain_text',
+		'display_date'                   => 'plain_text',
+		'display_time'                   => 'plain_text',
+		'place'                          => 'plain_text',
+		'place_address'                  => 'plain_text',
+		'contact'                        => 'multiline_text',
+		'description'                    => 'rich_html',
+		'excerpt'                        => 'multiline_text',
+		'practical_info'                 => 'multiline_text',
+		'event_document_filename'        => 'plain_text',
+		'event_document_display_name'    => 'plain_text',
+		'url'                            => 'url',
+		'place_url'                      => 'url',
+		'event_document_url'             => 'url',
+		'calendar_all_occurrences_url'   => 'url',
+		'communication_visual'           => 'image',
+	);
+
+	foreach ( $formats as $field => $format ) {
+		$fields[ $field ]['format'] = $format;
+	}
+
+	return $fields;
+}
+
+function wp_seed_events_dynamic_data_field_format( $field ) {
+	$fields = wp_seed_events_dynamic_data_fields();
+	$field  = sanitize_key( (string) $field );
+
+	return isset( $fields[ $field ]['format'] ) ? (string) $fields[ $field ]['format'] : '';
 }
 
 /**
@@ -367,8 +405,7 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 		case 'contact':
 			return wp_seed_events_dynamic_data_contact_text( $event['contact'] ?? array() );
 		case 'description':
-			$description = wp_strip_all_tags( strip_shortcodes( (string) ( $event['description'] ?? '' ) ) );
-			return trim( preg_replace( '/\s+/', ' ', $description ) );
+			return wp_seed_events_render_rich_content( $event['description'] ?? '' );
 		case 'excerpt':
 			return wp_seed_events_dynamic_data_multiline_text( $event['excerpt'] ?? '' );
 		case 'practical_info':

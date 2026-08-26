@@ -32,6 +32,10 @@ $gutenbergPeopleRuntimeRoot = 'includes/integrations/gutenberg/event-people-bloc
 $gutenbergPeopleBlockJson = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/block.json"
 $gutenbergPeopleBlockScript = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.js"
 $gutenbergPeopleBlockAsset = Join-Path $root "$gutenbergPeopleRuntimeRoot/build/index.asset.php"
+$gutenbergContentRuntimeRoot = 'includes/integrations/gutenberg/event-content-block'
+$gutenbergContentBlockJson = Join-Path $root "$gutenbergContentRuntimeRoot/build/block.json"
+$gutenbergContentBlockScript = Join-Path $root "$gutenbergContentRuntimeRoot/build/index.js"
+$gutenbergContentBlockAsset = Join-Path $root "$gutenbergContentRuntimeRoot/build/index.asset.php"
 $gutenbergCollectionRuntimeRoot = 'includes/integrations/gutenberg/event-collection-query'
 $gutenbergCollectionScript = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.js"
 $gutenbergCollectionAsset = Join-Path $root "$gutenbergCollectionRuntimeRoot/build/index.asset.php"
@@ -60,6 +64,9 @@ $excludedRuntimePatterns = @(
     "$gutenbergPeopleRuntimeRoot/node_modules/*",
     "$gutenbergPeopleRuntimeRoot/tests/*",
     "$gutenbergPeopleRuntimeRoot/src/*",
+    "$gutenbergContentRuntimeRoot/node_modules/*",
+    "$gutenbergContentRuntimeRoot/tests/*",
+    "$gutenbergContentRuntimeRoot/src/*",
     "$gutenbergCollectionRuntimeRoot/node_modules/*",
     "$gutenbergCollectionRuntimeRoot/tests/*",
     "$gutenbergCollectionRuntimeRoot/src/*",
@@ -189,6 +196,12 @@ foreach ($gutenbergDocumentAsset in @($gutenbergDocumentBlockJson, $gutenbergDoc
 foreach ($gutenbergPeopleAsset in @($gutenbergPeopleBlockJson, $gutenbergPeopleBlockScript, $gutenbergPeopleBlockAsset)) {
     if (-not (Test-Path -LiteralPath $gutenbergPeopleAsset -PathType Leaf)) {
         throw "Missing Gutenberg people block asset. Run npm run build:gutenberg first: $gutenbergPeopleAsset"
+    }
+}
+
+foreach ($gutenbergContentAsset in @($gutenbergContentBlockJson, $gutenbergContentBlockScript, $gutenbergContentBlockAsset)) {
+    if (-not (Test-Path -LiteralPath $gutenbergContentAsset -PathType Leaf)) {
+        throw "Missing Gutenberg content block asset. Run npm run build:gutenberg first: $gutenbergContentAsset"
     }
 }
 

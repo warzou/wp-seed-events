@@ -72,6 +72,7 @@ require_once __DIR__ . '/includes/integrations/gutenberg/event-dates-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-visuals-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-document-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-people-block.php';
+require_once __DIR__ . '/includes/integrations/gutenberg/event-content-block.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-query.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/event-collection-patterns.php';
 require_once __DIR__ . '/includes/integrations/gutenberg/occurrence-collection-block.php';

@@ -651,7 +651,7 @@ function wp_seed_events_public_event_field_value( $event, $field ) {
 
 			return '';
 		case 'description':
-			return empty( $event['description'] ) ? '' : apply_filters( 'the_content', $event['description'] );
+			return empty( $event['description'] ) ? '' : wp_seed_events_render_rich_content( $event['description'] );
 		case 'excerpt':
 			return empty( $event['excerpt'] ) ? '' : nl2br( esc_html( $event['excerpt'] ) );
 		case 'image':

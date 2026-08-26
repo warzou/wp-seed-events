@@ -26,6 +26,26 @@ function wp_seed_events_normalize_multiline_description( $value ) {
 
 	return trim( (string) $value );
 }
+
+/**
+ * Render authored event content through the native WordPress content pipeline.
+ *
+ * Event Data keeps the raw post_content value. Public HTML consumers call this
+ * helper once, then the normal post HTML allow-list is applied to the result.
+ *
+ * @param mixed $value Authored rich content.
+ * @return string
+ */
+function wp_seed_events_render_rich_content( $value ) {
+	$value = (string) $value;
+
+	if ( '' === trim( $value ) ) {
+		return '';
+	}
+
+	return wp_kses_post( apply_filters( 'the_content', $value ) );
+}
+
 function wp_seed_events_description_content_to_text( $content ) {
 	$content = str_replace( array( "\r\n", "\r" ), "\n", (string) $content );
 	$content = preg_replace( '#<(script|style)\b[^>]*>.*?</\1\s*>#is', '', $content );

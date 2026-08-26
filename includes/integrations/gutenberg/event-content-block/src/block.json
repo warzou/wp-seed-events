@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "wp-seed-events/event-content-block",
+  "version": "0.2.0-beta.9",
+  "title": "WPSEvents — Contenu",
+  "category": "widgets",
+  "icon": "text-page",
+  "description": "Affiche la description complète avec sa mise en forme WordPress.",
+  "keywords": ["événement", "contenu", "description", "WP Seed"],
+  "textdomain": "wp-seed-events",
+  "usesContext": ["postId", "postType", "queryId"],
+  "supports": {
+    "anchor": true,
+    "customClassName": true,
+    "html": false,
+    "color": { "text": true, "background": true, "link": true },
+    "spacing": { "margin": true, "padding": true },
+    "typography": { "fontSize": true, "lineHeight": true }
+  },
+  "editorScript": "file:./index.js"
+}
