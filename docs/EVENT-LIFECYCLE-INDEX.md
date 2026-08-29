@@ -35,7 +35,7 @@ La meta historique `_wp_seed_event_next_occurrence_sort` reste hors du contrat d
 
 ### Projection d'occurrences
 
-La table interne `{$wpdb->prefix}wp_seed_event_occurrences` contient une ligne par occurrence normalisee. Elle projette l'identite, la promotion, l'annee du parcours, les bornes temporelles, l'annulation, le type principal, le statut et l'epingle de l'evenement.
+La table interne `{$wpdb->prefix}wp_seed_event_occurrences` contient une ligne par occurrence normalisee. Elle projette l'identite, les bornes temporelles, l'annulation, le type principal, le statut et l'epingle de l'evenement.
 
 La meta `_wp_seed_event_occurrences` reste l'unique source de verite. La table est reconstruisible, ne contient aucune coordonnee, aucun media, aucun lieu, aucun HTML et n'est jamais lue directement par un consommateur public.
 
@@ -59,8 +59,8 @@ Le backfill :
 3. calcule toutes les projections depuis les APIs canoniques ;
 4. persiste le curseur apres chaque lot ;
 5. reprend apres interruption et retraite les erreurs de maniere bornee ;
-6. verifie les doublons, les lignes orphelines et les paires promotion/annee ;
-7. ne marque la version 3 complete qu'en l'absence d'erreur ;
+6. verifie les doublons et les lignes orphelines ;
+7. ne marque la version attendue complete qu'en l'absence d'erreur ;
 8. peut etre relance integralement sans duplication.
 
 La migration depuis la version 1 ou 2 utilise la meme reconstruction. Elle n'ecrit ni occurrence canonique, ni type, ni contenu public.
@@ -88,6 +88,6 @@ Voir [Occurrence Projection and Lifecycle V3](OCCURRENCE-PROJECTION-LIFECYCLE-V3
 
 La version `0.2.0-beta.2` introduit officiellement l'index lifecycle version 2. Une mise a jour depuis beta.1 reconstruit uniquement les projections techniques ; elle ne modifie ni occurrences, ni types, ni contenus, ni dates de modification des evenements.
 
-## Fondation lifecycle v3
+## Projection reconstruisible
 
-Le lot Promotion Domain ajoute la projection SQL par occurrence et fait evoluer l'index attendu vers la version 3. Cette fondation ne cree aucune collection groupee publique et ne modifie aucun builder. Son contrat technique, sa strategie d'identite et sa procedure de reprise sont documentes dans [Occurrence Projection and Lifecycle V3](OCCURRENCE-PROJECTION-LIFECYCLE-V3.md).
+Son contrat technique, sa strategie d'identite et sa procedure de reprise sont documentes dans [Projection des occurrences et lifecycle](OCCURRENCE-PROJECTION-LIFECYCLE-V3.md).

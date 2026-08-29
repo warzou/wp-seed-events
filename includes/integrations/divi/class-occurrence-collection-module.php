@@ -116,9 +116,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 
 	public static function defaults() {
 		return array(
-			'mode'                   => 'flat',
-			'promotion'              => '',
-			'parcours_year'          => 0,
 			'event_id'               => 0,
 			'type'                   => '',
 			'status'                 => 'upcoming',
@@ -129,7 +126,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			'order'                  => 'chronological',
 			'page'                   => 1,
 			'per_page'               => 20,
-			'grouped_limit'          => 200,
 			'collection_instance_id' => '',
 			'show_event_title'       => 'on',
 			'show_event_type'        => 'off',
@@ -140,11 +136,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			'show_start_time'        => 'on',
 			'show_end_time'          => 'on',
 			'show_cancelled'         => 'on',
-			'show_promotion_name'    => 'on',
-			'show_promotion_year'    => 'off',
-			'show_promotion_status'  => 'off',
-			'show_parcours_year'     => 'off',
-			'show_parcours_label'    => 'on',
 			'show_labels'            => 'on',
 			'date_format'            => 'long',
 			'time_format'            => 'site',
@@ -158,7 +149,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 
 	public static function normalize_options( $values ) {
 		$values = array_merge( self::defaults(), is_array( $values ) ? $values : array() );
-		$mode   = 'grouped' === sanitize_key( (string) $values['mode'] ) ? 'grouped' : 'flat';
 		$status = sanitize_key( (string) $values['status'] );
 		$pinned = sanitize_key( (string) $values['pinned'] );
 		$order  = sanitize_key( (string) $values['order'] );
@@ -167,12 +157,8 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 		$pinned = in_array( $pinned, array( 'all', 'only' ), true ) ? $pinned : 'all';
 		$order  = in_array( $order, array( 'upcoming', 'chronological', 'chronological_desc' ), true ) ? $order : 'chronological';
 
-		$year     = absint( $values['parcours_year'] );
 		$event_id = absint( $values['event_id'] );
 		$options  = array(
-			'mode'                   => $mode,
-			'promotion'              => self::scalar_text( $values['promotion'] ),
-			'parcours_year'          => in_array( $year, array( 1, 2, 3, 4 ), true ) ? $year : null,
 			'event_id'               => 0 < $event_id ? $event_id : null,
 			'type'                   => sanitize_title( self::scalar_text( $values['type'] ) ),
 			'status'                 => $status,
@@ -183,7 +169,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			'order'                  => $order,
 			'page'                   => max( 1, absint( $values['page'] ) ),
 			'per_page'               => min( 100, max( 1, absint( $values['per_page'] ) ) ),
-			'grouped_limit'          => min( 500, max( 1, absint( $values['grouped_limit'] ) ) ),
 			'collection_instance_id' => sanitize_key( self::scalar_text( $values['collection_instance_id'] ) ),
 			'date_format'            => 'short' === sanitize_key( (string) $values['date_format'] ) ? 'short' : 'long',
 			'time_format'            => '24h' === sanitize_key( (string) $values['time_format'] ) ? '24h' : 'site',
@@ -194,7 +179,7 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			'cancelled_text'         => sanitize_text_field( self::scalar_text( $values['cancelled_text'] ) ),
 		);
 
-		foreach ( array( 'show_event_title', 'show_event_type', 'show_event_status', 'show_event_pinned', 'show_start_date', 'show_end_date', 'show_start_time', 'show_end_time', 'show_cancelled', 'show_promotion_name', 'show_promotion_year', 'show_promotion_status', 'show_parcours_year', 'show_parcours_label', 'show_labels' ) as $key ) {
+		foreach ( array( 'show_event_title', 'show_event_type', 'show_event_status', 'show_event_pinned', 'show_start_date', 'show_end_date', 'show_start_time', 'show_end_time', 'show_cancelled', 'show_labels' ) as $key ) {
 			$options[ $key ] = self::is_enabled( $values[ $key ], 'on' === self::defaults()[ $key ] );
 		}
 
@@ -218,8 +203,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 
 	public static function query_args( $options, $instance, $read_query_page = true ) {
 		$args = array(
-			'promotion'         => $options['promotion'],
-			'parcours_year'     => $options['parcours_year'],
 			'event_id'          => $options['event_id'],
 			'type'              => $options['type'],
 			'status'            => $options['status'],
@@ -228,12 +211,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			'from'              => $options['from'],
 			'to'                => $options['to'],
 		);
-
-		if ( 'grouped' === $options['mode'] ) {
-			$args['order'] = 'canonical_path';
-			$args['limit'] = $options['grouped_limit'];
-			return $args;
-		}
 
 		$page = $options['page'];
 		$key  = self::pagination_query_key( $instance );
@@ -253,17 +230,13 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 		$instance = sanitize_key( (string) $instance );
 		$instance = '' !== $instance ? $instance : 'divi-occurrence-collection';
 		$args      = self::query_args( $options, $instance, $read_query_page );
-		$result    = 'grouped' === $options['mode']
-			? wp_seed_events_query_grouped_occurrence_collection( $args )
-			: wp_seed_events_query_occurrence_collection( $args );
+		$result    = wp_seed_events_query_occurrence_collection( $args );
 
 		if ( is_wp_error( $result ) ) {
 			return sprintf( '<div class="wp-seed-events-divi-occurrence-collection__error" role="alert">%s</div>', esc_html__( 'La collection d’occurrences ne peut pas être affichée.', 'wp-seed-events' ) );
 		}
 
-		$content = 'grouped' === $options['mode']
-			? self::render_grouped( $result, $options, $instance )
-			: self::render_flat( $result, $options, $instance );
+		$content = self::render_flat( $result, $options, $instance );
 
 		if ( '' === trim( $content ) ) {
 			$message = '' !== $options['empty_message'] ? $options['empty_message'] : __( 'Aucune occurrence à afficher.', 'wp-seed-events' );
@@ -271,8 +244,7 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 		}
 
 		return sprintf(
-			'<div class="wp-seed-events-divi-occurrence-collection wp-seed-events-divi-occurrence-collection--%1$s" data-collection-id="%2$s" data-collection-mode="%1$s">%3$s</div>',
-			esc_attr( $options['mode'] ),
+			'<div class="wp-seed-events-divi-occurrence-collection wp-seed-events-divi-occurrence-collection--flat" data-collection-id="%1$s" data-collection-mode="flat">%2$s</div>',
 			esc_attr( $instance ),
 			$content
 		);
@@ -284,38 +256,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 			$html .= self::render_item( $item, $options, $instance, $index );
 		}
 		return $html . self::render_pagination( $result, $instance );
-	}
-
-	private static function render_grouped( $result, $options, $instance ) {
-		$html  = '';
-		$index = 0;
-		foreach ( $result['promotions'] ?? array() as $promotion_group ) {
-			$years_html = '';
-			foreach ( $promotion_group['years'] ?? array() as $year_group ) {
-				$themes_html = '';
-				foreach ( $year_group['themes'] ?? array() as $theme_group ) {
-					$items_html = '';
-					foreach ( $theme_group['occurrences'] ?? array() as $item ) {
-						$items_html .= self::render_item( $item, $options, $instance, $index++ );
-					}
-					if ( '' === $items_html ) {
-						continue;
-					}
-					$event        = is_array( $theme_group['event'] ?? null ) ? $theme_group['event'] : array();
-					$themes_html .= sprintf( '<section class="wp-seed-events-divi-occurrence-collection__theme"><h4 class="wp-seed-events-divi-occurrence-collection__theme-title">%1$s</h4>%2$s</section>', esc_html( (string) ( $event['title'] ?? '' ) ), $items_html );
-				}
-				if ( '' === $themes_html ) {
-					continue;
-				}
-				$years_html .= sprintf( '<section class="wp-seed-events-divi-occurrence-collection__year"><h3 class="wp-seed-events-divi-occurrence-collection__year-title">%1$s</h3>%2$s</section>', esc_html( (string) ( $year_group['parcours_year_label'] ?? '' ) ), $themes_html );
-			}
-			if ( '' === $years_html ) {
-				continue;
-			}
-			$promotion = is_array( $promotion_group['promotion'] ?? null ) ? $promotion_group['promotion'] : array();
-			$html     .= sprintf( '<section class="wp-seed-events-divi-occurrence-collection__promotion"><h2 class="wp-seed-events-divi-occurrence-collection__promotion-title">%1$s</h2>%2$s</section>', esc_html( (string) ( $promotion['name'] ?? '' ) ), $years_html );
-		}
-		return $html;
 	}
 
 	private static function render_item( $item, $options, $instance, $index ) {
@@ -352,11 +292,6 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 				self::append_field( $fields, array() !== $date_parts, 'date', __( 'Date', 'wp-seed-events' ), implode( $options['date_separator'], $date_parts ), $options );
 				self::append_field( $fields, array() !== $time_parts, 'time', __( 'Horaire', 'wp-seed-events' ), implode( $options['time_separator'], $time_parts ), $options );
 				self::append_field( $fields, $options['show_cancelled'] && '1' === wp_seed_events_occurrence_context_value( 'occurrence_is_cancelled' ), 'cancelled', __( 'État', 'wp-seed-events' ), $options['cancelled_text'], $options );
-				self::append_field( $fields, $options['show_promotion_name'], 'promotion-name', __( 'Promotion', 'wp-seed-events' ), wp_seed_events_occurrence_context_value( 'promotion_name' ), $options );
-				self::append_field( $fields, $options['show_promotion_year'], 'promotion-year', __( 'Année de départ', 'wp-seed-events' ), wp_seed_events_occurrence_context_value( 'promotion_start_year' ), $options );
-				self::append_field( $fields, $options['show_promotion_status'], 'promotion-status', __( 'Statut de la Promotion', 'wp-seed-events' ), wp_seed_events_occurrence_context_value( 'promotion_status' ), $options );
-				self::append_field( $fields, $options['show_parcours_year'], 'parcours-year', __( 'Année du parcours', 'wp-seed-events' ), wp_seed_events_occurrence_context_value( 'parcours_year' ), $options );
-				self::append_field( $fields, $options['show_parcours_label'], 'parcours-label', __( 'Parcours', 'wp-seed-events' ), wp_seed_events_occurrence_context_value( 'parcours_year_label' ), $options );
 
 				$title = $options['show_event_title'] ? wp_seed_events_occurrence_context_value( 'event_title' ) : '';
 				if ( '' === $title && array() === $fields ) {
@@ -453,7 +388,7 @@ class WP_Seed_Events_Divi_Occurrence_Collection_Module implements DependencyInte
 				)
 			),
 		);
-		foreach ( array( 'collectionStyle', 'promotionStyle', 'yearStyle', 'themeStyle', 'itemStyle', 'titleStyle', 'labelStyle', 'valueStyle', 'emptyStyle', 'paginationStyle' ) as $attr_name ) {
+		foreach ( array( 'collectionStyle', 'itemStyle', 'titleStyle', 'labelStyle', 'valueStyle', 'emptyStyle', 'paginationStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 		Style::add( array( 'id' => $args['id'], 'name' => $args['name'], 'orderIndex' => $args['orderIndex'], 'storeInstance' => $args['storeInstance'], 'styles' => $styles ) );

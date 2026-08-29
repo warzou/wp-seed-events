@@ -15,9 +15,9 @@ const modules = {
 
 const businessFields = new Set([
   'date_selection',
-  'show_flyer', 'show_visuals', 'show_document', 'mode', 'promotion', 'parcours_year',
+  'show_flyer', 'show_visuals', 'show_document',
   'event_id', 'type', 'status', 'pinned', 'include_cancelled', 'from', 'to', 'order',
-  'page', 'per_page', 'grouped_limit', 'collection_instance_id',
+  'page', 'per_page', 'collection_instance_id',
 ]);
 const legacyFields = new Set([
   'show_calendar_links', 'calendar_presentation', 'calendar_label', 'calendar_icon_position',

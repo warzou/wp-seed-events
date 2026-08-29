@@ -16,8 +16,6 @@ function series_projection_uid( $event_id, $occurrence ) {
 		'end_time'      => (string) ( $occurrence['end_time'] ?? '' ),
 		'all_day'       => ! empty( $occurrence['all_day'] ) ? '1' : '',
 		'cancelled'     => '',
-		'promotion_id'  => 0,
-		'parcours_year' => 0,
 	);
 
 	return 'legacy-' . substr( hash( 'sha256', json_encode( $fingerprint ) ), 0, 48 ) . '-1';

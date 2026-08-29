@@ -27,7 +27,6 @@ function public_docs_read( $path ) {
 
 $event_data    = public_docs_read( $root . '/docs/EVENT-DATA-API.md' );
 $classifications = public_docs_read( $root . '/docs/NATIVE-EVENT-CLASSIFICATIONS.md' );
-$promotions    = public_docs_read( $root . '/docs/PROMOTION-DOMAIN-API.md' );
 $occurrences   = public_docs_read( $root . '/docs/EVENT-OCCURRENCES-API.md' );
 $occurrence_collections = public_docs_read( $root . '/docs/OCCURRENCE-COLLECTIONS.md' );
 $domain_model  = public_docs_read( $root . '/DOMAIN-MODEL.md' );
@@ -45,7 +44,7 @@ public_docs_case( 'Event Data signature and empty result are definitive', functi
 } );
 
 public_docs_case( 'Event Data complete top-level keys are documented', function () use ( $event_data ) {
-	foreach ( array( 'slug', 'primary_type', 'secondary_types', 'all_types', 'is_pinned', 'programming_status', 'programming_text', 'programming_visible_until', 'active_occurrences', 'display_occurrence', 'promotions', 'parcours_years', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
+	foreach ( array( 'slug', 'primary_type', 'secondary_types', 'all_types', 'is_pinned', 'programming_status', 'programming_text', 'programming_visible_until', 'active_occurrences', 'display_occurrence', 'place_address', 'event_document_filename', 'communication_visuals', 'featured_image_id' ) as $key ) {
 		public_docs_assert( false !== strpos( $event_data, '`' . $key . '`' ), 'Missing Event Data key: ' . $key );
 	}
 } );
@@ -61,33 +60,24 @@ public_docs_case( 'Occurrences arguments and normalized projections are document
 		public_docs_assert( false !== strpos( $occurrences, '`' . $key . '`' ), 'Missing occurrence contract: ' . $key );
 	}
 } );
-public_docs_case( 'Lifecycle v3 projection remains internal and rebuildable', function () use ( $projection, $occurrences ) {
-	foreach ( array( '{$wpdb->prefix}wp_seed_event_occurrences', '_wp_seed_event_occurrences', '(event_id, occurrence_uid)', 'expiring atomic lock', 'idempotent retry', 'not a public API' ) as $contract ) {
-		public_docs_assert( false !== strpos( $projection, $contract ), 'Missing lifecycle v3 contract: ' . $contract );
+public_docs_case( 'Occurrence projection remains internal and rebuildable', function () use ( $projection, $occurrences ) {
+	foreach ( array( '{$wpdb->prefix}wp_seed_event_occurrences', '_wp_seed_event_occurrences', '(event_id, occurrence_uid)', 'verrou atomique expirant', 'reprises idempotentes', "n'est pas une API publique" ) as $contract ) {
+		public_docs_assert( false !== strpos( $projection, $contract ), 'Missing lifecycle projection contract: ' . $contract );
 	}
-	public_docs_assert( false !== strpos( $occurrences, 'projection lifecycle v3' ), 'Occurrences API does not state the lifecycle v3 boundary.' );
-	public_docs_assert( false !== strpos( $projection, 'Public occurrence collections consume' ), 'Lifecycle consumer boundary is absent.' );
+	public_docs_assert( false !== strpos( $occurrences, 'projection interne' ), 'Occurrences API does not state the lifecycle boundary.' );
+	public_docs_assert( false !== strpos( $projection, 'collections publiques' ), 'Lifecycle consumer boundary is absent.' );
 } );
 
 
-public_docs_case( 'Promotion domain, PHP and REST contracts are documented', function () use ( $promotions ) {
-	foreach ( array( 'wp_seed_promotion', 'wp_seed_events_get_promotion(', 'wp_seed_events_get_promotions(', 'promotion_id', 'parcours_year', '/wp-json/wp-seed-events/v1/promotions', '/events/<event_id>/occurrences', 'lifecycle v3' ) as $contract ) {
-		public_docs_assert( false !== strpos( $promotions, $contract ), 'Missing Promotion contract: ' . $contract );
-	}
-	public_docs_assert( false !== strpos( $promotions, 'Aucun backfill ni' ), 'No-migration guarantee is absent.' );
-	public_docs_assert( false !== strpos( $promotions, 'site consommateur de formation reste bloque' ), 'Consumer blocking state is absent.' );
-} );
-
-
-public_docs_case( 'Occurrence collections contract, REST and grouping are documented', function () use ( $occurrence_collections, $domain_model, $compatibility ) {
-	foreach ( array( 'wp_seed_events_query_occurrence_collection(', 'wp_seed_events_query_grouped_occurrence_collection(', '/wp-json/wp-seed-events/v1/occurrences', 'canonical_path', 'per_page', 'include_cancelled', 'Promotion', 'parcours_year' ) as $contract ) {
+public_docs_case( 'Flat occurrence collection contract and REST route are documented', function () use ( $occurrence_collections, $domain_model, $compatibility ) {
+	foreach ( array( 'wp_seed_events_query_occurrence_collection(', '/wp-json/wp-seed-events/v1/occurrences', 'per_page', 'include_cancelled' ) as $contract ) {
 		public_docs_assert( false !== strpos( $occurrence_collections, $contract ), 'Missing occurrence collection contract: ' . $contract );
 	}
-	public_docs_assert( false !== strpos( $domain_model, 'Promotion' ) && false !== strpos( $domain_model, 'theme/evenement' ), 'Domain path is absent.' );
-	public_docs_assert( false !== strpos( $compatibility, 'wp_seed_events_query_grouped_occurrence_collection()' ), 'Compatibility list omits grouped collections.' );
+	public_docs_assert( false !== strpos( $domain_model, 'wp_seed_events_query_occurrence_collection()' ), 'Domain collection boundary is absent.' );
+	public_docs_assert( false !== strpos( $compatibility, 'wp_seed_events_query_occurrence_collection()' ), 'Compatibility list omits flat collections.' );
 } );
 public_docs_case( 'Gutenberg occurrence collection context and editor boundary are documented', function () use ( $gutenberg_occurrence_collections ) {
-	foreach ( array( 'wp-seed-events/occurrence-collection', 'wp-seed-events/occurrence-field', 'collection_instance_id', 'event_id', 'occurrence_uid', 'current_item_index', 'InnerBlocks', 'six occurrences', 'frontend', 'wp_seed_events_query_occurrence_collection()', 'wp_seed_events_query_grouped_occurrence_collection()' ) as $contract ) {
+	foreach ( array( 'wp-seed-events/occurrence-collection', 'wp-seed-events/occurrence-field', 'collection_instance_id', 'event_id', 'occurrence_uid', 'current_item_index', 'InnerBlocks', 'six occurrences', 'frontend', 'wp_seed_events_query_occurrence_collection()' ) as $contract ) {
 		public_docs_assert( false !== strpos( $gutenberg_occurrence_collections, $contract ), 'Missing Gutenberg occurrence collection contract: ' . $contract );
 	}
 } );
@@ -112,7 +102,7 @@ public_docs_case( 'Updater contract covers native UI, channels and integrity', f
 } );
 
 public_docs_case( 'Divi occurrence collection adapter boundary is documented', function () use ( $divi_occurrence_collections ) {
-	foreach ( array( 'wp-seed-events/divi-occurrence-collection', 'wp_seed_events_query_occurrence_collection()', 'wp_seed_events_query_grouped_occurrence_collection()', 'collection_instance_id', 'occurrence_uid', '500', 'Visual Builder', 'modules enfants', 'post technique' ) as $contract ) {
+	foreach ( array( 'wp-seed-events/divi-occurrence-collection', 'wp_seed_events_query_occurrence_collection()', 'collection_instance_id', 'occurrence_uid', 'Visual Builder', 'post technique' ) as $contract ) {
 		public_docs_assert( false !== strpos( $divi_occurrence_collections, $contract ), 'Missing Divi occurrence collection contract: ' . $contract );
 	}
 } );
@@ -124,7 +114,7 @@ public_docs_case( 'README developer links are clickable and complete', function 
 } );
 
 public_docs_case( 'Documentation files are UTF-8 without BOM', function () use ( $root ) {
-	foreach ( array( 'README.md', 'docs/NATIVE-EVENT-CLASSIFICATIONS.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'docs/DIVI-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PROMOTION-DOMAIN-API.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
+	foreach ( array( 'README.md', 'docs/NATIVE-EVENT-CLASSIFICATIONS.md', 'docs/EVENT-DATA-API.md', 'docs/EVENT-OCCURRENCES-API.md', 'docs/OCCURRENCE-COLLECTIONS.md', 'docs/GUTENBERG-OCCURRENCE-COLLECTIONS.md', 'docs/DIVI-OCCURRENCE-COLLECTIONS.md', 'DOMAIN-MODEL.md', 'docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md', 'docs/PUBLIC-API-COMPATIBILITY.md', 'docs/GITHUB-UPDATES.md' ) as $relative ) {
 		$contents = public_docs_read( $root . '/' . $relative );
 		public_docs_assert( 0 !== strncmp( $contents, "\xEF\xBB\xBF", 3 ), 'BOM found: ' . $relative );
 		public_docs_assert( 1 === preg_match( '//u', $contents ), 'Invalid UTF-8: ' . $relative );

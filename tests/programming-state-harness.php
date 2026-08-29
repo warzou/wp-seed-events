@@ -30,9 +30,6 @@ function current_time( $format ) { return 'Y-m-d' === $format ? '2026-08-23' : '
 function get_post_meta( $event_id, $key, $single = true ) { unset( $single ); return $GLOBALS['programming_meta'][ (int) $event_id ][ $key ] ?? ''; }
 function get_post( $event_id ) { return $GLOBALS['programming_posts'][ (int) $event_id ] ?? null; }
 function wp_parse_args( $args, $defaults = array() ) { return array_merge( $defaults, is_array( $args ) ? $args : array() ); }
-function wp_seed_events_normalize_parcours_year() { return 0; }
-function wp_seed_events_parcours_year_label() { return ''; }
-function wp_seed_events_get_promotion() { return array(); }
 function wp_seed_events_format_occurrence_date_line( $occurrence ) { return (string) ( $occurrence['start_date'] ?? '' ); }
 function wp_seed_events_format_occurrence_time_line() { return ''; }
 function is_wp_error() { return false; }

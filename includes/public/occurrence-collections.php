@@ -60,61 +60,11 @@ function wp_seed_events_occurrence_collection_date( $value, $boundary ) {
 	return false;
 }
 
-function wp_seed_events_occurrence_collection_promotion_id( $args ) {
-	$selectors = array();
-
-	if ( array_key_exists( 'promotion', $args ) && ! in_array( $args['promotion'], array( '', null, 0, '0' ), true ) ) {
-		$selectors[] = $args['promotion'];
-	}
-
-	if ( array_key_exists( 'promotion_id', $args ) && ! in_array( $args['promotion_id'], array( '', null, 0, '0' ), true ) ) {
-		$selectors[] = absint( $args['promotion_id'] );
-	}
-
-	if ( array_key_exists( 'promotion_slug', $args ) && '' !== trim( (string) $args['promotion_slug'] ) ) {
-		$selectors[] = sanitize_title( (string) $args['promotion_slug'] );
-	}
-
-	if ( array() === $selectors ) {
-		return 0;
-	}
-
-	$promotion_ids = array();
-
-	foreach ( $selectors as $selector ) {
-		$promotion = wp_seed_events_get_promotion( $selector );
-
-		if ( array() === $promotion ) {
-			return wp_seed_events_occurrence_collection_error(
-				'wp_seed_events_occurrence_collection_invalid_promotion',
-				'The requested Promotion does not exist.',
-				404
-			);
-		}
-
-		$promotion_ids[] = absint( $promotion['id'] );
-	}
-
-	$promotion_ids = array_values( array_unique( $promotion_ids ) );
-
-	if ( 1 !== count( $promotion_ids ) ) {
-		return wp_seed_events_occurrence_collection_error(
-			'wp_seed_events_occurrence_collection_conflicting_promotion',
-			'Promotion selectors must identify the same Promotion.'
-		);
-	}
-
-	return reset( $promotion_ids );
-}
 function wp_seed_events_occurrence_collection_normalize_args( $raw_args = array() ) {
 	$raw_args = is_array( $raw_args ) ? $raw_args : array();
 	$args     = wp_parse_args(
 		$raw_args,
 		array(
-			'promotion'         => '',
-			'promotion_id'      => 0,
-			'promotion_slug'    => '',
-			'parcours_year'     => null,
 			'event_id'          => null,
 			'type'              => '',
 			'status'            => 'upcoming',
@@ -125,28 +75,8 @@ function wp_seed_events_occurrence_collection_normalize_args( $raw_args = array(
 			'order'             => 'upcoming',
 			'page'              => 1,
 			'per_page'          => 20,
-			'require_promotion' => false,
 		)
 	);
-
-	$promotion_id = wp_seed_events_occurrence_collection_promotion_id( $raw_args );
-
-	if ( is_wp_error( $promotion_id ) ) {
-		return $promotion_id;
-	}
-
-	$parcours_year = null;
-
-	if ( array_key_exists( 'parcours_year', $raw_args ) && ! in_array( $raw_args['parcours_year'], array( '', null ), true ) ) {
-		$parcours_year = wp_seed_events_normalize_parcours_year( $raw_args['parcours_year'] );
-
-		if ( 0 === $parcours_year ) {
-			return wp_seed_events_occurrence_collection_error(
-				'wp_seed_events_occurrence_collection_invalid_parcours_year',
-				'Parcours year must be between 1 and 4.'
-			);
-		}
-	}
 
 	$event_id = null;
 
@@ -197,17 +127,10 @@ function wp_seed_events_occurrence_collection_normalize_args( $raw_args = array(
 
 	$order = strtolower( trim( (string) $args['order'] ) );
 
-	if ( ! in_array( $order, array( 'upcoming', 'chronological', 'chronological_desc', 'canonical_path' ), true ) ) {
+	if ( ! in_array( $order, array( 'upcoming', 'chronological', 'chronological_desc' ), true ) ) {
 		return wp_seed_events_occurrence_collection_error(
 			'wp_seed_events_occurrence_collection_invalid_order',
 			'Unknown occurrence collection order.'
-		);
-	}
-
-	if ( 'canonical_path' === $order ) {
-		return wp_seed_events_occurrence_collection_error(
-			'wp_seed_events_occurrence_collection_incoherent_combination',
-			'Canonical path order is reserved for grouped collections.'
 		);
 	}
 
@@ -246,12 +169,7 @@ function wp_seed_events_occurrence_collection_normalize_args( $raw_args = array(
 		);
 	}
 
-	$promotion = 0 < $promotion_id ? wp_seed_events_get_promotion( $promotion_id ) : array();
-
 	return array(
-		'promotion_id'      => $promotion_id,
-		'promotion_slug'    => $promotion['slug'] ?? '',
-		'parcours_year'     => $parcours_year,
 		'event_id'          => $event_id,
 		'type'              => $type,
 		'type_keys'         => $type_keys,
@@ -263,15 +181,11 @@ function wp_seed_events_occurrence_collection_normalize_args( $raw_args = array(
 		'order'             => $order,
 		'page'              => $page,
 		'per_page'          => $per_page,
-		'require_promotion' => ! empty( $args['require_promotion'] ),
 	);
 }
 
 function wp_seed_events_occurrence_collection_public_args( $args ) {
 	return array(
-		'promotion_id'      => $args['promotion_id'],
-		'promotion_slug'    => $args['promotion_slug'],
-		'parcours_year'     => $args['parcours_year'],
 		'event_id'          => $args['event_id'],
 		'type'              => $args['type'],
 		'status'            => $args['status'],
@@ -286,18 +200,6 @@ function wp_seed_events_occurrence_collection_public_args( $args ) {
 }
 function wp_seed_events_occurrence_collection_row_matches( $row, $args, $event_id ) {
 	if ( ! $args['include_cancelled'] && ! empty( $row['is_cancelled'] ) ) {
-		return false;
-	}
-
-	if ( $args['require_promotion'] && 0 === absint( $row['promotion_id'] ?? 0 ) ) {
-		return false;
-	}
-
-	if ( 0 < $args['promotion_id'] && $args['promotion_id'] !== absint( $row['promotion_id'] ?? 0 ) ) {
-		return false;
-	}
-
-	if ( null !== $args['parcours_year'] && $args['parcours_year'] !== absint( $row['parcours_year'] ?? 0 ) ) {
 		return false;
 	}
 
@@ -366,10 +268,6 @@ function wp_seed_events_occurrence_collection_compare_rows( $first, $second, $or
 }
 
 function wp_seed_events_occurrence_collection_item( $row, $event ) {
-	$promotion_id = absint( $row['promotion_id'] ?? 0 );
-	$promotion    = 0 < $promotion_id ? wp_seed_events_get_promotion( $promotion_id ) : array();
-	$year         = wp_seed_events_normalize_parcours_year( $row['parcours_year'] ?? 0 );
-
 	return array(
 		'event_id'            => absint( $event->ID ),
 		'event_title'         => sanitize_text_field( (string) $event->post_title ),
@@ -384,17 +282,12 @@ function wp_seed_events_occurrence_collection_item( $row, $event ) {
 		'start_sort'          => sanitize_text_field( (string) ( $row['start_sort'] ?? '' ) ),
 		'end_sort'            => sanitize_text_field( (string) ( $row['end_sort'] ?? '' ) ),
 		'is_cancelled'        => ! empty( $row['is_cancelled'] ),
-		'promotion_id'        => $promotion_id,
-		'promotion'           => $promotion,
-		'parcours_year'       => $year,
-		'parcours_year_label' => wp_seed_events_parcours_year_label( $year ),
 	);
 }
 
 function wp_seed_events_occurrence_collection_result( $rows, $args, $total ) {
-	$event_ids     = array_values( array_unique( array_filter( array_map( 'absint', array_column( $rows, 'event_id' ) ) ) ) );
-	$promotion_ids = array_values( array_unique( array_filter( array_map( 'absint', array_column( $rows, 'promotion_id' ) ) ) ) );
-	$post_ids      = array_values( array_unique( array_merge( $event_ids, $promotion_ids ) ) );
+	$event_ids = array_values( array_unique( array_filter( array_map( 'absint', array_column( $rows, 'event_id' ) ) ) ) );
+	$post_ids  = $event_ids;
 
 	if ( function_exists( '_prime_post_caches' ) && array() !== $post_ids ) {
 		_prime_post_caches( $post_ids, false, false );
@@ -497,20 +390,6 @@ function wp_seed_events_occurrence_collection_sql_parts( $args ) {
 		$where[] = 'projection.is_cancelled = 0';
 	}
 
-	if ( $args['require_promotion'] ) {
-		$where[] = 'projection.promotion_id > 0';
-	}
-
-	if ( 0 < $args['promotion_id'] ) {
-		$where[]  = 'projection.promotion_id = %d';
-		$params[] = $args['promotion_id'];
-	}
-
-	if ( null !== $args['parcours_year'] ) {
-		$where[]  = 'projection.parcours_year = %d';
-		$params[] = $args['parcours_year'];
-	}
-
 	if ( null !== $args['event_id'] ) {
 		$where[]  = 'projection.event_id = %d';
 		$params[] = $args['event_id'];
@@ -591,8 +470,7 @@ function wp_seed_events_query_indexed_occurrence_collection( $args ) {
 
 	$row_params = array_merge( $sql_parts['params'], array( $args['per_page'], $offset ) );
 	$rows_sql   = "SELECT projection.event_id, projection.occurrence_uid,
-			projection.occurrence_index, projection.promotion_id,
-			projection.parcours_year, projection.start_raw, projection.end_raw,
+			projection.occurrence_index, projection.start_raw, projection.end_raw,
 			projection.start_sort, projection.end_sort, projection.is_cancelled,
 			projection.event_type, projection.event_status, projection.is_pinned
 		FROM {$table_name} projection
@@ -643,251 +521,8 @@ function wp_seed_events_query_occurrence_collection( $args = array() ) {
 
 	return wp_seed_events_query_fallback_occurrence_collection( $args );
 }
-function wp_seed_events_occurrence_grouped_collection_normalize_args( $raw_args ) {
-	$raw_args = is_array( $raw_args ) ? $raw_args : array();
-
-	if ( array_key_exists( 'page', $raw_args ) || array_key_exists( 'per_page', $raw_args ) ) {
-		return wp_seed_events_occurrence_collection_error(
-			'wp_seed_events_occurrence_collection_incoherent_combination',
-			'Grouped collections use a bounded global limit and do not support pagination.'
-		);
-	}
-
-	$order = isset( $raw_args['order'] ) ? strtolower( trim( (string) $raw_args['order'] ) ) : 'canonical_path';
-
-	if ( 'canonical_path' !== $order ) {
-		return wp_seed_events_occurrence_collection_error(
-			'wp_seed_events_occurrence_collection_invalid_order',
-			'Grouped collections require canonical_path order.'
-		);
-	}
-
-	$limit = isset( $raw_args['limit'] ) ? (int) $raw_args['limit'] : 200;
-
-	if ( 1 > $limit || 500 < $limit ) {
-		return wp_seed_events_occurrence_collection_error(
-			'wp_seed_events_occurrence_collection_invalid_limit',
-			'Grouped collection limit must be between 1 and 500.'
-		);
-	}
-
-	unset( $raw_args['limit'], $raw_args['order'] );
-	$raw_args['order']             = 'chronological';
-	$raw_args['page']              = 1;
-	$raw_args['per_page']          = min( 100, $limit );
-	$raw_args['require_promotion'] = true;
-	$query_args                    = wp_seed_events_occurrence_collection_normalize_args( $raw_args );
-
-	if ( is_wp_error( $query_args ) ) {
-		return $query_args;
-	}
-
-	return array(
-		'query_args' => $query_args,
-		'limit'      => $limit,
-	);
-}
-
-function wp_seed_events_occurrence_group_stats( $occurrences ) {
-	$start_values = array_column( $occurrences, 'start_sort' );
-	$end_values   = array_column( $occurrences, 'end_sort' );
-
-	sort( $start_values, SORT_STRING );
-	rsort( $end_values, SORT_STRING );
-
-	return array(
-		'count'            => count( $occurrences ),
-		'first_start_sort' => (string) ( reset( $start_values ) ?: '' ),
-		'last_end_sort'    => (string) ( reset( $end_values ) ?: '' ),
-	);
-}
-
-function wp_seed_events_occurrence_grouped_promotion_compare( $first, $second ) {
-	$result = (int) $first['promotion']['order'] <=> (int) $second['promotion']['order'];
-
-	if ( 0 === $result ) {
-		$result = (int) $first['promotion']['start_year'] <=> (int) $second['promotion']['start_year'];
-	}
-
-	if ( 0 === $result ) {
-		$result = strnatcasecmp( (string) $first['promotion']['name'], (string) $second['promotion']['name'] );
-	}
-
-	return 0 === $result
-		? (int) $first['promotion']['id'] <=> (int) $second['promotion']['id']
-		: $result;
-}
-
-function wp_seed_events_occurrence_grouped_theme_compare( $first, $second ) {
-	$result = strcmp( (string) $first['first_start_sort'], (string) $second['first_start_sort'] );
-
-	if ( 0 === $result ) {
-		$result = (int) $second['event']['is_pinned'] <=> (int) $first['event']['is_pinned'];
-	}
-
-	if ( 0 === $result ) {
-		$result = strnatcasecmp( (string) $first['event']['title'], (string) $second['event']['title'] );
-	}
-
-	return 0 === $result
-		? (int) $first['event']['id'] <=> (int) $second['event']['id']
-		: $result;
-}
-
-/**
- * Query occurrences grouped by Promotion, parcours year and event/theme.
- *
- * Grouped V1 deliberately uses one bounded global limit rather than ambiguous
- * pagination across nested levels.
- *
- * @param array $args Public grouped collection arguments.
- * @return array|WP_Error
- */
-function wp_seed_events_query_grouped_occurrence_collection( $args = array() ) {
-	$normalized = wp_seed_events_occurrence_grouped_collection_normalize_args( $args );
-
-	if ( is_wp_error( $normalized ) ) {
-		return $normalized;
-	}
-
-	$query_args = $normalized['query_args'];
-	$limit      = $normalized['limit'];
-	$flat_args  = wp_seed_events_occurrence_collection_public_args( $query_args );
-	$flat_args['require_promotion'] = true;
-	$flat_args['per_page']          = min( 100, $limit );
-	$flat_args['page']              = 1;
-	$items                          = array();
-	$total_items                    = 0;
-
-	do {
-		$page = wp_seed_events_query_occurrence_collection( $flat_args );
-
-		if ( is_wp_error( $page ) ) {
-			return $page;
-		}
-
-		$total_items = $page['total_items'];
-		$items       = array_merge( $items, $page['items'] );
-
-		if ( count( $items ) >= $limit || ! $page['has_next'] ) {
-			break;
-		}
-
-		++$flat_args['page'];
-	} while ( true );
-
-	$items = array_slice( $items, 0, $limit );
-	$tree  = array();
-
-	foreach ( $items as $item ) {
-		$promotion_id = absint( $item['promotion_id'] );
-		$year         = absint( $item['parcours_year'] );
-		$event_id     = absint( $item['event_id'] );
-
-		if ( 0 === $promotion_id || 0 === $year ) {
-			continue;
-		}
-
-		if ( ! isset( $tree[ $promotion_id ] ) ) {
-			$tree[ $promotion_id ] = array(
-				'promotion'  => $item['promotion'],
-				'years'      => array(),
-				'occurrences'=> array(),
-			);
-		}
-
-		if ( ! isset( $tree[ $promotion_id ]['years'][ $year ] ) ) {
-			$tree[ $promotion_id ]['years'][ $year ] = array(
-				'parcours_year'       => $year,
-				'parcours_year_label' => $item['parcours_year_label'],
-				'themes'              => array(),
-				'occurrences'         => array(),
-			);
-		}
-
-		if ( ! isset( $tree[ $promotion_id ]['years'][ $year ]['themes'][ $event_id ] ) ) {
-			$tree[ $promotion_id ]['years'][ $year ]['themes'][ $event_id ] = array(
-				'event'       => array(
-					'id'        => $event_id,
-					'title'     => $item['event_title'],
-					'slug'      => $item['event_slug'],
-					'type'      => $item['event_type'],
-					'status'    => $item['event_status'],
-					'is_pinned' => $item['is_pinned'],
-				),
-				'occurrences' => array(),
-			);
-		}
-
-		$tree[ $promotion_id ]['years'][ $year ]['themes'][ $event_id ]['occurrences'][] = $item;
-		$tree[ $promotion_id ]['years'][ $year ]['occurrences'][]                         = $item;
-		$tree[ $promotion_id ]['occurrences'][]                                            = $item;
-	}
-	$promotions = array();
-
-	foreach ( $tree as $promotion_group ) {
-		$years = array();
-
-		foreach ( $promotion_group['years'] as $year_group ) {
-			$themes = array();
-
-			foreach ( $year_group['themes'] as $theme ) {
-				usort(
-					$theme['occurrences'],
-					static function ( $first, $second ) {
-						return wp_seed_events_occurrence_collection_compare_rows( $first, $second, 'chronological' );
-					}
-				);
-				$theme = array_merge( $theme, wp_seed_events_occurrence_group_stats( $theme['occurrences'] ) );
-				$themes[] = $theme;
-			}
-
-			usort( $themes, 'wp_seed_events_occurrence_grouped_theme_compare' );
-			$year_group['themes'] = $themes;
-			$year_group           = array_merge(
-				$year_group,
-				wp_seed_events_occurrence_group_stats( $year_group['occurrences'] )
-			);
-			unset( $year_group['occurrences'] );
-			$years[] = $year_group;
-		}
-
-		usort(
-			$years,
-			function ( $first, $second ) {
-				return (int) $first['parcours_year'] <=> (int) $second['parcours_year'];
-			}
-		);
-		$promotion_group['years'] = $years;
-		$promotion_group          = array_merge(
-			$promotion_group,
-			wp_seed_events_occurrence_group_stats( $promotion_group['occurrences'] )
-		);
-		unset( $promotion_group['occurrences'] );
-		$promotions[] = $promotion_group;
-	}
-
-	usort( $promotions, 'wp_seed_events_occurrence_grouped_promotion_compare' );
-	$public_args          = wp_seed_events_occurrence_collection_public_args( $query_args );
-	$public_args['order'] = 'canonical_path';
-	unset( $public_args['page'], $public_args['per_page'] );
-
-	return array(
-		'promotions'    => $promotions,
-		'total_items'   => $total_items,
-		'returned_items'=> count( $items ),
-		'limit'          => $limit,
-		'is_limited'     => $total_items > count( $items ),
-		'args'           => $public_args,
-	);
-}
-
-function wp_seed_events_occurrence_collection_rest_args( $grouped = false ) {
+function wp_seed_events_occurrence_collection_rest_args() {
 	$args = array(
-		'promotion'         => array( 'type' => array( 'integer', 'string' ) ),
-		'promotion_id'      => array( 'type' => 'integer', 'minimum' => 1 ),
-		'promotion_slug'    => array( 'type' => 'string' ),
-		'parcours_year'     => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 4 ),
 		'event_id'          => array( 'type' => 'integer', 'minimum' => 1 ),
 		'type'              => array( 'type' => 'string' ),
 		'status'            => array( 'type' => 'string', 'default' => 'upcoming', 'enum' => array( 'upcoming', 'past', 'all' ) ),
@@ -897,14 +532,9 @@ function wp_seed_events_occurrence_collection_rest_args( $grouped = false ) {
 		'to'                => array( 'type' => 'string' ),
 	);
 
-	if ( $grouped ) {
-		$args['order'] = array( 'type' => 'string', 'default' => 'canonical_path', 'enum' => array( 'canonical_path' ) );
-		$args['limit'] = array( 'type' => 'integer', 'default' => 200, 'minimum' => 1, 'maximum' => 500 );
-	} else {
-		$args['order']    = array( 'type' => 'string', 'default' => 'upcoming', 'enum' => array( 'upcoming', 'chronological', 'chronological_desc' ) );
-		$args['page']     = array( 'type' => 'integer', 'default' => 1, 'minimum' => 1 );
-		$args['per_page'] = array( 'type' => 'integer', 'default' => 20, 'minimum' => 1, 'maximum' => 100 );
-	}
+	$args['order']    = array( 'type' => 'string', 'default' => 'upcoming', 'enum' => array( 'upcoming', 'chronological', 'chronological_desc' ) );
+	$args['page']     = array( 'type' => 'integer', 'default' => 1, 'minimum' => 1 );
+	$args['per_page'] = array( 'type' => 'integer', 'default' => 20, 'minimum' => 1, 'maximum' => 100 );
 
 	return $args;
 }
@@ -926,10 +556,6 @@ function wp_seed_events_occurrence_collection_rest_item_schema() {
 			'start_sort'         => array( 'type' => 'string' ),
 			'end_sort'           => array( 'type' => 'string' ),
 			'is_cancelled'       => array( 'type' => 'boolean' ),
-			'promotion_id'       => array( 'type' => 'integer' ),
-			'promotion'          => array( 'type' => array( 'object', 'array' ) ),
-			'parcours_year'      => array( 'type' => 'integer' ),
-			'parcours_year_label'=> array( 'type' => 'string' ),
 		),
 	);
 }
@@ -951,22 +577,6 @@ function wp_seed_events_occurrence_collection_rest_schema() {
 	);
 }
 
-function wp_seed_events_occurrence_grouped_collection_rest_schema() {
-	return array(
-		'$schema'    => 'http://json-schema.org/draft-04/schema#',
-		'title'      => 'wp_seed_event_occurrence_grouped_collection',
-		'type'       => 'object',
-		'properties' => array(
-			'promotions'     => array( 'type' => 'array' ),
-			'total_items'    => array( 'type' => 'integer' ),
-			'returned_items' => array( 'type' => 'integer' ),
-			'limit'          => array( 'type' => 'integer' ),
-			'is_limited'     => array( 'type' => 'boolean' ),
-			'args'           => array( 'type' => 'object' ),
-		),
-	);
-}
-
 /** Register public read-only occurrence collection routes. */
 function wp_seed_events_register_occurrence_collection_rest_routes() {
 	register_rest_route(
@@ -980,20 +590,6 @@ function wp_seed_events_register_occurrence_collection_rest_routes() {
 				'args'                => wp_seed_events_occurrence_collection_rest_args(),
 			),
 			'schema' => 'wp_seed_events_occurrence_collection_rest_schema',
-		)
-	);
-
-	register_rest_route(
-		'wp-seed-events/v1',
-		'/occurrences/grouped',
-		array(
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => 'wp_seed_events_rest_get_grouped_occurrence_collection',
-				'permission_callback' => '__return_true',
-				'args'                => wp_seed_events_occurrence_collection_rest_args( true ),
-			),
-			'schema' => 'wp_seed_events_occurrence_grouped_collection_rest_schema',
 		)
 	);
 }
@@ -1016,16 +612,4 @@ function wp_seed_events_rest_get_occurrence_collection( $request ) {
 	$response->header( 'X-WP-TotalPages', (int) $result['total_pages'] );
 
 	return $response;
-}
-
-/**
- * REST callback for the canonical grouped occurrence collection.
- *
- * @param WP_REST_Request $request Request.
- * @return WP_REST_Response|WP_Error
- */
-function wp_seed_events_rest_get_grouped_occurrence_collection( $request ) {
-	$result = wp_seed_events_query_grouped_occurrence_collection( $request->get_params() );
-
-	return is_wp_error( $result ) ? $result : rest_ensure_response( $result );
 }

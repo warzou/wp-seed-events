@@ -68,8 +68,6 @@ function wp_seed_events_occurrence_context_from_item( $item, $collection_instanc
 		'event_id'               => $event_id,
 		'occurrence_uid'         => $occurrence_uid,
 		'collection_instance_id' => $collection_id,
-		'promotion_id'           => absint( $item['promotion_id'] ?? 0 ),
-		'parcours_year'          => absint( $item['parcours_year'] ?? 0 ),
 		'current_item_index'     => $item_index,
 		'item_key'               => implode( ':', array( $collection_id, $event_id, $occurrence_uid, $item_index ) ),
 		'item'                   => $item,
@@ -131,13 +129,6 @@ function wp_seed_events_occurrence_dynamic_data_fields() {
 		'occurrence_start_time'    => 'Heure de début',
 		'occurrence_end_time'      => 'Heure de fin',
 		'occurrence_is_cancelled'  => 'Occurrence annulée',
-		'promotion_id'             => 'Identifiant de la Promotion',
-		'promotion_name'           => 'Nom de la Promotion',
-		'promotion_slug'           => 'Slug de la Promotion',
-		'promotion_start_year'     => 'Année de début de la Promotion',
-		'promotion_status'         => 'Statut de la Promotion',
-		'parcours_year'            => 'Année du parcours',
-		'parcours_year_label'      => 'Libellé de l’année du parcours',
 	);
 }
 
@@ -162,7 +153,6 @@ function wp_seed_events_occurrence_context_value( $field, $context = null ) {
 		return '';
 	}
 
-	$promotion = isset( $item['promotion'] ) && is_array( $item['promotion'] ) ? $item['promotion'] : array();
 	$start     = wp_seed_events_occurrence_context_split_datetime( $item['start'] ?? '' );
 	$end       = wp_seed_events_occurrence_context_split_datetime( $item['end'] ?? '' );
 
@@ -193,20 +183,6 @@ function wp_seed_events_occurrence_context_value( $field, $context = null ) {
 			return '' === $end['time'] ? '' : wp_seed_events_format_occurrence_time( $end['time'] );
 		case 'occurrence_is_cancelled':
 			return empty( $item['is_cancelled'] ) ? '0' : '1';
-		case 'promotion_id':
-			return 0 < absint( $item['promotion_id'] ?? 0 ) ? (string) absint( $item['promotion_id'] ) : '';
-		case 'promotion_name':
-			return trim( wp_strip_all_tags( (string) ( $promotion['name'] ?? '' ) ) );
-		case 'promotion_slug':
-			return sanitize_title( (string) ( $promotion['slug'] ?? '' ) );
-		case 'promotion_start_year':
-			return 0 < absint( $promotion['start_year'] ?? 0 ) ? (string) absint( $promotion['start_year'] ) : '';
-		case 'promotion_status':
-			return sanitize_key( (string) ( $promotion['status'] ?? '' ) );
-		case 'parcours_year':
-			return 0 < absint( $item['parcours_year'] ?? 0 ) ? (string) absint( $item['parcours_year'] ) : '';
-		case 'parcours_year_label':
-			return trim( wp_strip_all_tags( (string) ( $item['parcours_year_label'] ?? '' ) ) );
 		default:
 			return '';
 	}

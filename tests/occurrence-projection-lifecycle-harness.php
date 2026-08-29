@@ -1,8 +1,8 @@
 <?php
 /**
- * Standalone lifecycle v3 and occurrence projection assertions.
+ * Standalone lifecycle and occurrence projection assertions.
  *
- * Run with: php tests/occurrence-projection-lifecycle-v3-harness.php
+ * Run with: php tests/occurrence-projection-lifecycle-harness.php
  */
 
 declare(strict_types=1);
@@ -47,7 +47,6 @@ class V3_Wpdb {
 	public $fail_insert = false;
 	public $integrity_duplicates = 0;
 	public $integrity_orphans = 0;
-	public $integrity_invalid_pairs = 0;
 
 	public function get_charset_collate() { return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'; }
 
@@ -72,6 +71,10 @@ class V3_Wpdb {
 			return $this->table_exists ? $this->prefix . 'wp_seed_event_occurrences' : null;
 		}
 
+		if ( false !== strpos( $query, 'SHOW INDEX FROM' ) || false !== strpos( $query, 'SHOW COLUMNS FROM' ) ) {
+			return null;
+		}
+
 		if ( preg_match( '/SELECT COUNT\\(\\*\\) FROM [^ ]+ WHERE event_id = ([0-9]+)/', $query, $matches ) ) {
 			$event_id = (int) $matches[1];
 
@@ -94,10 +97,6 @@ class V3_Wpdb {
 
 		if ( false !== strpos( $query, 'LEFT JOIN' ) ) {
 			return $this->integrity_orphans;
-		}
-
-		if ( false !== strpos( $query, 'promotion_id = 0' ) ) {
-			return $this->integrity_invalid_pairs;
 		}
 
 		return 0;
@@ -332,8 +331,6 @@ function wp_seed_events_normalize_occurrence( $raw, $event_id, $index = 0 ) {
 		'start_time'     => $start_time,
 		'end_time'       => $end_time,
 		'all_day'        => $all_day ? '1' : '',
-		'promotion_id'   => absint( $raw['promotion_id'] ?? 0 ),
-		'parcours_year'  => absint( $raw['parcours_year'] ?? 0 ),
 		'start_sort'     => $start_date . ' ' . ( $all_day ? '00:00' : ( '' !== $start_time ? $start_time : '00:00' ) ),
 		'end_sort'       => ( '' !== $end_date ? $end_date : $start_date ) . ' ' . ( $all_day ? '23:59' : ( '' !== $end_time ? $end_time : ( '' !== $start_time ? $start_time : '00:00' ) ) ),
 		'is_active'      => ! $cancelled,
@@ -368,16 +365,16 @@ $projection_source = file_get_contents( dirname( __DIR__ ) . '/includes/admin/oc
 $backfill_source   = file_get_contents( dirname( __DIR__ ) . '/includes/admin/lifecycle-index-backfill.php' );
 $main_source       = file_get_contents( dirname( __DIR__ ) . '/wp-seed-events.php' );
 
-foreach ( array( 'event_id', 'occurrence_uid', 'promotion_id', 'parcours_year', 'start_sort', 'end_sort', 'is_cancelled', 'event_type', 'event_status', 'is_pinned', 'updated_at' ) as $column ) {
+foreach ( array( 'event_id', 'occurrence_uid', 'start_sort', 'end_sort', 'is_cancelled', 'event_type', 'event_status', 'is_pinned', 'updated_at' ) as $column ) {
 	v3_assert( false !== strpos( wp_seed_events_occurrence_projection_schema(), $column ), 'Schema column missing: ' . $column );
 }
-foreach ( array( 'UNIQUE KEY event_occurrence', 'KEY promotion_year_start', 'KEY collection_filter' ) as $index ) {
+foreach ( array( 'UNIQUE KEY event_occurrence', 'KEY collection_filter' ) as $index ) {
 	v3_assert( false !== strpos( wp_seed_events_occurrence_projection_schema(), $index ), 'Schema index missing: ' . $index );
 }
 foreach ( array( 'person', 'email', 'phone', 'place', 'media', 'html' ) as $private_column ) {
 	v3_assert( false === strpos( wp_seed_events_occurrence_projection_schema(), $private_column ), 'Unnecessary projection data found: ' . $private_column );
 }
-v3_same( 5, wp_seed_events_lifecycle_index_expected_version(), 'Lifecycle version is not 5.' );
+v3_same( 6, wp_seed_events_lifecycle_index_expected_version(), 'Lifecycle version is not 6.' );
 v3_same( 25, wp_seed_events_lifecycle_index_batch_size(), 'Batch size changed.' );
 v3_same( 300, wp_seed_events_lifecycle_index_lock_ttl(), 'Lock TTL changed.' );
 
@@ -394,8 +391,8 @@ $GLOBALS['v3_primary'][ $event_id ] = 'seminaire';
 $GLOBALS['v3_meta'][ $event_id ] = array(
 	'_wp_seed_event_pinned'      => '1',
 	'_wp_seed_event_occurrences' => array(
-		array( 'uid' => $uuid_a, 'start_date' => '2026-09-10', 'start_time' => '09:00', 'end_time' => '17:00', 'promotion_id' => 10, 'parcours_year' => 1 ),
-		array( 'start_date' => '2026-10-15', 'start_time' => '09:00', 'promotion_id' => 11, 'parcours_year' => 1 ),
+		array( 'uid' => $uuid_a, 'start_date' => '2026-09-10', 'start_time' => '09:00', 'end_time' => '17:00' ),
+		array( 'start_date' => '2026-10-15', 'start_time' => '09:00' ),
 		array( 'uid' => $uuid_b, 'start_date' => '2026-11-20', 'all_day' => '1', 'cancelled' => '1' ),
 	),
 );
@@ -404,9 +401,6 @@ $rows = wp_seed_events_build_occurrence_projection_rows( $event_id );
 v3_same( 3, count( $rows ), 'One row per occurrence was not built.' );
 v3_same( $uuid_a, $rows[0]['occurrence_uid'], 'Persisted UUID changed.' );
 v3_assert( 0 === strpos( $rows[1]['occurrence_uid'], 'legacy-' ), 'Legacy UID is not deterministic.' );
-v3_same( 10, $rows[0]['promotion_id'], 'Promotion 2026 was not projected.' );
-v3_same( 11, $rows[1]['promotion_id'], 'Promotion 2027 was not projected.' );
-v3_same( 1, $rows[0]['parcours_year'], 'Parcours year was not projected.' );
 v3_same( 1, $rows[2]['is_cancelled'], 'Cancelled occurrence was not projected.' );
 v3_same( 'seminaire', $rows[0]['event_type'], 'Primary type was not projected.' );
 v3_same( 1, $rows[0]['is_pinned'], 'Pinned state was not projected.' );
@@ -435,20 +429,19 @@ $duplicate_uuid = wp_seed_events_build_occurrence_projection_rows( $event_id );
 v3_assert( is_wp_error( $duplicate_uuid ) && 'occurrence_projection_duplicate_uid' === $duplicate_uuid->get_error_code(), 'Duplicate UUID did not fail explicitly.' );
 
 $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'] = array(
-	array( 'uid' => $uuid_a, 'start_date' => '2026-09-10', 'promotion_id' => 10, 'parcours_year' => 1 ),
-	array( 'uid' => $uuid_b, 'start_date' => '2026-10-10', 'promotion_id' => 10, 'parcours_year' => 2 ),
+	array( 'uid' => $uuid_a, 'start_date' => '2026-09-10' ),
+	array( 'uid' => $uuid_b, 'start_date' => '2026-10-10' ),
 );
 $synced = wp_seed_events_sync_occurrence_projection( $event_id );
 v3_assert( ! is_wp_error( $synced ), 'Targeted projection sync failed.' );
 v3_same( 2, count( $GLOBALS['wpdb']->rows ), 'Targeted projection row count differs.' );
 
 $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'] = array(
-	array( 'uid' => $uuid_a, 'start_date' => '2027-01-15', 'promotion_id' => 11, 'parcours_year' => 1 ),
+	array( 'uid' => $uuid_a, 'start_date' => '2027-01-15' ),
 );
 wp_seed_events_sync_occurrence_projection( $event_id );
 v3_same( 1, count( $GLOBALS['wpdb']->rows ), 'Removed occurrence projection remains.' );
 v3_same( '2027-01-15 00:00', $GLOBALS['wpdb']->rows[0]['start_sort'], 'Changed date was not projected.' );
-v3_same( 11, $GLOBALS['wpdb']->rows[0]['promotion_id'], 'Changed Promotion was not projected.' );
 
 $current_occurrences = $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'];
 $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'] = array();
@@ -493,9 +486,9 @@ $GLOBALS['v3_meta'][ $event_id ]['_wp_seed_event_occurrences'] = array(
 	array( 'uid' => $uuid_a, 'start_date' => '2027-01-15' ),
 );
 wp_seed_events_sync_occurrence_projection( $event_id );
-$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 5;
+$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 6;
 $GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_progress_option_name() ] = array(
-	'version' => 5,
+	'version' => 6,
 	'status'  => 'complete',
 	'errors'  => 0,
 );
@@ -511,9 +504,9 @@ v3_same( 'failed', $failed_progress['status'], 'Failed targeted sync did not rec
 v3_assert( in_array( $event_id, $failed_progress['error_ids'], true ), 'Failed targeted sync did not queue an exact retry.' );
 
 wp_seed_events_sync_occurrence_projection( $event_id );
-$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 5;
+$GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_version_option_name() ] = 6;
 $GLOBALS['v3_options'][ wp_seed_events_lifecycle_index_progress_option_name() ] = array(
-	'version' => 5,
+	'version' => 6,
 	'status'  => 'complete',
 	'errors'  => 0,
 );
@@ -535,7 +528,7 @@ $GLOBALS['v3_options'] = array(
 $GLOBALS['wpdb']->table_exists = true;
 $migrated = wp_seed_events_run_lifecycle_index_backfill_batch();
 v3_assert( is_array( $migrated ) && 'complete' === $migrated['status'], 'V2 to V3 migration did not complete.' );
-v3_same( 5, get_option( wp_seed_events_lifecycle_index_version_option_name() ), 'V5 version was not stored.' );
+v3_same( 6, get_option( wp_seed_events_lifecycle_index_version_option_name() ), 'V6 version was not stored.' );
 v3_assert( wp_seed_events_is_lifecycle_index_ready(), 'Migrated lifecycle is not ready.' );
 v3_same( 1, count( $GLOBALS['wpdb']->rows ), 'Migration did not rebuild exact rows.' );
 
@@ -602,7 +595,7 @@ v3_same( 'running', $first_batch['status'], 'First bounded batch did not remain 
 v3_same( 25, $first_batch['processed'], 'First bounded batch size differs.' );
 v3_same( 25, $first_batch['cursor_id'], 'First bounded batch cursor differs.' );
 v3_assert( ! wp_seed_events_is_lifecycle_index_ready(), 'Interrupted migration became ready too early.' );
-v3_assert( ! array_key_exists( wp_seed_events_lifecycle_index_version_option_name(), $GLOBALS['v3_options'] ), 'Interrupted migration stored the v5 version.' );
+v3_assert( ! array_key_exists( wp_seed_events_lifecycle_index_version_option_name(), $GLOBALS['v3_options'] ), 'Interrupted migration stored the schema version.' );
 
 $last_batch = wp_seed_events_run_lifecycle_index_backfill_batch();
 v3_same( 'complete', $last_batch['status'], 'Last partial batch did not complete.' );
@@ -634,11 +627,11 @@ foreach ( array( 'START TRANSACTION', 'ROLLBACK', 'wp_seed_events_sync_occurrenc
 foreach ( array( 'cursor_id', 'error_ids', 'expires_at', 'wp_seed_events_lifecycle_index_batch_size', 'occurrence_projection_table_exists' ) as $token ) {
 	v3_assert( false !== strpos( $backfill_source, $token ), 'Backfill contract token missing: ' . $token );
 }
-foreach ( array( 'grouped', 'register_block', 'et_builder', 'shortcode' ) as $out_of_scope ) {
+foreach ( array( 'register_block', 'et_builder', 'shortcode' ) as $out_of_scope ) {
 	v3_assert( false === strpos( $projection_source, $out_of_scope ), 'Out-of-scope integration found: ' . $out_of_scope );
 }
 v3_assert( false !== strpos( $main_source, "require_once __DIR__ . '/includes/admin/occurrence-projection.php';" ), 'Projection bootstrap is absent.' );
 v3_assert( false !== strpos( $main_source, 'wp_seed_events_install_occurrence_projection_table();' ), 'Fresh activation does not install the table.' );
-v3_assert( false !== strpos( $main_source, 'wp_seed_events_run_lifecycle_index_backfill_batch( true );' ), 'Fresh activation does not initialize lifecycle v3.' );
+v3_assert( false !== strpos( $main_source, 'wp_seed_events_run_lifecycle_index_backfill_batch( true );' ), 'Fresh activation does not initialize the lifecycle index.' );
 
-echo 'Occurrence projection lifecycle v3 harness: ' . $GLOBALS['v3_assertions'] . '/' . $GLOBALS['v3_assertions'] . ' OK' . PHP_EOL;
+echo 'Occurrence projection lifecycle harness: ' . $GLOBALS['v3_assertions'] . '/' . $GLOBALS['v3_assertions'] . ' OK' . PHP_EOL;

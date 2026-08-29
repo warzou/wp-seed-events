@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Ablation du champ métier Parcours
+
+- Retrait complet de l'ancienne cohorte et de l'annee associee dans l'admin, les APIs publiques, Event Data, REST, Dynamic Data, Gutenberg et Divi.
+- La collection d'occurrences publique reste plate et retrocompatible pour ses filtres generiques.
+- Le lifecycle interne passe au schema 6 et supprime les anciennes colonnes techniques reconstruisibles, sans migration des contenus evenementiels.
+- Les anciennes cles eventuellement presentes dans un contenu sauvegarde sont ignorees ; la version du plugin reste `0.2.0-beta.9`.
+
 ## 0.2.0-beta.9 - 2026-08-04
 
 ### Source unique des filtres Divi Events

@@ -33,14 +33,11 @@ function wp_seed_events_occurrence_collection_block_instance_id( $attributes ) {
  * Convert block attributes to the canonical public collection arguments.
  *
  * @param array  $attributes Block attributes.
- * @param string $mode       flat or grouped.
  * @param string $instance   Collection instance ID.
  * @return array
  */
-function wp_seed_events_occurrence_collection_block_query_args( $attributes, $mode, $instance ) {
+function wp_seed_events_occurrence_collection_block_query_args( $attributes, $instance ) {
 	$args = array(
-		'promotion'         => $attributes['promotion'] ?? '',
-		'parcours_year'     => 0 < absint( $attributes['parcoursYear'] ?? 0 ) ? absint( $attributes['parcoursYear'] ) : null,
 		'event_id'          => 0 < absint( $attributes['eventId'] ?? 0 ) ? absint( $attributes['eventId'] ) : null,
 		'type'              => $attributes['eventType'] ?? '',
 		'status'            => $attributes['status'] ?? 'upcoming',
@@ -49,13 +46,6 @@ function wp_seed_events_occurrence_collection_block_query_args( $attributes, $mo
 		'from'              => $attributes['from'] ?? '',
 		'to'                => $attributes['to'] ?? '',
 	);
-
-	if ( 'grouped' === $mode ) {
-		$args['order'] = 'canonical_path';
-		$args['limit'] = min( 500, max( 1, absint( $attributes['groupedLimit'] ?? 200 ) ) );
-
-		return $args;
-	}
 
 	$query_key = 'wpseed_occurrence_page_' . sanitize_key( str_replace( '-', '_', $instance ) );
 	$page      = max( 1, absint( $attributes['page'] ?? 1 ) );
@@ -219,73 +209,6 @@ function wp_seed_events_render_flat_occurrence_collection( $result, $parsed_inne
 }
 
 /**
- * Render the canonical Promotion > year > theme > occurrence hierarchy.
- *
- * Group headings are deliberately technical structure; the occurrence card
- * itself remains the single editable InnerBlocks template.
- *
- * @param array  $result              Public grouped collection result.
- * @param array  $parsed_inner_blocks Saved occurrence template.
- * @param string $instance            Collection instance ID.
- * @return string
- */
-function wp_seed_events_render_grouped_occurrence_collection( $result, $parsed_inner_blocks, $instance ) {
-	$html  = '';
-	$index = 0;
-
-	foreach ( $result['promotions'] ?? array() as $promotion_group ) {
-		$promotion = is_array( $promotion_group['promotion'] ?? null ) ? $promotion_group['promotion'] : array();
-		$years_html = '';
-
-		foreach ( $promotion_group['years'] ?? array() as $year_group ) {
-			$themes_html = '';
-
-			foreach ( $year_group['themes'] ?? array() as $theme_group ) {
-				$items_html = '';
-
-				foreach ( $theme_group['occurrences'] ?? array() as $item ) {
-					$items_html .= wp_seed_events_render_occurrence_collection_item( $item, $parsed_inner_blocks, $instance, $index );
-					++$index;
-				}
-
-				if ( '' === $items_html ) {
-					continue;
-				}
-
-				$event = is_array( $theme_group['event'] ?? null ) ? $theme_group['event'] : array();
-				$themes_html .= sprintf(
-					'<section class="wp-seed-events-occurrence-collection__theme"><h4>%1$s</h4>%2$s</section>',
-					esc_html( (string) ( $event['title'] ?? '' ) ),
-					$items_html
-				);
-			}
-
-			if ( '' === $themes_html ) {
-				continue;
-			}
-
-			$years_html .= sprintf(
-				'<section class="wp-seed-events-occurrence-collection__year"><h3>%1$s</h3>%2$s</section>',
-				esc_html( (string) ( $year_group['parcours_year_label'] ?? '' ) ),
-				$themes_html
-			);
-		}
-
-		if ( '' === $years_html ) {
-			continue;
-		}
-
-		$html .= sprintf(
-			'<section class="wp-seed-events-occurrence-collection__promotion"><h2>%1$s</h2>%2$s</section>',
-			esc_html( (string) ( $promotion['name'] ?? '' ) ),
-			$years_html
-		);
-	}
-
-	return $html;
-}
-
-/**
  * Render the occurrence collection block.
  *
  * @param array    $attributes Block attributes.
@@ -297,12 +220,9 @@ function wp_seed_events_render_gutenberg_occurrence_collection_block( $attribute
 	unset( $content );
 
 	$attributes = is_array( $attributes ) ? $attributes : array();
-	$mode       = 'grouped' === ( $attributes['mode'] ?? '' ) ? 'grouped' : 'flat';
 	$instance   = wp_seed_events_occurrence_collection_block_instance_id( $attributes );
-	$args       = wp_seed_events_occurrence_collection_block_query_args( $attributes, $mode, $instance );
-	$result     = 'grouped' === $mode
-		? wp_seed_events_query_grouped_occurrence_collection( $args )
-		: wp_seed_events_query_occurrence_collection( $args );
+	$args       = wp_seed_events_occurrence_collection_block_query_args( $attributes, $instance );
+	$result     = wp_seed_events_query_occurrence_collection( $args );
 
 	if ( is_wp_error( $result ) ) {
 		return sprintf(
@@ -314,9 +234,7 @@ function wp_seed_events_render_gutenberg_occurrence_collection_block( $attribute
 	$parsed_inner_blocks = class_exists( 'WP_Block' ) && $block instanceof WP_Block && isset( $block->parsed_block['innerBlocks'] )
 		? $block->parsed_block['innerBlocks']
 		: array();
-	$html                = 'grouped' === $mode
-		? wp_seed_events_render_grouped_occurrence_collection( $result, $parsed_inner_blocks, $instance )
-		: wp_seed_events_render_flat_occurrence_collection( $result, $parsed_inner_blocks, $instance );
+	$html                = wp_seed_events_render_flat_occurrence_collection( $result, $parsed_inner_blocks, $instance );
 
 	if ( '' === trim( $html ) ) {
 		$empty_message = trim( wp_strip_all_tags( (string) ( $attributes['emptyMessage'] ?? '' ) ) );
@@ -333,9 +251,9 @@ function wp_seed_events_render_gutenberg_occurrence_collection_block( $attribute
 
 	$wrapper_attributes = get_block_wrapper_attributes(
 		array(
-			'class'                => 'wp-seed-events-occurrence-collection wp-seed-events-occurrence-collection--' . $mode,
+			'class'                => 'wp-seed-events-occurrence-collection wp-seed-events-occurrence-collection--flat',
 			'data-collection-id'   => $instance,
-			'data-collection-mode' => $mode,
+			'data-collection-mode' => 'flat',
 		)
 	);
 

@@ -25,29 +25,23 @@ const toggle = (value, fallback) => {
 
 export const normalizeOptions = (attrs) => {
   const values = { ...defaults, ...getValues(attrs) };
-  const modes = ['flat', 'grouped'];
   const statuses = ['upcoming', 'past', 'all'];
   const pinned = ['all', 'only'];
   const orders = ['upcoming', 'chronological', 'chronological_desc'];
   const toggles = [
     'include_cancelled', 'show_event_title', 'show_event_type', 'show_event_status',
     'show_event_pinned', 'show_start_date', 'show_end_date', 'show_start_time',
-    'show_end_time', 'show_cancelled', 'show_promotion_name', 'show_promotion_year',
-    'show_promotion_status', 'show_parcours_year', 'show_parcours_label', 'show_labels',
+    'show_end_time', 'show_cancelled', 'show_labels',
   ];
   const normalized = {
     ...values,
-    mode: modes.includes(values.mode) ? values.mode : 'flat',
     status: statuses.includes(values.status) ? values.status : 'upcoming',
     pinned: pinned.includes(values.pinned) ? values.pinned : 'all',
     order: orders.includes(values.order) ? values.order : 'chronological',
-    promotion: scalar(values.promotion),
-    parcours_year: Math.max(0, Number.parseInt(values.parcours_year, 10) || 0),
     event_id: Math.max(0, Number.parseInt(values.event_id, 10) || 0),
     type: scalar(values.type),
     page: Math.max(1, Number.parseInt(values.page, 10) || 1),
     per_page: Math.min(100, Math.max(1, Number.parseInt(values.per_page, 10) || 20)),
-    grouped_limit: Math.min(500, Math.max(1, Number.parseInt(values.grouped_limit, 10) || 200)),
     date_format: values.date_format === 'short' ? 'short' : 'long',
     time_format: values.time_format === '24h' ? '24h' : 'site',
   };
@@ -65,7 +59,7 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
       attrName: 'module',
       styleProps: { disabledOn: { disabledModuleVisibility: settings?.disabledModuleVisibility } },
     })}
-    {['collectionStyle', 'promotionStyle', 'yearStyle', 'themeStyle', 'itemStyle',
+    {['collectionStyle', 'itemStyle',
       'titleStyle', 'labelStyle', 'valueStyle', 'emptyStyle', 'paginationStyle']
       .map((attrName) => elements.style({ attrName }))}
   </StyleContainer>

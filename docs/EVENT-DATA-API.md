@@ -28,8 +28,6 @@ $event = wp_seed_events_get_event_data( 123 );
 | `all_types` | `array[]` | Ensemble ordonne des types publics. |
 | `is_pinned` | `bool` | Etat public de la case Evenement epingle. |
 | `occurrences` | `array[]` | Occurrences normalisees, annulees incluses. |
-| `promotions` | `array[]` | Promotions publiques distinctes des occurrences. |
-| `parcours_years` | `int[]` | Annees du parcours distinctes, triees de 1 a 4. |
 | `active_occurrences` | `array[]` | Occurrences non annulees. |
 | `next_occurrence` | `array` | Premiere occurrence active aujourd'hui ou dans le futur, ou `array()`. |
 | `last_occurrence` | `array` | Derniere occurrence active chronologique, ou `array()`. |
@@ -61,9 +59,6 @@ Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `publ
 
 Le schema des occurrences est defini dans [Event Occurrences API](EVENT-OCCURRENCES-API.md).
 Le contrat des classifications natives et du tri est defini dans [Classifications natives](NATIVE-EVENT-CLASSIFICATIONS.md).
-Le schema Promotion et ses routes sont definis dans
-[Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
-
 ## Alias medias historiques
 
 Les identifiants suivants restent derives des objets Media normalises :

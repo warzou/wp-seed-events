@@ -19,9 +19,6 @@ function absint( $value ) { return abs( (int) $value ); }
 function wp_parse_args( $args, $defaults ) { return array_merge( $defaults, is_array( $args ) ? $args : array() ); }
 function current_time( $format ) { return 'Y-m-d' === $format ? substr( $GLOBALS['iph_now'], 0, 10 ) : $GLOBALS['iph_now']; }
 function get_post_meta( $event_id, $key, $single = true ) { unset( $single ); return $GLOBALS['iph_meta'][ (int) $event_id ][ $key ] ?? ''; }
-function wp_seed_events_get_promotion() { return array(); }
-function wp_seed_events_normalize_parcours_year() { return 0; }
-function wp_seed_events_parcours_year_label() { return ''; }
 function wp_seed_events_format_occurrence_date_line( $occurrence ) { return (string) $occurrence['start_date']; }
 function wp_seed_events_format_occurrence_time_line( $occurrence ) { return (string) ( $occurrence['start_time'] ?? '' ); }
 

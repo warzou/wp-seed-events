@@ -63,28 +63,13 @@ $item_a = array(
 	'start'               => '2026-02-03 09:30',
 	'end'                 => '2026-02-03 12:00',
 	'is_cancelled'        => false,
-	'promotion_id'        => 201,
-	'promotion'           => array(
-		'name'       => '<i>Promotion 2026</i>',
-		'slug'       => 'promotion-2026',
-		'start_year' => 2026,
-		'status'     => 'active',
-	),
-	'parcours_year'       => 1,
-	'parcours_year_label' => 'Année 1',
 );
 $item_b = array_merge(
 	$item_a,
 	array(
 		'occurrence_uid' => 'occ-b',
 		'start'          => '2026-03-04 14:00',
-		'promotion_id'   => 202,
-		'promotion'      => array(
-			'name'       => 'Promotion 2027',
-			'slug'       => 'promotion-2027',
-			'start_year' => 2027,
-			'status'     => 'active',
-		),
+		'event_title'    => 'Theme B',
 	)
 );
 
@@ -105,12 +90,12 @@ $outer = wp_seed_events_with_occurrence_context(
 			$context_b,
 			static function () {
 				occurrence_context_assert( 'occ-b' === wp_seed_events_occurrence_context_value( 'occurrence_uid' ), 'Nested context is visible.' );
-				return wp_seed_events_occurrence_context_value( 'promotion_name' );
+				return wp_seed_events_occurrence_context_value( 'event_title' );
 			}
 		);
 	}
 );
-occurrence_context_assert( 'Promotion 2027' === $outer, 'Nested callback result.' );
+occurrence_context_assert( 'Theme B' === $outer, 'Nested callback result.' );
 occurrence_context_assert( array() === wp_seed_events_occurrence_context_current(), 'Nested context is restored.' );
 
 try {
@@ -139,30 +124,23 @@ $expected = array(
 	'occurrence_start_time'   => 'TIME:09:30',
 	'occurrence_end_time'     => 'TIME:12:00',
 	'occurrence_is_cancelled' => '0',
-	'promotion_id'            => '201',
-	'promotion_name'          => 'Promotion 2026',
-	'promotion_slug'          => 'promotion-2026',
-	'promotion_start_year'    => '2026',
-	'promotion_status'        => 'active',
-	'parcours_year'           => '1',
-	'parcours_year_label'     => 'Année 1',
 );
 
 foreach ( $expected as $field => $value ) {
 	occurrence_context_assert( $value === wp_seed_events_occurrence_context_value( $field, $context_a ), 'Field ' . $field . '.' );
 }
 
-occurrence_context_assert( '' === wp_seed_events_occurrence_context_value( 'promotion_name' ), 'No context is empty.' );
+occurrence_context_assert( '' === wp_seed_events_occurrence_context_value( 'event_title' ), 'No context is empty.' );
 occurrence_context_assert( '' === wp_seed_events_occurrence_context_value( 'unknown', $context_a ), 'Unknown field is empty.' );
-occurrence_context_assert( 20 === count( wp_seed_events_occurrence_dynamic_data_fields() ), 'Twenty canonical fields.' );
+occurrence_context_assert( 13 === count( wp_seed_events_occurrence_dynamic_data_fields() ), 'Thirteen canonical fields.' );
 
 $block = new WP_Block( array(), array( 'wpSeedEvents/occurrence' => $context_b ) );
 occurrence_context_assert(
-	'Promotion 2027' === wp_seed_events_gutenberg_occurrence_block_binding_value( array( 'field' => 'promotion_name' ), $block, 'content' ),
+	'Theme B' === wp_seed_events_gutenberg_occurrence_block_binding_value( array( 'field' => 'event_title' ), $block, 'content' ),
 	'Binding reads explicit block context.'
 );
 occurrence_context_assert(
-	'' === wp_seed_events_gutenberg_occurrence_block_binding_value( array( 'field' => 'promotion_name' ), new WP_Block(), 'content' ),
+	'' === wp_seed_events_gutenberg_occurrence_block_binding_value( array( 'field' => 'event_title' ), new WP_Block(), 'content' ),
 	'Binding without occurrence context is empty.'
 );
 occurrence_context_assert(
