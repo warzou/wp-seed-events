@@ -91,6 +91,10 @@ namespace {
 		);
 	}
 
+	function wp_seed_events_dynamic_data_field_format( $field ) {
+		return 'plain_text';
+	}
+
 	function wp_seed_events_dynamic_data_get_value( $field, $event_id ) {
 		return $GLOBALS['wp_seed_test_values'][ absint( $event_id ) ][ (string) $field ] ?? '';
 	}
