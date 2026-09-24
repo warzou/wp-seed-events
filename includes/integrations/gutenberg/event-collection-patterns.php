@@ -20,7 +20,7 @@ function wp_seed_events_event_collection_compact_pattern_content() {
 	<!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
 		<!-- wp:wp-seed-events/event-visuals-block {"title":"","show_visuals":false,"show_document":false,"layout":"list"} /-->
 		<!-- wp:post-title {"isLink":true,"level":3} /-->
-		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"next","scope":"upcoming","show_cancelled":false,"show_times":false,"format":"long","calendar_behavior_version":2} /-->
+		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"next","scope":"upcoming","show_cancelled":false,"show_times":false,"format":"long"} /-->
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"place"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->
@@ -63,7 +63,7 @@ function wp_seed_events_event_collection_detailed_pattern_content() {
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"excerpt"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->
-		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"all","scope":"upcoming","show_cancelled":false,"show_times":true,"format":"long","calendar_behavior_version":2} /-->
+		<!-- wp:wp-seed-events/event-dates-block {"title":"","mode":"all","scope":"upcoming","show_cancelled":false,"show_times":true,"format":"long"} /-->
 		<!-- wp:paragraph {"metadata":{"bindings":{"content":{"source":"wp-seed-events/event-field","args":{"field":"place"}}}}} -->
 		<p></p>
 		<!-- /wp:paragraph -->
@@ -97,7 +97,7 @@ function wp_seed_events_register_event_collection_patterns() {
 	register_block_pattern_category(
 		'wp-seed-events/collections',
 		array(
-			'label'       => __( 'WP Seed Events — Collections', 'wp-seed-events' ),
+			'label'       => __( 'WPSEvents — Collections', 'wp-seed-events' ),
 			'description' => __( 'Présentations de départ pour les collections d’événements.', 'wp-seed-events' ),
 		)
 	);
@@ -105,7 +105,7 @@ function wp_seed_events_register_event_collection_patterns() {
 	register_block_pattern(
 		'wp-seed-events/event-collection-compact',
 		array(
-			'title'         => __( 'WP Seed Events — Carte compacte', 'wp-seed-events' ),
+			'title'         => __( 'WPSEvents — Carte compacte', 'wp-seed-events' ),
 			'description'   => __( 'Une carte sobre avec visuel, titre, dates, lieu et lien vers la fiche.', 'wp-seed-events' ),
 			'categories'    => array( 'wp-seed-events/collections' ),
 			'keywords'      => array( 'événement', 'collection', 'carte' ),
@@ -120,7 +120,7 @@ function wp_seed_events_register_event_collection_patterns() {
 	register_block_pattern(
 		'wp-seed-events/event-collection-detailed',
 		array(
-			'title'         => __( 'WP Seed Events — Carte détaillée', 'wp-seed-events' ),
+			'title'         => __( 'WPSEvents — Carte détaillée', 'wp-seed-events' ),
 			'description'   => __( 'Une carte complète avec visuel, titre, type, extrait, dates, lieu, personnes et lien.', 'wp-seed-events' ),
 			'categories'    => array( 'wp-seed-events/collections' ),
 			'keywords'      => array( 'événement', 'collection', 'carte' ),

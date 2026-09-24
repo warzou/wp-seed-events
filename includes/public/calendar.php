@@ -57,20 +57,6 @@ function wp_seed_events_event_calendar_url( $event, $occurrences = null ) {
 	);
 }
 
-function wp_seed_events_render_event_calendar_link( $event, $occurrences = null ) {
-	$url = wp_seed_events_event_calendar_url( $event, $occurrences );
-
-	if ( '' === $url ) {
-		return '';
-	}
-
-	return sprintf(
-		'<a class="wp-seed-event-calendar-link wp-seed-event-calendar-link--all" href="%1$s"><span aria-hidden="true">&#x1F5D3;&#xFE0F;</span> %2$s</a>',
-		esc_url( $url ),
-		esc_html__( 'Ajouter toutes les dates', 'wp-seed-events' )
-	);
-}
-
 function wp_seed_events_occurrence_calendar_url( $event, $occurrence ) {
 	if (
 		empty( $event['id'] ) ||
@@ -88,20 +74,6 @@ function wp_seed_events_occurrence_calendar_url( $event, $occurrence ) {
 			'occurrence_uid' => (string) $occurrence['id'],
 		),
 		admin_url( 'admin-post.php' )
-	);
-}
-
-function wp_seed_events_render_occurrence_calendar_link( $event, $occurrence ) {
-	$url = wp_seed_events_occurrence_calendar_url( $event, $occurrence );
-
-	if ( '' === $url ) {
-		return '';
-	}
-
-	return sprintf(
-		'<a class="wp-seed-event-calendar-link" href="%1$s"><span aria-hidden="true">&#x1F5D3;&#xFE0F;</span> %2$s</a>',
-		esc_url( $url ),
-		esc_html__( 'Ajouter cette date au calendrier', 'wp-seed-events' )
 	);
 }
 

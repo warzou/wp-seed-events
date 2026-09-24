@@ -18,7 +18,6 @@ const { data } = window.divi;
 import metadata from './module.json';
 import {
   createEventDatesPreviewFilter,
-  getDiviDesktopFieldValue,
   resolveCurrentEventContext,
   toPlainObject,
 } from './loop-preview-context';
@@ -67,7 +66,6 @@ const normalizeSeparatorStyles = (attrs) => {
         field,
         fieldConfig.defaultValue,
       );
-      value = String(value ?? '').trim();
       if (fieldConfig.color) {
         value = /^(?:#[0-9a-f]{3,8}|(?:rgb|hsl)a?\([^;{}]+\)|var\(--[a-z0-9_-]+\))$/i.test(value)
           ? value
@@ -189,18 +187,7 @@ const normalizeOptions = (attrs) => {
     scope = 'all';
   }
 
-  const hasLegacyTitle = Object.prototype.hasOwnProperty.call(values, 'title')
-    && Object.prototype.hasOwnProperty.call(values, 'show_title');
-  const legacyTitleOptions = hasLegacyTitle
-    ? {
-      title: typeof values.title === 'string' ? values.title : '',
-      show_title: values.show_title === 'off' ? 'off' : 'on',
-      heading_level: headingLevels.includes(values.heading_level) ? values.heading_level : 'h2',
-    }
-    : {};
-
   return {
-    ...legacyTitleOptions,
     mode,
     scope,
     show_cancelled: values.show_cancelled === 'off' ? 'off' : 'on',
@@ -209,16 +196,12 @@ const normalizeOptions = (attrs) => {
     time_layout: timeLayouts.desktop,
     time_layout_tablet: timeLayouts.tablet,
     time_layout_phone: timeLayouts.phone,
-    responsive_time_layout_requested: hasResponsiveTimeLayout,
+    responsive_time_layout_requested: hasResponsiveTimeLayout ? 'on' : 'off',
     show_separator: values.show_separator === 'on' ? 'on' : 'off',
     separator_character: typeof values.separator_character === 'string' && values.separator_character.trim() !== ''
       ? values.separator_character.trim().slice(0, 8)
       : '\u2014',
     format: formats.includes(values.format) ? values.format : 'long',
-    show_calendar_links: Object.prototype.hasOwnProperty.call(values, 'show_calendar_links')
-      && values.show_calendar_links === 'on'
-      ? 'on'
-      : 'off',
   };
 };
 
@@ -232,12 +215,13 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
         },
       },
     })}
+    {elements.style({ attrName: 'sectionStyle' })}
     {elements.style({ attrName: 'dateStyle' })}
     {elements.style({ attrName: 'timeStyle' })}
     {elements.style({ attrName: 'separatorStyle' })}
     {elements.style({ attrName: 'statusStyle' })}
-    {elements.style({ attrName: 'calendarLinkStyle' })}
     {elements.style({ attrName: 'occurrenceStyle' })}
+    {elements.style({ attrName: 'listStyle' })}
   </StyleContainer>
 );
 
@@ -320,10 +304,6 @@ const EventDatesPreview = (props) => {
   );
 
   const previewContent = !isLoading && !hasError && previewHtml !== '';
-  const legacyHeadingLevel = options.heading_level || 'h2';
-  const showLegacyTitle = options.show_title === 'on'
-    && typeof options.title === 'string'
-    && options.title.trim() !== '';
 
   return (
     <ModuleContainer
@@ -345,14 +325,7 @@ const EventDatesPreview = (props) => {
         {isLoading && <div role="status">Chargement des dates…</div>}
         {!isLoading && hasError && <div role="alert">L’aperçu des dates est indisponible.</div>}
         {!isLoading && !hasError && previewHtml === '' && (
-          <>
-            {showLegacyTitle && React.createElement(
-              legacyHeadingLevel,
-              { className: 'wp-seed-event-dates__title' },
-              options.title,
-            )}
-            <div>Aucune date à afficher dans ce contexte.</div>
-          </>
+          <div>Aucune date à afficher dans ce contexte.</div>
         )}
         </div>
       )}
@@ -390,6 +363,9 @@ const eventDatesModule = {
       innerContent: {
         desktop: {
           value: {
+            title: '',
+            show_title: 'off',
+            heading_level: 'h2',
             mode: 'all',
             scope: 'all',
             date_selection: 'all',
@@ -429,7 +405,7 @@ addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.e
   registerFolder({
     name: 'wp-seed-events',
     path: '',
-    title: 'WP Seed Events',
+    title: 'WPSEvents',
     icon: '',
     category: 'module',
   });

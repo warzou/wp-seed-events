@@ -15,14 +15,6 @@ import ServerSideRender from '@wordpress/server-side-render';
 
 import metadata from './block.json';
 
-const HEADING_LEVEL_OPTIONS = [
-  { label: 'h2', value: 'h2' },
-  { label: 'h3', value: 'h3' },
-  { label: 'h4', value: 'h4' },
-  { label: 'h5', value: 'h5' },
-  { label: 'h6', value: 'h6' },
-];
-
 const ROLE_OPTIONS = [
   { label: __( 'Tous les rôles', 'wp-seed-events' ), value: 'all' },
   { label: __( 'Organisateur', 'wp-seed-events' ), value: 'organizer' },
@@ -83,15 +75,6 @@ function previewAttributes( attributes ) {
   const roles = normalizedRoles( attributes );
 
   return {
-    title:
-      typeof attributes.title === 'string'
-        ? attributes.title
-        : 'Contacts et intervenants',
-    heading_level: validOption(
-      HEADING_LEVEL_OPTIONS,
-      attributes.heading_level,
-      'h2',
-    ),
     roles,
     role: roles[ 0 ] || 'all',
     show_name: booleanOption( attributes.show_name, true ),
@@ -120,7 +103,7 @@ function previewAttributes( attributes ) {
 
 function LoadingPreview() {
   return (
-    <Placeholder icon="groups" label={ __( 'WP Seed — Personnes de l’événement', 'wp-seed-events' ) }>
+    <Placeholder icon="groups" label={ __( 'WPSEvents — Personnes', 'wp-seed-events' ) }>
       <Spinner />
       <span>{ __( 'Chargement de l’aperçu…', 'wp-seed-events' ) }</span>
     </Placeholder>
@@ -131,7 +114,7 @@ function EmptyPreview() {
   return (
     <Placeholder
       icon="groups"
-      label={ __( 'WP Seed — Personnes de l’événement', 'wp-seed-events' ) }
+      label={ __( 'WPSEvents — Personnes', 'wp-seed-events' ) }
       instructions={ __( 'Aucune personne à afficher dans ce contexte.', 'wp-seed-events' ) }
     />
   );
@@ -139,7 +122,7 @@ function EmptyPreview() {
 
 function ErrorPreview() {
   return (
-    <Placeholder icon="groups" label={ __( 'WP Seed — Personnes de l’événement', 'wp-seed-events' ) }>
+    <Placeholder icon="groups" label={ __( 'WPSEvents — Personnes', 'wp-seed-events' ) }>
       <Notice status="error" isDismissible={ false }>
         { __( 'Impossible de charger l’aperçu des personnes.', 'wp-seed-events' ) }
       </Notice>
@@ -157,17 +140,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
     <>
       <InspectorControls>
         <PanelBody title={ __( 'Réglages des personnes', 'wp-seed-events' ) } initialOpen>
-          <TextControl
-            label={ __( 'Titre', 'wp-seed-events' ) }
-            value={ normalized.title }
-            onChange={ ( value ) => setAttributes( { title: value } ) }
-          />
-          <SelectControl
-            label={ __( 'Niveau du titre', 'wp-seed-events' ) }
-            value={ normalized.heading_level }
-            options={ HEADING_LEVEL_OPTIONS }
-            onChange={ ( value ) => setAttributes( { heading_level: value } ) }
-          />
           <fieldset>
             <legend>{ __( 'Rôles affichés', 'wp-seed-events' ) }</legend>
             <CheckboxControl

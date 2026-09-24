@@ -1,0 +1,87 @@
+.wp-seed-event-share__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.625rem;
+}
+
+.wp-seed-event-share__action:not(.et_pb_button) {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45em;
+	text-align: center;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.wp-seed-event-share__action.has-no-rendered-icon::before,
+.wp-seed-event-share__action.has-no-rendered-icon::after {
+	display: none !important;
+	content: none !important;
+}
+
+.wp_seed_events_divi_event_share .wp-seed-event-share__action.et_pb_button:hover {
+	background-color: transparent;
+	border-color: currentColor;
+	padding: 0.3em 1em;
+}
+
+.wp-seed-event-share__action.has-explicit-icon.et_pb_button {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+}
+
+.wp-seed-event-share__action.has-explicit-icon.et_pb_button::before,
+.wp-seed-event-share__action.has-explicit-icon.et_pb_button::after {
+	position: static !important;
+	inset: auto !important;
+	flex: none;
+	margin: 0 !important;
+	line-height: 1em !important;
+	transform: none !important;
+}
+
+body.et-db #page-container #et-boc .et-l .wp_seed_events_divi_event_share .wp-seed-event-share__action.has-explicit-icon.et_pb_button::before,
+body.et-db #page-container #et-boc .et-l .wp_seed_events_divi_event_share .wp-seed-event-share__action.has-explicit-icon.et_pb_button::after {
+	margin-inline: 0 !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+}
+
+body.et-db #page-container #et-boc .et-l .wp_seed_events_divi_event_share .is-display-text_icon .wp-seed-event-share__action.has-icon-left::before {
+	margin-inline-end: 0.3em !important;
+}
+
+body.et-db #page-container #et-boc .et-l .wp_seed_events_divi_event_share .is-display-text_icon .wp-seed-event-share__action.has-icon-right::after {
+	margin-inline-start: 0.3em !important;
+}
+
+.wp-seed-event-share.is-display-text_icon .wp-seed-event-share__action.has-icon-left::before {
+	margin-inline-end: 0.3em !important;
+}
+
+.wp-seed-event-share.is-display-text_icon .wp-seed-event-share__action.has-icon-right::after {
+	margin-inline-start: 0.3em !important;
+}
+
+.wp-seed-event-share__action.has-icon-left::before,
+.wp-seed-event-share__action.has-icon-right::after {
+	display: inline-block !important;
+}
+
+.wp-seed-event-share__action.has-icon-left::after,
+.wp-seed-event-share__action.has-icon-right::before {
+	display: none !important;
+}
+
+.wp-seed-event-share__action.is-icon-hover-on:not(:hover):not(:focus-visible)::before,
+.wp-seed-event-share__action.is-icon-hover-on:not(:hover):not(:focus-visible)::after {
+	display: none !important;
+}
+
+.wp-seed-event-share__feedback {
+	margin: 0;
+}

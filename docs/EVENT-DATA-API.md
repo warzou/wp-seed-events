@@ -28,6 +28,8 @@ $event = wp_seed_events_get_event_data( 123 );
 | `all_types` | `array[]` | Ensemble ordonne des types publics. |
 | `is_pinned` | `bool` | Etat public de la case Evenement epingle. |
 | `occurrences` | `array[]` | Occurrences normalisees, annulees incluses. |
+| `promotions` | `array[]` | Promotions publiques distinctes des occurrences. |
+| `parcours_years` | `int[]` | Annees du parcours distinctes, triees de 1 a 4. |
 | `active_occurrences` | `array[]` | Occurrences non annulees. |
 | `next_occurrence` | `array` | Premiere occurrence active aujourd'hui ou dans le futur, ou `array()`. |
 | `last_occurrence` | `array` | Derniere occurrence active chronologique, ou `array()`. |
@@ -36,9 +38,10 @@ $event = wp_seed_events_get_event_data( 123 );
 | `programming_status` | `string` | État canonique `scheduled` ou `to_schedule`. |
 | `programming_text` | `string` | Texte public multiligne lorsque les dates restent à programmer. |
 | `programming_visible_until` | `string` | Date technique `YYYY-MM-DD` limitant les listings, jamais une date d'événement. |
-| `place` | `array` | `id`, `name`, `address`, `details`, `link`, ou `array()`. |
+| `place` | `array` | `id`, `name`, `address`, `details`, `link`, `place_url` et `place_url_label`, ou `array()`. |
 | `place_address` | `string` | Projection texte de l'adresse. |
 | `place_url` | `string` | URL publique absolue HTTP(S), ou chaine vide. |
+| `place_url_label` | `string` | Texte public du lien du lieu, avec fallback sur `place_url`. |
 | `people` | `array[]` | Personnes et coordonnees explicitement publiques seulement. |
 | `description` | `string` | Contenu WordPress complet stocké de l'événement. Le consommateur choisit son rendu et son échappement. |
 | `short_description` | `string` | Description courte manuelle brute issue de la meta dédiée, ou chaîne vide. |
@@ -47,6 +50,7 @@ $event = wp_seed_events_get_event_data( 123 );
 | `practical_info` | `string` | Informations pratiques publiques. |
 | `event_document_filename` | `string` | Nom public sur du document PDF. |
 | `event_document_url` | `string` | URL HTTP(S) du PDF public, ou chaine vide. |
+| `calendar_all_occurrences_url` | `string` | URL HTTP(S) du fichier ICS regroupant toutes les occurrences futures actives, ou chaine vide. |
 | `featured_image` | `array|null` | Objet Media de l'image principale WordPress. |
 | `communication_visual` | `array|null` | Premier visuel de communication normalise. |
 | `communication_visuals` | `array[]` | Visuels de communication ordonnes. |
@@ -55,10 +59,15 @@ $event = wp_seed_events_get_event_data( 123 );
 
 Un objet Media expose : `id`, `url`, `mime_type`, `title`, `alt`, `caption`, `filename`, `width` et `height`. Aucune cle ne contient de chemin serveur.
 
-Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `public_phone` et `public_url`. Les alias `email`, `phone` et `link` reproduisent uniquement ces valeurs deja autorisees ; ils ne contournent jamais les permissions de publication.
+Une personne publique expose `name`, `role_keys`, `roles`, `public_email`, `public_phone`, `phone_public`, `phone_action`, `public_url`, `website_url` et `website_label`. `phone_action` vaut `none`, `call` ou `sms` et provient de l'association evenement-personne. Une association historique sans valeur conserve le comportement `call` sans migration du stockage. `website_label` contient le libelle public defini sur la fiche Personne, ou l'URL historique lorsque ce libelle est vide. Les alias `email`, `phone` et `link` reproduisent uniquement les valeurs deja autorisees ; ils ne contournent jamais les permissions de publication.
+
+Le lieu canonique porte son adresse, son URL et son libelle de lien. L'association evenement-lieu porte uniquement la publication de l'URL et les informations complementaires propres a l'evenement. Le champ REST `wp_seed_event_place` expose cette projection publique sans lecture directe des metas par les builders.
 
 Le schema des occurrences est defini dans [Event Occurrences API](EVENT-OCCURRENCES-API.md).
 Le contrat des classifications natives et du tri est defini dans [Classifications natives](NATIVE-EVENT-CLASSIFICATIONS.md).
+Le schema Promotion et ses routes sont definis dans
+[Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
+
 ## Alias medias historiques
 
 Les identifiants suivants restent derives des objets Media normalises :
@@ -90,6 +99,19 @@ Stockage WordPress
 ```
 
 Event Data ne produit pas de HTML, ne choisit pas une collection et ne depend d'aucun builder.
+
+## Frontière temporelle et historiques imprécis
+
+Une occurrence active reste `upcoming` tant que sa fin locale WordPress n'est
+pas passée (`end_sort >= now`). Une occurrence multi-jours déjà commencée est
+donc en cours et reste dans les collections à venir. Un événement devient
+`past` seulement lorsqu'aucune occurrence active ne reste à venir ou en cours.
+
+Dans une collection `upcoming`, les événements en cours précèdent les événements
+futurs, puis les événements futurs sont triés sur leur prochaine occurrence.
+Dans une collection `past`, les événements sont triés selon leur dernière
+occurrence active. Un événement programmé sans occurrence reste `undated` et
+n'entre pas dans la collection `past`.
 
 Le contrat complet des descriptions, du legacy `post_excerpt` et du REST d'édition est documenté dans [Descriptions des événements](EVENT-DESCRIPTIONS.md).
 # Document canonique

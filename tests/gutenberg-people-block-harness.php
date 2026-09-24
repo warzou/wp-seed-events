@@ -187,7 +187,7 @@ p5_case( '1 block registered', function () {
 	p5_assert( 'wp_seed_events_render_gutenberg_event_people_block' === ( $GLOBALS['p5_registered']['args']['render_callback'] ?? '' ), 'Render callback not registered.' );
 } );
 p5_case( '2 canonical identifier', fn() => p5_assert( 'wp-seed-events/event-people-block' === $GLOBALS['metadata']['name'], 'Wrong block ID.' ) );
-p5_case( '3 French title', fn() => p5_assert( 'WP Seed — Personnes de l’événement' === $GLOBALS['metadata']['title'], 'Wrong title.' ) );
+p5_case( '3 French title', fn() => p5_assert( 'WPSEvents — Personnes' === $GLOBALS['metadata']['title'], 'Wrong title.' ) );
 p5_case( '4 category', fn() => p5_assert( 'widgets' === $GLOBALS['metadata']['category'], 'Wrong category.' ) );
 p5_case( '5 server render callback', fn() => p5_contains( 'wp_seed_events_render_gutenberg_event_people_block', $GLOBALS['source'], 'Server callback missing.' ) );
 p5_case( '6 current event context', fn() => p5_contains( 'Alice', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ) ), 'Current event did not render.' ) );
@@ -218,15 +218,15 @@ p5_case( '18 speaker filter', fn() => p5_contains( 'Benoit', p5_render( array( '
 p5_case( '19 registration filter', fn() => p5_contains( 'Claire', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ), array( 'role' => 'registration_contact' ) ), 'Registration contact missing.' ) );
 p5_case( '20 information filter', fn() => p5_contains( 'David', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'role' => 'information_contact' ) ), 'Information contact missing.' ) );
 p5_case( '21 invalid role falls back to all', fn() => p5_contains( 'Claire', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ), array( 'role' => 'private_role' ) ), 'Invalid role did not fall back.' ) );
-p5_case( '22 default title', fn() => p5_contains( 'Contacts et intervenants', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ) ), 'Default title missing.' ) );
-p5_case( '23 custom title', fn() => p5_contains( 'Equipe', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'title' => 'Equipe' ) ), 'Custom title missing.' ) );
+p5_case( '22 default title is absent', fn() => p5_not_contains( 'wp-seed-event-people__title', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ) ), 'Integrated title rendered.' ) );
+p5_case( '23 custom title is inert', fn() => p5_not_contains( 'Equipe', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'title' => 'Equipe' ) ), 'Stored title rendered.' ) );
 p5_case( '24 empty title', fn() => p5_not_contains( '<h2', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'title' => '' ) ), 'Empty title rendered.' ) );
-p5_case( '25 headings h2 to h6', function () {
+p5_case( '25 headings h2 to h6 are inert', function () {
 	foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $heading ) {
-		p5_contains( '<' . $heading, p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'heading_level' => $heading ) ), 'Heading missing.' );
+		p5_not_contains( 'wp-seed-event-people__title', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'heading_level' => $heading ) ), 'Heading rendered.' );
 	}
 } );
-p5_case( '26 invalid heading', fn() => p5_contains( '<h2', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'heading_level' => 'h1' ) ), 'Invalid heading did not normalize.' ) );
+p5_case( '26 invalid heading is inert', fn() => p5_not_contains( 'wp-seed-event-people__title', p5_render( array( 'postId' => 11, 'postType' => 'wp_seed_event' ), array( 'heading_level' => 'h1' ) ), 'Heading rendered.' ) );
 p5_case( '27 roles shown', fn() => p5_contains( 'Organisatrice', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ) ), 'Role missing.' ) );
 p5_case( '28 roles hidden', fn() => p5_not_contains( 'wp-seed-event-people__roles', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ), array( 'show_roles' => false ) ), 'Roles not hidden.' ) );
 p5_case( '29 public email', fn() => p5_contains( 'alice@example.test', p5_render( array( 'postId' => 10, 'postType' => 'wp_seed_event' ) ), 'Public email missing.' ) );

@@ -42,20 +42,20 @@ const useFetch = () => {
       const allDates = eventId === 2414 ? ['10/10/2026'] : ['13/10/2026', '03/11/2026'];
       const mode = url.searchParams.get('mode');
       const dates = mode === 'last' ? allDates.slice(-1) : (mode === 'first' || mode === 'next' ? allDates.slice(0, 1) : allDates);
-      const title = url.searchParams.get('title') || '';
-      const showDate = url.searchParams.get('show_dates') !== 'off';
+      const date = url.searchParams.get('show_dates') === 'off' ? '' : '<time class="wp-seed-event-date__date">DATE_VALUE</time>';
       const time = url.searchParams.get('show_times') === 'off' ? '' : '<span class="wp-seed-event-date__time">20:00</span>';
-      const calendar = url.searchParams.get('show_calendar_links') === 'off' ? '' : '<a class="wp-seed-event-calendar-link">Calendrier</a>';
-      const layouts = ['desktop', 'tablet', 'phone'].map((breakpoint) => (
-        `is-time-layout-${breakpoint}-${url.searchParams.get(`time_layout${breakpoint === 'desktop' ? '' : `_${breakpoint}`}`) || 'below'}`
-      )).join(' ');
-      const inlineClass = url.searchParams.get('time_layout') === 'inline' ? ' is-time-inline' : '';
-      const hasInlineLayout = ['time_layout', 'time_layout_tablet', 'time_layout_phone']
-        .some((parameter) => url.searchParams.get(parameter) === 'inline');
-      const separator = url.searchParams.get('show_separator') === 'on' && showDate && time && hasInlineLayout
+      const resolvedTimeLayouts = {};
+      const timeLayouts = ['desktop', 'tablet', 'phone'].map((breakpoint) => {
+        const parameter = breakpoint === 'desktop' ? 'time_layout' : `time_layout_${breakpoint}`;
+        resolvedTimeLayouts[breakpoint] = url.searchParams.get(parameter) || 'below';
+        return `is-time-layout-${breakpoint}-${resolvedTimeLayouts[breakpoint]}`;
+      }).join(' ');
+      const separator = url.searchParams.get('show_separator') === 'on'
+        && date && time && Object.values(resolvedTimeLayouts).includes('inline')
         ? `<span class="wp-seed-event-date__separator" aria-hidden="true">${url.searchParams.get('separator_character') || '\u2014'}</span>`
         : '';
-      const html = `<section class="wp-seed-event-section--dates ${layouts}">${title ? `<h2 class="wp-seed-event-dates__title">${title}</h2>` : ''}<ul class="wp-seed-event-dates">${dates.map((date) => `<li class="wp-seed-event-date${inlineClass}">${showDate ? `<time class="wp-seed-event-date__date">${date}</time>` : ''}${separator}${time}${calendar}</li>`).join('')}</ul></section>`;
+      const hasItems = date || time;
+      const html = `<section class="wp-seed-event-section--dates ${timeLayouts}">${hasItems ? `<ul class="wp-seed-event-dates">${dates.map((dateValue) => `<li class="wp-seed-event-date">${date.replace('DATE_VALUE', dateValue)}${separator}${time}</li>`).join('')}</ul>` : ''}</section>`;
       requestLog.push(Object.fromEntries(url.searchParams.entries()));
       setResult({ response: { html }, isLoading: false });
       return Promise.resolve();
@@ -177,13 +177,23 @@ const dynamicAttrs = {
       desktop: {
         value: {
           title: 'Agenda test',
-          show_title: 'on',
           heading_level: 'h4',
           date_selection: 'last',
           show_cancelled: 'off',
+          show_dates: 'on',
           show_times: 'off',
           format: 'short',
+          time_layout: 'inline',
+          show_separator: 'on',
+          separator_character: '|',
           show_calendar_links: 'off',
+          calendar_presentation: 'text',
+          calendar_label: 'Ajouter au calendrier',
+          calendar_icon_position: 'right',
+          calendar_layout: 'inline',
+          all_calendar_presentation: 'icon',
+          all_calendar_label: 'Toutes les occurrences',
+          all_calendar_icon_position: 'right',
         },
       },
     },
@@ -195,6 +205,14 @@ const dynamicAttrs = {
       leftIndent: { desktop: { value: '0px' }, tablet: { value: '24px' } },
       occurrenceGap: { desktop: { value: '9px' }, phone: { value: '3px' } },
       markerColor: { desktop: { value: 'var(--EventMarker)' } },
+    },
+  },
+  separatorStyle: {
+    advanced: {
+      color: { desktop: { value: '#123456' }, tablet: { value: 'rgb(1, 2, 3)' } },
+      fontSize: { desktop: { value: '1.2em' }, phone: { value: '18px' } },
+      spaceBefore: { desktop: { value: '6px' } },
+      spaceAfter: { desktop: { value: '8px' }, tablet: { value: '10px' } },
     },
   },
   module: { decoration: {} },
@@ -220,13 +238,6 @@ const exerciseDynamicUpdate = async () => {
   };
 
   await render(defaultAttrs);
-  const untouchedRequest = requestLog.at(-1);
-  ['title', 'show_title', 'heading_level'].forEach((field) => {
-    assert.ok(!Object.prototype.hasOwnProperty.call(untouchedRequest, field), `Untouched preview sent ${field}`);
-  });
-  assert.strictEqual(untouchedRequest.show_calendar_links, 'off');
-  assert.strictEqual(container.querySelector('.wp-seed-event-calendar-link'), null);
-  assert.strictEqual(container.querySelector('.wp-seed-event-dates__title'), null);
   const firstRequestCount = requestLog.length;
   await render(dynamicAttrs);
   const dynamicRequest = requestLog.at(-1);
@@ -239,22 +250,29 @@ const exerciseDynamicUpdate = async () => {
   assert.deepStrictEqual({
     post_id: dynamicRequest.post_id,
     loop_id: dynamicRequest.loop_id,
-    title: dynamicRequest.title,
-    show_title: dynamicRequest.show_title,
-    heading_level: dynamicRequest.heading_level,
     mode: dynamicRequest.mode,
     scope: dynamicRequest.scope,
     show_cancelled: dynamicRequest.show_cancelled,
+    show_dates: dynamicRequest.show_dates,
     show_times: dynamicRequest.show_times,
+    time_layout: dynamicRequest.time_layout,
+    time_layout_tablet: dynamicRequest.time_layout_tablet,
+    time_layout_phone: dynamicRequest.time_layout_phone,
+    show_separator: dynamicRequest.show_separator,
+    separator_character: dynamicRequest.separator_character,
     format: dynamicRequest.format,
-    show_calendar_links: dynamicRequest.show_calendar_links,
   }, {
-    post_id: '2417', loop_id: '2417', title: 'Agenda test', show_title: 'on', heading_level: 'h4',
-    mode: 'last', scope: 'all', show_cancelled: 'off', show_times: 'off',
-    format: 'short', show_calendar_links: 'off',
+    post_id: '2417', loop_id: '2417',
+    mode: 'last', scope: 'all', show_cancelled: 'off', show_dates: 'on', show_times: 'off',
+    time_layout: 'inline', time_layout_tablet: 'inline', time_layout_phone: 'inline',
+    show_separator: 'on', separator_character: '|', format: 'short',
   });
-  assert.ok(container.textContent.includes('Agenda test'));
-
+  ['show_calendar_links', 'calendar_presentation', 'calendar_label', 'calendar_icon_position',
+    'calendar_layout', 'show_all_calendar', 'show_all_calendar_explicit',
+    'all_calendar_presentation', 'all_calendar_label', 'all_calendar_icon_position']
+    .forEach((field) => assert.ok(!Object.prototype.hasOwnProperty.call(dynamicRequest, field), `Legacy field reached REST: ${field}`));
+  assert.ok(!container.textContent.includes('Agenda test'));
+  assert.ok(!container.querySelector('.wp-seed-event-dates__title'));
   assert.ok(!container.textContent.includes('13/10/2026'));
   assert.ok(container.textContent.includes('03/11/2026'));
   assert.ok(!container.querySelector('.wp-seed-event-date__time'));
@@ -263,30 +281,6 @@ const exerciseDynamicUpdate = async () => {
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-type-tablet'), 'square');
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-type-phone'), 'circle');
   assert.strictEqual(dynamicList.style.getPropertyValue('--wp-seed-event-dates-marker-color-desktop'), 'var(--EventMarker)');
-
-  const resavedLegacyAttrs = JSON.parse(JSON.stringify({
-    ...dynamicAttrs,
-    content: {
-      innerContent: {
-        desktop: {
-          value: {
-            ...dynamicAttrs.content.innerContent.desktop.value,
-            show_times: 'on',
-          },
-        },
-      },
-    },
-  }));
-  await render(resavedLegacyAttrs);
-  const resavedLegacyRequest = requestLog.at(-1);
-  assert.deepStrictEqual({
-    title: resavedLegacyRequest.title,
-    show_title: resavedLegacyRequest.show_title,
-    heading_level: resavedLegacyRequest.heading_level,
-  }, { title: 'Agenda test', show_title: 'on', heading_level: 'h4' });
-  assert.ok(container.textContent.includes('Agenda test'));
-
-  await render(dynamicAttrs);
 
   const requestCountBeforeResponsiveOnly = requestLog.length;
   const responsiveOnlyAttrs = {
@@ -314,53 +308,39 @@ const exerciseDynamicUpdate = async () => {
   container.remove();
 };
 
-const exerciseComposableLayouts = async (immutable) => {
-  const attrs = {
-    content: {
-      innerContent: {
-        desktop: { value: { show_dates: 'off', show_times: 'on', time_layout: 'inline' } },
-        tablet: { value: { time_layout: 'below' } },
-        phone: { value: {} },
-      },
-    },
-    module: { decoration: {} },
-  };
-  const before = requestLog.length;
-  const result = await mountPreview(immutable ? fromJS(attrs) : attrs, 0);
-  const request = requestLog.at(-1);
-  assert.strictEqual(result.error, '');
-  assert.ok(requestLog.length > before);
-  assert.strictEqual(request.show_dates, 'off');
-  assert.strictEqual(request.show_times, 'on');
-  assert.strictEqual(request.time_layout, 'inline');
-  assert.strictEqual(request.time_layout_tablet, 'below');
-  assert.strictEqual(request.time_layout_phone, 'below');
-  assert.strictEqual(request.responsive_time_layout_requested, 'true');
-  assert.ok(!result.text.includes('10/10/2026'));
-  assert.ok(result.text.includes('20:00'));
-};
+const composableAttrs = (values) => ({
+  content: { innerContent: { desktop: { value: values } } },
+  module: { decoration: {} },
+});
 
-const exerciseSeparator = async (immutable) => {
+const exerciseComposableInstances = async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const reactRoot = createRoot(container);
   const render = async (attrs) => {
     await act(async () => {
       reactRoot.render(React.createElement(ErrorBoundary, null, registeredModule.renderers.edit({
-        attrs: immutable ? fromJS(attrs) : attrs,
+        attrs,
         elements,
-        id: 'dates-separator-module',
+        id: 'dates-module',
         name: 'wp-seed-events/event-dates',
-        parentId: immutable ? 'loop-separator-immutable' : 'loop-separator-simple',
+        parentId: 'loop-composable',
         loopIndex: 1,
       })));
       await Promise.resolve();
     });
   };
-  const attrs = {
+
+  await render(composableAttrs({
+    title: '', show_dates: 'off', show_times: 'on', show_calendar_links: 'off', show_all_calendar: 'off',
+  }));
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__date').length, 0);
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__time').length, 2);
+
+  const separatorAttrs = {
     content: {
       innerContent: {
-        desktop: { value: { show_dates: 'on', show_times: 'on', time_layout: 'inline', show_separator: 'on', separator_character: '·' } },
+        desktop: { value: { title: '', show_dates: 'on', show_times: 'on', time_layout: 'inline', show_separator: 'on', separator_character: '·', show_calendar_links: 'off', show_all_calendar: 'off' } },
         tablet: { value: { time_layout: 'below' } },
         phone: { value: { time_layout: 'inline' } },
       },
@@ -375,46 +355,59 @@ const exerciseSeparator = async (immutable) => {
     },
     module: { decoration: {} },
   };
+  await render(separatorAttrs);
+  const separators = container.querySelectorAll('.wp-seed-event-date__separator');
+  assert.strictEqual(separators.length, 2);
+  assert.strictEqual(separators[0].textContent, '·');
+  assert.strictEqual(requestLog.at(-1).time_layout, 'inline');
+  assert.strictEqual(requestLog.at(-1).time_layout_tablet, 'below');
+  assert.strictEqual(requestLog.at(-1).time_layout_phone, 'inline');
+  assert.strictEqual(requestLog.at(-1).responsive_time_layout_requested, 'on');
+  assert.strictEqual(separators[0].style.getPropertyValue('--wp-seed-event-dates-separator-color-desktop'), '#123456');
+  assert.strictEqual(separators[0].style.getPropertyValue('--wp-seed-event-dates-separator-size-tablet'), '18px');
+  assert.strictEqual(separators[0].style.getPropertyValue('--wp-seed-event-dates-separator-after-phone'), '10px');
 
-  await render(attrs);
-  const separator = container.querySelector('.wp-seed-event-date__separator');
-  assert.ok(separator, 'Opt-in separator did not mount.');
-  assert.strictEqual(separator.textContent, '·');
-  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-color-desktop'), '#123456');
-  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-size-tablet'), '18px');
-  assert.strictEqual(separator.style.getPropertyValue('--wp-seed-event-dates-separator-after-phone'), '10px');
-  const request = requestLog.at(-1);
-  assert.deepStrictEqual({
-    show_separator: request.show_separator,
-    separator_character: request.separator_character,
-    time_layout: request.time_layout,
-    time_layout_tablet: request.time_layout_tablet,
-    time_layout_phone: request.time_layout_phone,
-  }, {
-    show_separator: 'on', separator_character: '·', time_layout: 'inline', time_layout_tablet: 'below', time_layout_phone: 'inline',
-  });
-
-  const requestCount = requestLog.length;
+  const requestsBeforeSeparatorStyle = requestLog.length;
   await render({
-    ...attrs,
+    ...separatorAttrs,
     separatorStyle: {
-      ...attrs.separatorStyle,
-      advanced: { ...attrs.separatorStyle.advanced, color: { desktop: { value: '#654321' } } },
+      ...separatorAttrs.separatorStyle,
+      advanced: {
+        ...separatorAttrs.separatorStyle.advanced,
+        color: { desktop: { value: '#654321' } },
+      },
     },
   });
-  assert.strictEqual(requestLog.length, requestCount, 'Separator-only live style change triggered a REST request.');
+  assert.strictEqual(requestLog.length, requestsBeforeSeparatorStyle, 'Separator-only style change caused a REST request.');
   assert.strictEqual(
     container.querySelector('.wp-seed-event-date__separator').style.getPropertyValue('--wp-seed-event-dates-separator-color-desktop'),
     '#654321',
   );
 
-  await render({
-    ...attrs,
-    content: { innerContent: { desktop: { value: { show_dates: 'on', show_times: 'on', time_layout: 'below', show_separator: 'on' } } } },
-  });
-  assert.strictEqual(container.querySelector('.wp-seed-event-date__separator'), null, 'Stacked-only layout rendered a separator.');
-  await render(defaultAttrs);
-  assert.strictEqual(container.querySelector('.wp-seed-event-date__separator'), null, 'Untouched historical attrs rendered a separator.');
+  await render(fromJS(separatorAttrs));
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__separator').length, 2, 'Immutable separator attrs were lost.');
+
+  await render(composableAttrs({
+    title: '', show_dates: 'on', show_times: 'on', time_layout: 'below', show_separator: 'on', separator_character: '|', show_calendar_links: 'off', show_all_calendar: 'off',
+  }));
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__separator').length, 0);
+
+  await render(composableAttrs({
+    title: '', show_dates: 'on', show_times: 'on', time_layout: 'inline', show_separator: 'off', separator_character: '|', show_calendar_links: 'off', show_all_calendar: 'off',
+  }));
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__separator').length, 0);
+
+  await render(fromJS(composableAttrs({
+    show_dates: 'on', show_times: 'off', show_calendar_links: 'on',
+    calendar_presentation: 'button', calendar_label: 'Ma date',
+    show_all_calendar: 'on', all_calendar_label: 'Toutes mes dates',
+  })));
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-date__date').length, 2);
+  assert.strictEqual(container.querySelectorAll('.wp-seed-event-calendar-link').length, 0);
+  assert.ok(!container.textContent.includes('Ma date'));
+  assert.ok(!container.textContent.includes('Toutes mes dates'));
+  ['show_calendar_links', 'calendar_presentation', 'calendar_label', 'show_all_calendar', 'all_calendar_label']
+    .forEach((field) => assert.ok(!Object.prototype.hasOwnProperty.call(requestLog.at(-1), field), `Legacy field reached REST: ${field}`));
 
   await act(async () => reactRoot.unmount());
   container.remove();
@@ -500,17 +493,11 @@ assert.ok(registeredModule, 'The Dates module was not registered.');
 (async () => {
   const event2414 = await mountPreview(defaultAttrs, 0);
   const event2417 = await mountPreview(customImmutableAttrs, 1);
-  const legacyCalendar = await mountPreview({
-    content: { innerContent: { desktop: { value: { show_calendar_links: 'on' } } } },
-    module: { decoration: {} },
-  }, 0);
   assert.strictEqual(event2414.error, '', `2414 preview crashed: ${event2414.error}`);
   assert.strictEqual(event2417.error, '', `2417 preview crashed: ${event2417.error}`);
   assert.ok(event2414.text.includes('10/10/2026'));
   assert.ok(event2417.text.includes('13/10/2026'));
   assert.ok(event2417.text.includes('03/11/2026'));
-  assert.ok(!event2414.text.includes('Calendrier'));
-  assert.ok(legacyCalendar.text.includes('Calendrier'));
   assert.deepStrictEqual(event2414.styles, {
     desktopMarker: 'none', tabletMarker: 'none', phoneMarker: 'none',
     desktopPosition: 'outside', desktopIndent: '0px', phoneIndent: '0px',
@@ -522,10 +509,7 @@ assert.ok(registeredModule, 'The Dates module was not registered.');
     desktopGap: '8px', tabletGap: '4px', desktopColor: '#123456',
   });
   await exerciseDynamicUpdate();
-  await exerciseComposableLayouts(false);
-  await exerciseComposableLayouts(true);
-  await exerciseSeparator(false);
-  await exerciseSeparator(true);
+  await exerciseComposableInstances();
   await exerciseLiveStyleSequence(false);
   await exerciseLiveStyleSequence(true);
   assert.deepStrictEqual(unexpectedErrors, [], 'Unexpected console.error during preview mounts.');

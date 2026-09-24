@@ -6,7 +6,7 @@
     var React = vendor.React;
     var data = window.WpSeedEventsDiviEventResultsConditionData || {};
     var conditionName = 'wpSeedEventsHasResults';
-    var label = 'WP Seed Events — Événements disponibles';
+    var label = 'WPSEvents — Événements disponibles';
     var currentTypeConditionName = 'wpSeedEventsCurrentEventHasType';
     var currentTypeLabel = 'WPSEvents — Type de l’événement courant';
     var eventTypes = Array.isArray(data.eventTypes) ? data.eventTypes : [];

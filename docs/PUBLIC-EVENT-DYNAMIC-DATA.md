@@ -21,7 +21,7 @@ Les données simples sont destinées aux champs natifs des builders. Les composa
 ## Registre canonique
 
 Le registre `wp_seed_events_dynamic_data_fields()` contient exactement
-22 sources : 17 textes, 4 URL et 1 image.
+19 sources : 14 textes, 4 URL et 1 image.
 
 | Clé | Libellé | Type | Projection Event Data | Valeur absente |
 | --- | --- | --- | --- | --- |
@@ -112,23 +112,13 @@ registre n'invente aucun libellé de remplacement.
 
 ## Contrat URL
 
-Les quatre URL acceptent uniquement une URL absolue dont le schéma est `http` ou
+Les trois URL acceptent uniquement une URL absolue dont le schéma est `http` ou
 `https` et dont l'hôte est présent. Les URL relatives et les schémas
 `javascript:`, `data:`, `file:`, `mailto:` et `tel:` sont rejetés.
 
 Le document complémentaire est exposé seulement lorsque l'Event Data API
 fournit un document PDF valide. Une valeur refusée devient une chaîne vide ;
 aucun chemin serveur n'est jamais exposé.
-
-`calendar_all_occurrences_url` pointe vers le téléchargement ICS canonique de
-l'événement. L'URL est disponible dès qu'au moins une occurrence future active
-existe et le fichier regroupe toutes ces occurrences. Un événement à programmer,
-sans occurrence future active, ou un contexte invalide renvoie une chaîne vide.
-La source page est `wp_seed_events_calendar_all_occurrences_url`; dans une Loop
-Divi, l'alias strict est
-`loop_wp_seed_events_calendar_all_occurrences_url`. Un bouton ou un lien natif du
-builder porte la présentation et consomme cette URL sans logique calendrier
-locale.
 
 ## Contrat image
 
@@ -152,8 +142,9 @@ utilisée comme fallback et n'est jamais ajoutée à `communication_visuals`.
 ## Divi 5
 
 Divi enregistre un provider générique par type logique : texte, URL et image.
-Les 22 options sont générées depuis le registre et apparaissent une seule fois
-dans le groupe `WP Seed Events` avec leurs libellés français.
+Les 19 champs sont générés depuis le registre et exposent deux IDs techniques
+compatibles, clairement distingués dans l'interface : `WPSEvents — Page événement`
+pour la page et `WPSEvents` pour la boucle.
 
 - les textes alimentent les champs texte natifs ;
 - les URL alimentent les champs lien natifs avec le type Divi `url` ;
@@ -163,8 +154,8 @@ dans le groupe `WP Seed Events` avec leurs libellés français.
 Les providers utilisent l'API class-based publique de Divi 5 déjà validée. Ils
 ne contiennent ni shortcode, ni ID fixe, ni lecture de meta, ni HTML métier.
 
-Dans une boucle Divi, la source image enregistre aussi la variante technique
-`loop_wp_seed_events_communication_visual`. La route publique Divi
+Dans une boucle Divi, chaque source enregistre aussi une variante technique
+`loop_wp_seed_events_*`. La route publique Divi
 `/divi/v1/loop/query-results` est enrichie uniquement pour les items
 `wp_seed_event` publics avec l'URL canonique de leur visuel. Le contexte de boucle
 canonique est reutilise sans fallback vers le post global ; un evenement prive,
@@ -189,7 +180,7 @@ d’occurrences Gutenberg ou Divi. Les deux adaptateurs installent le même cont
 canonique et le restaurent après chaque élément. La source n’infère jamais une
 occurrence depuis le seul post événement.
 
-L'argument `field` sélectionne l'une des 22 clés du registre. Les usages validés
+L'argument `field` sélectionne l'une des 19 clés du registre. Les usages validés
 sont :
 
 - `core/paragraph` et `core/heading` pour `content` ;
@@ -214,6 +205,11 @@ Exemple de binding URL :
 <!-- /wp:button -->
 ```
 
+Pour un bouton calendrier, le même attribut `url` peut utiliser
+`calendar_all_occurrences_url`. WP Seed Events fournit alors l'URL publique du
+fichier ICS ; le builder reste responsable du texte, de l'icône et du style du
+bouton.
+
 ## Valeurs simples et composants structurés
 
 Dynamic Data convient aux valeurs unitaires : titre, date de référence, lieu,
@@ -222,13 +218,18 @@ URL ou visuel principal de communication.
 Les collections suivantes utilisent le renderer partagé et leurs adaptateurs
 dédiés :
 
-- Dates : occurrences ordonnées, états, horaires et liens calendrier ;
+- Dates : occurrences ordonnées, états et horaires ;
 - Visuels de communication : recto, autres visuels et document complémentaire ;
 - Personnes : rôles multiples et coordonnées publiques filtrées.
 
 Le shortcode reste le fallback universel. Les modules Divi et blocs Gutenberg
 restent des adaptateurs minces autour des mêmes renderers. Aucun composant ne
 doit dupliquer le métier dans React ou dans un builder.
+
+Les attributs calendrier historiques du module Divi Dates restent lisibles dans
+les contenus enregistrés, mais sont inertes au rendu. Les actions utilisent la
+Dynamic Data URL `calendar_all_occurrences_url` sur un bouton ou un lien natif
+du builder.
 
 ## Sécurité
 

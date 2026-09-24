@@ -12,15 +12,13 @@ const executablePath = process.env.WPSEED_BROWSER_PATH
   || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
 const moduleMarkup = (id, variables) => `
-  <section id="${id}" class="wp-seed-event-section wp-seed-event-section--dates native-matrix divi-module is-time-layout-desktop-inline is-time-layout-tablet-below is-time-layout-phone-inline">
+  <section id="${id}" class="wp-seed-event-section wp-seed-event-section--dates native-matrix">
     <h2 class="wp-seed-event-dates__title">Dates</h2>
     <ul class="wp-seed-event-dates has-custom-list-style" style="${variables}">
-      <li class="wp-seed-event-date has-date has-time has-date-time-separator">
+      <li class="wp-seed-event-date">
         <time class="wp-seed-event-date__date">10/10/2026</time>
         <span class="wp-seed-event-date__status">Annulee</span>
-        <span class="wp-seed-event-date__separator" aria-hidden="true" style="--wp-seed-event-dates-separator-color-desktop:#aa0066;--wp-seed-event-dates-separator-size-desktop:20px;--wp-seed-event-dates-separator-before-desktop:4px;--wp-seed-event-dates-separator-after-desktop:6px;--wp-seed-event-dates-separator-color-tablet:#008000;--wp-seed-event-dates-separator-size-tablet:18px;--wp-seed-event-dates-separator-before-tablet:3px;--wp-seed-event-dates-separator-after-tablet:5px;--wp-seed-event-dates-separator-color-phone:#0000ff;--wp-seed-event-dates-separator-size-phone:16px;--wp-seed-event-dates-separator-before-phone:2px;--wp-seed-event-dates-separator-after-phone:4px">—</span>
         <span class="wp-seed-event-date__time">10:00</span>
-        <a class="wp-seed-event-calendar-link" href="#">Calendrier</a>
       </li>
       <li class="wp-seed-event-date">
         <time class="wp-seed-event-date__date">03/11/2026</time>
@@ -85,15 +83,13 @@ const matrixMarkup = markerTypes.flatMap((markerType) => lineHeights.flatMap((li
     const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
     await page.setContent(`<!doctype html><html><head><style>
       ${stylesheet}
-      .divi-module .wp-seed-event-date__separator { color: rgb(217, 127, 0); font-size: 15px; }
       .entry-content ul { padding: 0 0 23px 1em; }
       .entry-content li::before { content: "global-marker"; }
       .entry-content time, .entry-content a, .entry-content span { display: inline; text-align: left; }
       .style-matrix .wp-seed-event-dates__title,
       .style-matrix .wp-seed-event-date__date,
       .style-matrix .wp-seed-event-date__time,
-      .style-matrix .wp-seed-event-date__status,
-      .style-matrix .wp-seed-event-calendar-link {
+      .style-matrix .wp-seed-event-date__status {
         font-family: Arial, sans-serif;
         font-size: 22px;
         font-weight: 700;
@@ -117,15 +113,13 @@ const matrixMarkup = markerTypes.flatMap((markerType) => lineHeights.flatMap((li
         .style-matrix .wp-seed-event-dates__title,
         .style-matrix .wp-seed-event-date__date,
         .style-matrix .wp-seed-event-date__time,
-        .style-matrix .wp-seed-event-date__status,
-        .style-matrix .wp-seed-event-calendar-link { font-size: 18px; line-height: 28px; text-align: center; }
+        .style-matrix .wp-seed-event-date__status { font-size: 18px; line-height: 28px; text-align: center; }
       }
       @media (max-width: 767px) {
         .style-matrix .wp-seed-event-dates__title,
         .style-matrix .wp-seed-event-date__date,
         .style-matrix .wp-seed-event-date__time,
-        .style-matrix .wp-seed-event-date__status,
-        .style-matrix .wp-seed-event-calendar-link { font-size: 15px; line-height: 22px; text-align: left; }
+        .style-matrix .wp-seed-event-date__status { font-size: 15px; line-height: 22px; text-align: left; }
       }
       .style-matrix .wp-seed-event-dates__title {
         margin-block-end: 17px;
@@ -168,7 +162,6 @@ const matrixMarkup = markerTypes.flatMap((markerType) => lineHeights.flatMap((li
       '.wp-seed-event-date__date',
       '.wp-seed-event-date__time',
       '.wp-seed-event-date__status',
-      '.wp-seed-event-calendar-link',
     ];
     for (const moduleId of ['frontend', 'preview']) {
       for (const selector of typographySelectors) {
@@ -296,34 +289,6 @@ const matrixMarkup = markerTypes.flatMap((markerType) => lineHeights.flatMap((li
           lineHeight: testCase.lineHeight,
           textAlign: testCase.textAlign,
         }, `${moduleId}: responsive list and typography style at ${testCase.width}px`);
-      }
-    }
-
-    const separatorCases = [
-      { width: 1200, display: 'inline', color: 'rgb(170, 0, 102)', size: '20px', before: '4px', after: '6px' },
-      { width: 820, display: 'none', color: 'rgb(0, 128, 0)', size: '18px', before: '3px', after: '5px' },
-      { width: 390, display: 'inline', color: 'rgb(0, 0, 255)', size: '16px', before: '2px', after: '4px' },
-    ];
-    for (const testCase of separatorCases) {
-      await page.setViewportSize({ width: testCase.width, height: 800 });
-      for (const moduleId of ['frontend', 'preview']) {
-        const style = await page.locator(`#${moduleId} .wp-seed-event-date__separator`).evaluate((separator) => {
-          const computed = getComputedStyle(separator);
-          return {
-            display: computed.display,
-            color: computed.color,
-            size: computed.fontSize,
-            before: computed.marginInlineStart,
-            after: computed.marginInlineEnd,
-          };
-        });
-        assert.deepStrictEqual(style, {
-          display: testCase.display,
-          color: testCase.color,
-          size: testCase.size,
-          before: testCase.before,
-          after: testCase.after,
-        }, `${moduleId}: responsive separator style at ${testCase.width}px`);
       }
     }
 

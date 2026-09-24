@@ -2,7 +2,7 @@
 
 Version actuelle : `0.2.0-beta.9`
 
-WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette beta livre le lifecycle, les collections d'occurrences Gutenberg et Divi ainsi que l'updater WordPress natif, sans modifier le stockage canonique ni les contenus existants.
+WP Seed Events est un plugin WordPress autonome pour administrer, publier et composer des evenements a occurrences multiples. Cette beta livre les Promotions, le lifecycle v3, les collections d'occurrences Gutenberg et Divi ainsi que l'updater WordPress natif, sans modifier le stockage canonique ni les contenus existants.
 
 ## Fonctionnalites principales
 
@@ -16,7 +16,7 @@ WP Seed Events est un plugin WordPress autonome pour administrer, publier et com
 - modules Divi 5 Dates, Visuels, Personnes et Collection d’occurrences ;
 - blocs Gutenberg Dates, Visuels et Personnes ;
 - collections metier dans le Loop Builder Divi et le Query Loop Gutenberg ;
-- collections publiques plates d'occurrences ;
+- collections publiques plates et groupees d'occurrences, avec filtres Promotion et annee du parcours ;
 - filtres type, statut et epinglage, tri par `1re date de l'evenement` et pagination ;
 - patterns Gutenberg `Carte compacte` et `Carte detaillee` modifiables librement.
 
@@ -98,6 +98,7 @@ Reinstaller la copie exacte du dossier plugin anterieur. Les evenements, metas e
 - [Divi Occurrence Collections](docs/DIVI-OCCURRENCE-COLLECTIONS.md)
 - [Domain Model](DOMAIN-MODEL.md)
 - [Occurrence Projection and Lifecycle V3](docs/OCCURRENCE-PROJECTION-LIFECYCLE-V3.md)
+- [Promotions et annees du parcours](docs/PROMOTION-DOMAIN-API.md)
 - [Collections publiques](docs/PUBLIC-COLLECTIONS.md)
 - [Dynamic Data](docs/PUBLIC-EVENT-DYNAMIC-DATA.md)
 - [Compatibilite et deprecations](docs/PUBLIC-API-COMPATIBILITY.md)

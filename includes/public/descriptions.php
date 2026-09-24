@@ -28,10 +28,11 @@ function wp_seed_events_normalize_multiline_description( $value ) {
 }
 
 /**
- * Render authored event content through the native WordPress content pipeline.
+ * Render canonical rich event content through WordPress exactly once.
  *
- * Event Data keeps the raw post_content value. Public HTML consumers call this
- * helper once, then the normal post HTML allow-list is applied to the result.
+ * Event Data keeps the authored post_content value. Rendering consumers call
+ * this helper so blocks, shortcodes and paragraph handling follow WordPress,
+ * while the final allow-list remains the public post HTML contract.
  *
  * @param mixed $value Authored rich content.
  * @return string
@@ -45,7 +46,6 @@ function wp_seed_events_render_rich_content( $value ) {
 
 	return wp_kses_post( apply_filters( 'the_content', $value ) );
 }
-
 function wp_seed_events_description_content_to_text( $content ) {
 	$content = str_replace( array( "\r\n", "\r" ), "\n", (string) $content );
 	$content = preg_replace( '#<(script|style)\b[^>]*>.*?</\1\s*>#is', '', $content );

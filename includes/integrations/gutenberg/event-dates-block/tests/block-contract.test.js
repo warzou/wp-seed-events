@@ -44,21 +44,27 @@ assert.deepStrictEqual(metadata.attributes.heading_level.enum, ['h2', 'h3', 'h4'
 assert.deepStrictEqual(metadata.attributes.mode.enum, ['next', 'first', 'last', 'all']);
 assert.deepStrictEqual(metadata.attributes.scope.enum, ['all', 'upcoming', 'past']);
 assert.deepStrictEqual(metadata.attributes.format.enum, ['long', 'short']);
-assert.deepStrictEqual(metadata.attributes.calendar_behavior_version.enum, [2]);
-assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes.calendar_behavior_version, 'default'));
 assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes, 'eventId'));
 assert.deepStrictEqual(builtMetadata, metadata);
 
-const defaults = {
-  title: 'Dates',
+const storedLegacyDefaults = {
+  title: '',
   heading_level: 'h2',
+  show_calendar_links: true,
+};
+const defaults = {
   mode: 'all',
   scope: 'all',
   show_cancelled: true,
   show_times: true,
-  show_calendar_links: true,
   format: 'long',
 };
+
+Object.entries(storedLegacyDefaults).forEach(([name, value]) => {
+  assert.ok(metadata.attributes[name], `Missing stored legacy block attribute: ${name}`);
+  assert.strictEqual(metadata.attributes[name].default, value, `Unexpected legacy default: ${name}`);
+  assert.ok(!source.includes(`attributes.${name}`), `Legacy attribute must remain inert: ${name}`);
+});
 
 Object.entries(defaults).forEach(([name, value]) => {
   assert.ok(metadata.attributes[name], `Missing block attribute: ${name}`);
@@ -69,15 +75,9 @@ Object.entries(defaults).forEach(([name, value]) => {
 assert.strictEqual((source.match(/registerBlockType\s*\(/g) || []).length, 1);
 assert.ok(source.includes('save: () => null'));
 assert.ok(source.includes('InspectorControls'));
-assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 1);
-assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 3);
+assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 0);
+assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 2);
 assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 2);
-assert.ok(!source.includes('Afficher les liens calendrier'));
-assert.ok(source.includes("name: 'calendar-actions-composable'"));
-assert.ok(source.includes('isDefault: true'));
-assert.ok(source.includes("scope: [ 'inserter' ]"));
-assert.ok(source.includes('attributes: { calendar_behavior_version: 2 }'));
-assert.ok(source.includes('attributes.calendar_behavior_version === 2'));
 [
   'Dates affichées',
   'Prochaine date',
@@ -132,8 +132,6 @@ assert.strictEqual(
 );
 [
   'wp_seed_events_gutenberg_event_dates_render',
-  'wp_seed_events_gutenberg_event_dates_calendar_links_option',
-  'wp_seed_events_public_heading_level_option',
   'wp_seed_events_public_date_mode_option',
   'wp_seed_events_public_date_scope_option',
   'wp_seed_events_public_date_format_option',
@@ -145,8 +143,6 @@ assert.strictEqual(
   "'render_callback' => 'wp_seed_events_render_gutenberg_event_dates_block'",
   "require_once __DIR__ . '/event-dates-preview.php';",
 ].forEach((contract) => assert.ok(bootstrap.includes(contract), `Missing PHP contract: ${contract}`));
-assert.ok(bootstrap.includes("2 === $version"));
-assert.ok(bootstrap.includes("$attributes['show_calendar_links'] ?? true"));
 assert.ok(
   bootstrap.indexOf('if ( $has_explicit_post_context )')
     < bootstrap.indexOf('global $wp_seed_events_public_event_id'),

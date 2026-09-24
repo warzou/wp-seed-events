@@ -112,11 +112,11 @@ foreach ( array( 'show_roles' => '__roles', 'show_email' => 'mailto:', 'show_pho
 	p3a_case( $option . ' priority', function () use ( $option, $marker ) { p3a_contains( $marker, wp_seed_events_event_people_shortcode( array( 'id' => 914, 'details' => 'no', $option => 'yes' ) ), 'Override failed.' ); } );
 }
 
-p3a_case( '25 default title', function () { p3a_contains( '>Contacts et intervenants</h2>', wp_seed_events_event_people_shortcode( array( 'id' => 914 ) ), 'Title changed.' ); } );
-p3a_case( '26 custom title', function () { p3a_contains( '>Equipe</h2>', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'title' => 'Equipe' ) ), 'Title missing.' ); } );
+p3a_case( '25 default title is absent', function () { p3a_not_contains( '__title', wp_seed_events_event_people_shortcode( array( 'id' => 914 ) ), 'Integrated title rendered.' ); } );
+p3a_case( '26 custom title is inert', function () { p3a_not_contains( 'Equipe', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'title' => 'Equipe' ) ), 'Stored title rendered.' ); } );
 p3a_case( '27 empty title', function () { p3a_not_contains( '__title', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'title' => '' ) ), 'Heading rendered.' ); } );
-p3a_case( '28 h2 through h6', function () { foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) { p3a_contains( '<' . $level . ' class=', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'heading_level' => $level ) ), 'Heading failed.' ); } } );
-p3a_case( '29 invalid heading', function () { p3a_contains( '<h2 class=', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'heading_level' => 'h1' ) ), 'Fallback failed.' ); } );
+p3a_case( '28 h2 through h6 are inert', function () { foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) { p3a_not_contains( '__title', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'heading_level' => $level ) ), 'Heading rendered.' ); } } );
+p3a_case( '29 invalid heading is inert', function () { p3a_not_contains( '__title', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'heading_level' => 'h1' ) ), 'Heading rendered.' ); } );
 p3a_case( '30 list layout', function () { p3a_contains( 'is-layout-list', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'layout' => 'list' ) ), 'List missing.' ); } );
 p3a_case( '31 grid layout', function () { p3a_contains( 'is-layout-grid', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'layout' => 'grid' ) ), 'Grid missing.' ); } );
 p3a_case( '32 invalid layout', function () { p3a_contains( 'is-layout-list', wp_seed_events_event_people_shortcode( array( 'id' => 914, 'layout' => 'carousel' ) ), 'Fallback failed.' ); } );

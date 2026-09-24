@@ -50,6 +50,32 @@ const DEFAULT_TEMPLATE = [
             bindings: {
               content: {
                 source: OCCURRENCE_SOURCE,
+                args: { field: 'promotion_name' },
+              },
+            },
+          },
+        },
+      ],
+      [
+        'core/paragraph',
+        {
+          metadata: {
+            bindings: {
+              content: {
+                source: OCCURRENCE_SOURCE,
+                args: { field: 'parcours_year_label' },
+              },
+            },
+          },
+        },
+      ],
+      [
+        'core/paragraph',
+        {
+          metadata: {
+            bindings: {
+              content: {
+                source: OCCURRENCE_SOURCE,
                 args: { field: 'occurrence_start_date' },
               },
             },
@@ -85,6 +111,7 @@ function formatDate( value ) {
 
 function occurrenceValue( field, context ) {
   const item = context && context.item ? context.item : {};
+  const promotion = item.promotion && typeof item.promotion === 'object' ? item.promotion : {};
   const start = splitDateTime( item.start );
   const end = splitDateTime( item.end );
   const values = {
@@ -101,6 +128,13 @@ function occurrenceValue( field, context ) {
     occurrence_start_time: start.time,
     occurrence_end_time: end.time,
     occurrence_is_cancelled: item.is_cancelled ? '1' : '0',
+    promotion_id: item.promotion_id ? String( item.promotion_id ) : '',
+    promotion_name: promotion.name || '',
+    promotion_slug: promotion.slug || '',
+    promotion_start_year: promotion.start_year ? String( promotion.start_year ) : '',
+    promotion_status: promotion.status || '',
+    parcours_year: item.parcours_year ? String( item.parcours_year ) : '',
+    parcours_year_label: item.parcours_year_label || '',
   };
 
   return typeof values[ field ] === 'string' ? values[ field ] : '';
@@ -128,8 +162,11 @@ function normalizeInteger( value, fallback = 0 ) {
 }
 
 function queryPath( attributes ) {
+  const mode = attributes.mode === 'grouped' ? 'grouped' : 'flat';
   const params = new URLSearchParams();
   const values = {
+    promotion: attributes.promotion,
+    parcours_year: attributes.parcoursYear || '',
     event_id: attributes.eventId || '',
     type: attributes.eventType,
     status: attributes.status,
@@ -145,11 +182,34 @@ function queryPath( attributes ) {
     }
   }
 
-  params.set( 'order', attributes.order || 'chronological' );
-  params.set( 'page', String( attributes.page || 1 ) );
-  params.set( 'per_page', String( attributes.perPage || 20 ) );
+  if ( mode === 'grouped' ) {
+    params.set( 'order', 'canonical_path' );
+    params.set( 'limit', String( attributes.groupedLimit || 200 ) );
+  } else {
+    params.set( 'order', attributes.order || 'chronological' );
+    params.set( 'page', String( attributes.page || 1 ) );
+    params.set( 'per_page', String( attributes.perPage || 20 ) );
+  }
 
-  return `/wp-seed-events/v1/occurrences?${ params.toString() }`;
+  const endpoint = mode === 'grouped'
+    ? '/wp-seed-events/v1/occurrences/grouped'
+    : '/wp-seed-events/v1/occurrences';
+
+  return `${ endpoint }?${ params.toString() }`;
+}
+
+function flattenGroupedItems( data ) {
+  const items = [];
+
+  for ( const promotion of data.promotions || [] ) {
+    for ( const year of promotion.years || [] ) {
+      for ( const theme of year.themes || [] ) {
+        items.push( ...( theme.occurrences || [] ) );
+      }
+    }
+  }
+
+  return items;
 }
 
 function occurrenceContext( item, clientId, index ) {
@@ -161,6 +221,8 @@ function occurrenceContext( item, clientId, index ) {
     event_id: Number( item.event_id ) || 0,
     occurrence_uid: item.occurrence_uid || '',
     collection_instance_id: clientId,
+    promotion_id: Number( item.promotion_id ) || 0,
+    parcours_year: Number( item.parcours_year ) || 0,
     current_item_index: index,
     item,
   };
@@ -168,7 +230,7 @@ function occurrenceContext( item, clientId, index ) {
 
 function Edit( { attributes, setAttributes, clientId } ) {
   const blockProps = useBlockProps( {
-    className: 'wp-seed-events-occurrence-collection-editor',
+    className: `wp-seed-events-occurrence-collection-editor wp-seed-events-occurrence-collection-editor--${ attributes.mode }`,
   } );
   const innerBlocksProps = useInnerBlocksProps(
     { className: 'wp-seed-events-occurrence-collection-editor__template' },
@@ -227,7 +289,9 @@ function Edit( { attributes, setAttributes, clientId } ) {
     };
   }, [ path ] );
 
-  const items = state.data ? state.data.items || [] : [];
+  const items = state.data
+    ? ( attributes.mode === 'grouped' ? flattenGroupedItems( state.data ) : state.data.items || [] )
+    : [];
   const previewItems = items.slice( 0, 6 );
   const previewContext = occurrenceContext(
     previewItems[ 0 ],
@@ -240,6 +304,32 @@ function Edit( { attributes, setAttributes, clientId } ) {
     <div { ...blockProps }>
       <InspectorControls>
         <PanelBody title={ __( 'Collection d’occurrences', 'wp-seed-events' ) } initialOpen>
+          <SelectControl
+            label={ __( 'Présentation', 'wp-seed-events' ) }
+            value={ attributes.mode }
+            options={ [
+              { label: __( 'Collection plate', 'wp-seed-events' ), value: 'flat' },
+              { label: __( 'Promotion → année → thème → occurrence', 'wp-seed-events' ), value: 'grouped' },
+            ] }
+            onChange={ ( mode ) => setAttributes( { mode } ) }
+          />
+          <TextControl
+            label={ __( 'Promotion (slug ou ID)', 'wp-seed-events' ) }
+            value={ attributes.promotion }
+            onChange={ ( promotion ) => setAttributes( { promotion } ) }
+          />
+          <SelectControl
+            label={ __( 'Année du parcours', 'wp-seed-events' ) }
+            value={ String( attributes.parcoursYear ) }
+            options={ [
+              { label: __( 'Toutes les années', 'wp-seed-events' ), value: '0' },
+              { label: __( 'Année 1', 'wp-seed-events' ), value: '1' },
+              { label: __( 'Année 2', 'wp-seed-events' ), value: '2' },
+              { label: __( 'Année 3', 'wp-seed-events' ), value: '3' },
+              { label: __( 'Année 4', 'wp-seed-events' ), value: '4' },
+            ] }
+            onChange={ ( value ) => updateInteger( 'parcoursYear', value ) }
+          />
           <TextControl
             label={ __( 'ID de l’événement', 'wp-seed-events' ) }
             type="number"
@@ -286,23 +376,35 @@ function Edit( { attributes, setAttributes, clientId } ) {
             value={ attributes.to }
             onChange={ ( to ) => setAttributes( { to } ) }
           />
-          <SelectControl
-            label={ __( 'Ordre', 'wp-seed-events' ) }
-            value={ attributes.order }
-            options={ [
-              { label: __( 'Prochaines en premier', 'wp-seed-events' ), value: 'upcoming' },
-              { label: __( 'Chronologique', 'wp-seed-events' ), value: 'chronological' },
-              { label: __( 'Chronologique inverse', 'wp-seed-events' ), value: 'chronological_desc' },
-            ] }
-            onChange={ ( order ) => setAttributes( { order } ) }
-          />
-          <RangeControl
-            label={ __( 'Occurrences par page', 'wp-seed-events' ) }
-            value={ attributes.perPage }
-            min={ 1 }
-            max={ 100 }
-            onChange={ ( perPage ) => setAttributes( { perPage: perPage || 1 } ) }
-          />
+          { attributes.mode === 'flat' ? (
+            <>
+              <SelectControl
+                label={ __( 'Ordre', 'wp-seed-events' ) }
+                value={ attributes.order }
+                options={ [
+                  { label: __( 'Prochaines en premier', 'wp-seed-events' ), value: 'upcoming' },
+                  { label: __( 'Chronologique', 'wp-seed-events' ), value: 'chronological' },
+                  { label: __( 'Chronologique inverse', 'wp-seed-events' ), value: 'chronological_desc' },
+                ] }
+                onChange={ ( order ) => setAttributes( { order } ) }
+              />
+              <RangeControl
+                label={ __( 'Occurrences par page', 'wp-seed-events' ) }
+                value={ attributes.perPage }
+                min={ 1 }
+                max={ 100 }
+                onChange={ ( perPage ) => setAttributes( { perPage: perPage || 1 } ) }
+              />
+            </>
+          ) : (
+            <RangeControl
+              label={ __( 'Limite globale', 'wp-seed-events' ) }
+              value={ attributes.groupedLimit }
+              min={ 1 }
+              max={ 500 }
+              onChange={ ( groupedLimit ) => setAttributes( { groupedLimit: groupedLimit || 1 } ) }
+            />
+          ) }
           <TextControl
             label={ __( 'Message si la collection est vide', 'wp-seed-events' ) }
             value={ attributes.emptyMessage }
@@ -321,6 +423,8 @@ function Edit( { attributes, setAttributes, clientId } ) {
         { previewItems.map( ( item, index ) => (
           <div className="wp-seed-events-occurrence-collection-editor__preview-item" key={ `${ item.event_id }:${ item.occurrence_uid }:${ index }` }>
             <strong>{ item.event_title }</strong>
+            <span>{ item.promotion && item.promotion.name ? item.promotion.name : __( 'Sans Promotion', 'wp-seed-events' ) }</span>
+            <span>{ item.parcours_year_label || '' }</span>
             <span>{ item.start || '' }</span>
           </div>
         ) ) }

@@ -66,10 +66,6 @@ function wp_seed_events_gutenberg_event_people_boolean_option( $value, $default 
  */
 function wp_seed_events_gutenberg_event_people_options( $attributes = array() ) {
 	$attributes = is_array( $attributes ) ? $attributes : array();
-	$title      = isset( $attributes['title'] ) && is_string( $attributes['title'] )
-		? $attributes['title']
-		: 'Contacts et intervenants';
-
 	$role  = wp_seed_events_public_people_role_option( $attributes['role'] ?? 'all' );
 	$roles = wp_seed_events_public_people_roles_option( $attributes['roles'] ?? array() );
 
@@ -78,8 +74,6 @@ function wp_seed_events_gutenberg_event_people_options( $attributes = array() ) 
 	}
 
 	return array(
-		'title'         => $title,
-		'heading_level' => wp_seed_events_public_heading_level_option( $attributes['heading_level'] ?? 'h2' ),
 		'roles'         => $roles,
 		'role'          => $role,
 		'show_name'     => wp_seed_events_gutenberg_event_people_boolean_option( $attributes['show_name'] ?? true ),

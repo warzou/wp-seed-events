@@ -33,42 +33,32 @@ Le module ne lit aucune meta privée, n'exécute aucune requête SQL, ne persist
 Les valeurs sont stockées dans `content.innerContent.desktop.value` :
 
 - `date_selection` : preset d'interface explicite (`next`, `first`, `last`, `all_upcoming`, `all_past`, `all`) ;
+- `title` et `heading_level` : valeurs historiques conservées uniquement pour lire les instances existantes, sans rendu ni contrôle dans la nouvelle UI ;
 - `mode` : contrat historique `next`, `first`, `last` ou `all`, conservé pour compatibilité ;
 - `scope` : valeur interne historique `all`, `upcoming` ou `past`, conservée pour compatibilité mais non exposée comme contrôle séparé ;
 - `show_cancelled` : `on` ou `off` ;
 - `show_times` : `on` ou `off` ;
 - `format` : `long` ou `short`.
 
-`show_calendar_links` est un attribut historique caché. Une nouvelle instance ne
-le crée pas et n'affiche aucune action calendrier intégrée. Une ancienne instance
-qui contient explicitement `on` ou `off` conserve transitoirement son rendu lors
-d'un chargement ou d'un Save/Resave. Pour toute nouvelle composition, l'action
-calendrier appartient à un bouton ou un lien Divi natif alimenté par la Dynamic
-Data `calendar_all_occurrences_url`.
-
-Le titre appartient désormais au builder : une nouvelle instance n'expose ni
-`title`, ni `show_title`, ni `heading_level`, et ne reçoit aucun titre implicite.
-Ces trois attributs restent toutefois interprétés lorsqu'ils sont réellement
-présents dans un module historique. Un titre legacy non vide est rendu uniquement
-avec `show_title=on`; son niveau `h2` à `h6` est conservé et une valeur invalide
-revient à `h2`. Les attributs historiques restent dans le contenu lors de la
-modification d'un autre réglage du module. Aucune migration de contenu n'est faite.
+Les anciens attributs d'actions calendrier restent enregistrables pour préserver le contenu Divi historique, mais ils sont inertes. Le module ne rend plus de lien ou bouton calendrier. Une action moderne utilise `calendar_all_occurrences_url` depuis Dynamic Data sur un bouton Divi natif.
 
 Le choix visible `Dates affichées` traduit le preset en `mode` et `scope` avant le renderer : Prochaine date, Première date, Dernière date, Toutes les prochaines dates, Toutes les dates passées ou Toutes les dates. Première date et Dernière date portent sur toutes les dates de l'événement. Aucun réglage de portée séparé n'est affiché. Un module historique sans `date_selection` continue d'utiliser directement ses valeurs `mode` et `scope`.
 
-Les valeurs invalides reviennent aux valeurs sûres : `h2`, `all` et options activées. Le niveau de titre legacy ne modifie que le heading facultatif ; la structure métier reste `section`, heading éventuel, `ul`, `li`, `time`, `span` et `a`.
+Les valeurs invalides reviennent aux valeurs sûres : `h2`, `all` et options activées. Le niveau de titre ne modifie que le heading facultatif ; la structure métier reste `section`, heading éventuel, `ul`, `li`, `time`, `span` et `a`.
 
 ## Réglages Design
 
 Les attributs Design utilisent les mécanismes natifs Divi et ciblent strictement le module courant :
 
+- `titleStyle` : attribut historique stocke, non expose et non rendu ;
 - `dateStyle` : `.wp-seed-event-date__date` ;
 - `timeStyle` : `.wp-seed-event-date__time` ;
 - `statusStyle` : `.wp-seed-event-date__status` ;
+- `calendarLinkStyle`, `occurrenceCalendarStyle` et `allCalendarStyle` : attributs historiques stockés, non exposés et non rendus ;
 - `occurrenceStyle` : `.wp-seed-event-date` ;
 - `module` : sélecteur racine Divi.
 
-Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Le titre legacy conserve sa classe CSS historique mais n'expose plus de groupe Design : un Heading Divi séparé porte la présentation des nouveaux titres. Les occurrences disposent de leur espacement. Le module global fournit fond, bordure, rayon, ombre, marges, padding, dimensions et réglages responsive. `calendarLinkStyle` reste déclaré sans groupe visible afin que les valeurs historiques puissent être relues, mais aucune nouvelle option de style calendrier n'est exposée.
+Les groupes exposent la typographie, la taille, la graisse, la couleur et les variantes responsive des textes concernés. Les occurrences disposent de leur espacement. Le module global fournit les réglages Divi du conteneur. La présentation d'une action calendrier appartient désormais au bouton Divi natif.
 
 ## Résolution du contexte
 
@@ -91,9 +81,7 @@ Le renderer conserve :
 - une liste `ul`/`li` dans l'ordre canonique ;
 - les balises `time` et leurs attributs `datetime` ;
 - le libellé visible `Annulée` ;
-- les éventuels liens calendrier d'une instance legacy explicite restent navigables au clavier ;
-- un heading limité à `h2`–`h6` ;
-- un `aria-label` sur la section lorsque le titre est masqué ;
+- un `aria-label` sur la section ;
 - aucun conteneur vide lorsqu'aucune occurrence n'est retenue.
 
 Le responsive visuel est délégué aux réglages standard de Divi et à la structure HTML partagée.
@@ -102,12 +90,7 @@ Le responsive visuel est délégué aux réglages standard de Divi et à la stru
 
 `[wp_seed_event_dates]` reste le fallback universel et utilise le même renderer. Il n'est pas l'expérience builder principale. Le provider Divi `next_date` reste réservé à une valeur scalaire ; le module Dates traite la collection complète.
 
-Le bloc Gutenberg Dates reprend le même renderer, mais conserve pour l'instant ses
-contrôles et défauts de titre publiés. Gutenberg omet des attributs égaux à leur
-défaut lors de la sérialisation : une ancienne instance implicite ne peut donc pas
-être distinguée d'une nouvelle instance sans une stratégie de dépréciation ou de
-migration dédiée. Le retrait des actions calendrier Gutenberg reste donc séparé
-du lot D3 Divi.
+Le bloc Gutenberg Dates reprend le même contrat de contenu et le même renderer. Les composants Visuels et Personnes restent des adaptateurs séparés autour de leurs renderers partagés.
 
 ## Développement et build
 

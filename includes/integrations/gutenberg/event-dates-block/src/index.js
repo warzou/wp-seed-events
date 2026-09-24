@@ -7,7 +7,6 @@ import {
   Placeholder,
   SelectControl,
   Spinner,
-  TextControl,
   ToggleControl,
 } from '@wordpress/components';
 import { RawHTML, useEffect, useRef, useState } from '@wordpress/element';
@@ -17,14 +16,6 @@ import metadata from './block.json';
 
 const PREVIEW_PATH = '/wp-seed-events/v1/gutenberg-event-dates-preview';
 const PREVIEW_DELAY = 250;
-
-const HEADING_LEVEL_OPTIONS = [
-  { label: 'h2', value: 'h2' },
-  { label: 'h3', value: 'h3' },
-  { label: 'h4', value: 'h4' },
-  { label: 'h5', value: 'h5' },
-  { label: 'h6', value: 'h6' },
-];
 
 const MODE_VALUES = [ 'next', 'first', 'last', 'all' ];
 
@@ -54,12 +45,6 @@ function validOption( options, value, fallback ) {
 
 function booleanOption( value ) {
   return typeof value === 'boolean' ? value : true;
-}
-
-function showIntegratedCalendarLinks( attributes ) {
-  return attributes.calendar_behavior_version === 2
-    ? false
-    : booleanOption( attributes.show_calendar_links );
 }
 
 function displayOption( mode, scope ) {
@@ -120,7 +105,7 @@ function previewContext( context ) {
 }
 
 function Preview( { state } ) {
-  const label = __( 'WP Seed — Dates de l’événement', 'wp-seed-events' );
+  const label = __( 'WPSEvents — Dates', 'wp-seed-events' );
 
   if ( state.status === 'loading' ) {
     return (
@@ -157,18 +142,11 @@ function Preview( { state } ) {
 }
 
 function Edit( { attributes, setAttributes, context = {} } ) {
-  const title = typeof attributes.title === 'string' ? attributes.title : 'Dates';
-  const headingLevel = validOption(
-    HEADING_LEVEL_OPTIONS,
-    attributes.heading_level,
-    'h2',
-  );
   const scope = [ 'all', 'upcoming', 'past' ].includes( attributes.scope ) ? attributes.scope : 'all';
   const mode = MODE_VALUES.includes( attributes.mode ) ? attributes.mode : 'all';
   const displayedDates = displayOption( mode, scope );
   const showCancelled = booleanOption( attributes.show_cancelled );
   const showTimes = booleanOption( attributes.show_times );
-  const showCalendarLinks = showIntegratedCalendarLinks( attributes );
   const format = validOption( FORMAT_OPTIONS, attributes.format, 'long' );
   const [ preview, setPreview ] = useState( {
     status: 'loading',
@@ -199,13 +177,10 @@ function Edit( { attributes, setAttributes, context = {} } ) {
         method: 'POST',
         data: {
           attributes: {
-            title,
-            heading_level: headingLevel,
             mode,
             scope,
             show_cancelled: showCancelled,
             show_times: showTimes,
-            show_calendar_links: showCalendarLinks,
             format,
           },
           context: previewContext( {
@@ -257,13 +232,10 @@ function Edit( { attributes, setAttributes, context = {} } ) {
       }
     };
   }, [
-    title,
-    headingLevel,
     mode,
     scope,
     showCancelled,
     showTimes,
-    showCalendarLinks,
     format,
     contextPostId,
     contextPostType,
@@ -274,17 +246,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
     <>
       <InspectorControls>
         <PanelBody title={ __( 'Réglages des dates', 'wp-seed-events' ) } initialOpen>
-          <TextControl
-            label={ __( 'Titre', 'wp-seed-events' ) }
-            value={ title }
-            onChange={ ( value ) => setAttributes( { title: value } ) }
-          />
-          <SelectControl
-            label={ __( 'Niveau du titre', 'wp-seed-events' ) }
-            value={ headingLevel }
-            options={ HEADING_LEVEL_OPTIONS }
-            onChange={ ( value ) => setAttributes( { heading_level: value } ) }
-          />
           <SelectControl
             label={ __( 'Dates affichées', 'wp-seed-events' ) }
             value={ displayedDates }
@@ -319,15 +280,6 @@ function Edit( { attributes, setAttributes, context = {} } ) {
 
 registerBlockType( metadata.name, {
   ...metadata,
-  variations: [
-    {
-      name: 'calendar-actions-composable',
-      title: metadata.title,
-      isDefault: true,
-      scope: [ 'inserter' ],
-      attributes: { calendar_behavior_version: 2 },
-    },
-  ],
   edit: Edit,
   save: () => null,
 } );

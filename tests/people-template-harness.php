@@ -88,8 +88,8 @@ p3b_case( '8 public coordinates visible', function () use ( $complete ) { $html 
 p3b_case( '9 private coordinates absent', function () use ( $complete ) { $html = p3b_render( p3b_event( array( $complete ) ) ); foreach ( array( 'private@example.test', '999999999', 'private.example.test' ) as $value ) { p3b_not_contains( $value, str_replace( ' ', '', $html ), 'Private coordinate leaked.' ); } } );
 p3b_case( '10 permissions independent', function () { $person = p3b_person( 'Phone Only', array(), array(), array( 'public_phone' => '+33 6 11 22 33 44', 'email' => 'private@example.test', 'link' => 'https://private.example.test' ) ); $html = p3b_render( p3b_event( array( $person ) ) ); p3b_contains( 'tel:+33611223344', $html, 'Phone missing.' ); p3b_not_contains( 'mailto:', $html, 'Email leaked.' ); p3b_not_contains( 'private.example.test', $html, 'Link leaked.' ); } );
 p3b_case( '11 nameless person omitted', function () { p3b_assert( 0 === p3b_people_count( p3b_render( p3b_event( array( p3b_person( '' ) ) ) ) ), 'Nameless person rendered.' ); } );
-p3b_case( '12 historical title', function () use ( $organizer ) { p3b_contains( '>Contacts et intervenants</h2>', p3b_render( p3b_event( array( $organizer ) ) ), 'Title changed.' ); } );
-p3b_case( '13 heading h2', function () use ( $organizer ) { p3b_contains( '<h2 class="wp-seed-event-people__title">', p3b_render( p3b_event( array( $organizer ) ) ), 'Heading changed.' ); } );
+p3b_case( '12 historical title is inert', function () use ( $organizer ) { p3b_not_contains( 'wp-seed-event-people__title', p3b_render( p3b_event( array( $organizer ) ) ), 'Title rendered.' ); } );
+p3b_case( '13 heading is builder-owned', function () use ( $organizer ) { p3b_not_contains( 'wp-seed-event-people__title', p3b_render( p3b_event( array( $organizer ) ) ), 'Heading rendered.' ); } );
 p3b_case( '14 list layout', function () use ( $organizer ) { p3b_contains( 'is-layout-list', p3b_render( p3b_event( array( $organizer ) ) ), 'Layout changed.' ); } );
 
 $template_source = file_get_contents( dirname( __DIR__ ) . '/templates/event-single.php' );

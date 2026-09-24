@@ -334,7 +334,8 @@ sd_case( 47, 'Divi frontend renders lines', function () use ( $divi_source ) {
 	sd_assert( false !== strpos( $divi_source, 'wp-seed-events-multiline-text' ), 'Divi multiline wrapper missing' );
 } );
 sd_case( 48, 'Divi Visual Builder shares renderer', function () use ( $divi_source ) {
-	sd_assert( false !== strpos( $divi_source, "if ( 'excerpt' === \$this->get_field() )" ), 'Divi excerpt branch missing' );
+	sd_assert( false !== strpos( $divi_source, 'wp_seed_events_dynamic_data_field_format' ), 'Divi format registry missing' );
+	sd_assert( false !== strpos( $divi_source, "if ( 'multiline_text' === \$format )" ), 'Divi multiline format branch missing' );
 } );
 sd_case( 49, 'collection consumes excerpt', function () use ( $patterns_source ) {
 	sd_assert( false !== strpos( $patterns_source, '"field":"excerpt"' ) && false === strpos( $patterns_source, 'wp:post-excerpt' ), 'collection excerpt contract differs' );

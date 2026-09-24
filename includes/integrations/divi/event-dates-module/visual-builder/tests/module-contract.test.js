@@ -32,15 +32,9 @@ const defaults = metadata.attributes.content.default.innerContent.desktop.value;
 assert.strictEqual(defaults.mode, 'all');
 assert.strictEqual(defaults.scope, 'all');
 assert.strictEqual(defaults.format, 'long');
-assert.strictEqual(defaults.show_dates, 'on');
-assert.strictEqual(defaults.show_times, 'on');
-assert.strictEqual(defaults.time_layout, 'below');
-assert.strictEqual(defaults.show_separator, 'off');
-assert.strictEqual(defaults.separator_character, '\u2014');
-['title', 'show_title', 'heading_level'].forEach((field) => {
-  assert.ok(!Object.prototype.hasOwnProperty.call(defaults, field), `New instances must not define ${field}`);
-});
-assert.ok(!Object.prototype.hasOwnProperty.call(defaults, 'show_calendar_links'));
+assert.strictEqual(defaults.title, '');
+assert.strictEqual(defaults.show_title, 'off');
+assert.strictEqual(defaults.show_all_calendar, 'on', 'Historical value must remain stored for content compatibility.');
 const dateSelection = contentItems.dateSelection;
 assert.ok(dateSelection);
 assert.strictEqual(dateSelection.subName, 'date_selection');
@@ -71,42 +65,47 @@ assert.deepStrictEqual(Object.keys(dateSelection.component.props.options), [
   'separator_character',
   'format',
   'show_calendar_links',
+  'calendar_presentation',
+  'calendar_label',
+  'calendar_icon_position',
+  'calendar_layout',
+  'show_all_calendar',
+  'all_calendar_presentation',
+  'all_calendar_label',
+  'all_calendar_icon_position',
 ].forEach((field) => {
   assert.ok(
     Object.values(contentItems).some((item) => item.subName === field),
     `Missing persistent field: ${field}`,
   );
 });
-['title', 'show_title', 'heading_level'].forEach((field) => {
-  assert.ok(
-    !Object.values(contentItems).some((item) => item.subName === field && item.render !== false),
-    `Builder-owned title field remains exposed: ${field}`,
-  );
+const legacyCalendarFields = [
+  'show_calendar_links',
+  'calendar_presentation',
+  'calendar_label',
+  'calendar_icon_position',
+  'calendar_layout',
+  'show_all_calendar',
+  'all_calendar_presentation',
+  'all_calendar_label',
+  'all_calendar_icon_position',
+];
+legacyCalendarFields.forEach((field) => {
+  const item = Object.values(contentItems).find((candidate) => candidate.subName === field);
+  assert.strictEqual(item.render, false, `Legacy calendar field is still exposed: ${field}`);
 });
-assert.ok(!Object.values(contentItems).some(
-  (item) => item.subName === 'show_calendar_links' && item.render !== false,
-), 'The legacy calendar action remains visible in new Divi instances.');
-assert.deepStrictEqual(
-  ['legacyTitle', 'legacyHeadingLevel', 'legacyShowTitle'].map((name) => [contentItems[name].subName, contentItems[name].render]),
-  [['title', false], ['heading_level', false], ['show_title', false]],
-  'Legacy title schema must survive Divi resaves without becoming visible.',
-);
-assert.deepStrictEqual(
-  [contentItems.showCalendarLinks.subName, contentItems.showCalendarLinks.render],
-  ['show_calendar_links', false],
-  'The legacy calendar attribute must remain readable without exposing a control.',
-);
-assert.ok(!Object.prototype.hasOwnProperty.call(metadata.attributes, 'titleStyle'));
 assert.ok(!Object.values(contentItems).some((item) => item.subName === 'scope'));
-assert.strictEqual(contentItems.timeLayout.features.responsive, true);
 assert.deepStrictEqual(Object.keys(contentItems.timeLayout.component.props.options), ['inline', 'below']);
+assert.strictEqual(contentItems.timeLayout.features.responsive, true);
 assert.deepStrictEqual(Object.keys(contentItems.showSeparator.component.props.options), ['off', 'on']);
-
+assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.show_separator, 'off');
+assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.separator_character, '\u2014');
 [
+  'wp-seed-event-dates__title',
   'wp-seed-event-date__date',
   'wp-seed-event-date__time',
+  'wp-seed-event-date__separator',
   'wp-seed-event-date__status',
-  'wp-seed-event-calendar-link',
   'wp-seed-event-date',
 ].forEach((selector) => {
   assert.ok(JSON.stringify(metadata).includes(selector), `Missing design selector: ${selector}`);
@@ -142,22 +141,6 @@ assert.ok(source.includes("addFilter('divi.moduleLibrary.moduleMapping'"));
 assert.ok(source.includes('registerFolder({'));
 assert.ok(!source.includes('[wp_seed_event_dates'));
 assert.ok(!source.includes('914'));
-assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'title')"));
-assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'show_title')"));
-assert.ok(source.includes('...legacyTitleOptions'));
-assert.ok(source.includes('showLegacyTitle'));
-assert.ok(source.includes("className: 'wp-seed-event-dates__title'"));
-assert.ok(!source.includes("title: typeof values.title === 'string' ? values.title : 'Dates'"));
-assert.ok(source.includes("Object.prototype.hasOwnProperty.call(values, 'show_calendar_links')"));
-assert.ok(source.includes("values.show_calendar_links === 'on'"));
-assert.ok(source.includes(": 'off'"));
-assert.ok(source.includes('getResponsiveContentValue'));
-assert.ok(source.includes("['desktop', 'tablet', 'phone'].forEach"));
-assert.ok(phpModule.includes('get_responsive_time_layouts'));
-assert.ok(phpModule.includes('has_responsive_time_layout_override'));
-assert.ok(renderer.includes("'show_dates'          => true"));
-assert.ok(renderer.includes("'show_separator'      => false"));
-assert.ok(renderer.includes("'show_calendar_links' => true"));
 
 assert.strictEqual(
   (phpModule.match(/wp_seed_events_render_public_event_dates_section/g) || []).length,
@@ -191,11 +174,11 @@ const listItems = listStyle.settings.advanced;
 const separatorStyle = metadata.attributes.separatorStyle;
 const separatorItems = separatorStyle.settings.advanced;
 assert.strictEqual(metadata.settings.groups.designDateTimeSeparator.panel, 'design');
-assert.strictEqual(metadata.settings.groups.designDateTimeSeparator.component.props.groupLabel, 'Séparateur date / heure');
+assert.strictEqual(metadata.settings.groups.designDateTimeSeparator.component.props.groupLabel, 'Séparateur Date / Horaire');
 assert.deepStrictEqual(Object.keys(separatorItems), ['color', 'fontSize', 'spaceBefore', 'spaceAfter']);
 Object.values(separatorItems).forEach((field) => assert.strictEqual(field.item.features.responsive, true));
 assert.strictEqual(metadata.settings.groups.designDateList.panel, 'design');
-assert.strictEqual(metadata.settings.groups.designDateList.component.props.groupLabel, 'Liste des dates');
+assert.strictEqual(metadata.settings.groups.designDateList.component.props.groupLabel, 'Liste');
 assert.deepStrictEqual(Object.keys(listItems.markerType.item.component.props.options), [
   'none',
   'disc',
@@ -217,10 +200,15 @@ assert.strictEqual(listStyle.default.advanced.markerType.desktop.value, 'none');
 Object.values(listItems).forEach((field) => assert.strictEqual(field.item.features.responsive, true));
 assert.ok(source.includes("markerType: { desktop: { value: 'none' } }"));
 assert.ok(source.includes("leftIndent: { desktop: { value: '0px' } }"));
+[
+  "show_dates: values.show_dates === 'off' ? 'off' : 'on'",
+  'time_layout: timeLayouts.desktop',
+  'time_layout_tablet: timeLayouts.tablet',
+  'time_layout_phone: timeLayouts.phone',
+  "show_separator: values.show_separator === 'on' ? 'on' : 'off'",
+  'separator_character:',
+].forEach((contract) => assert.ok(source.includes(contract), `Missing composable content contract: ${contract}`));
 assert.ok(source.includes('normalizeListStyles(attrs)'));
-assert.ok(source.includes('normalizeSeparatorStyles(attrs)'));
-assert.ok(source.includes("show_separator: values.show_separator === 'on' ? 'on' : 'off'"));
-assert.ok(source.includes('separator_character:'));
 assert.ok(!source.includes('listRequestOptions(listStyles)'));
 assert.ok(!source.includes('...listOptions'));
 assert.ok(source.includes('const optionsKey = JSON.stringify(options)'));
@@ -270,50 +258,21 @@ assert.ok(source.includes('[postId, loopPostId, loopContextKey, optionsKey]'));
   'timeStyle',
   'separatorStyle',
   'statusStyle',
-  'calendarLinkStyle',
   'occurrenceStyle',
 ].forEach((attrName) => {
   assert.ok(source.includes("elements.style({ attrName: '" + attrName + "' })"), 'React style pipeline omits ' + attrName);
   assert.ok(phpModule.includes("'" + attrName + "'"), 'PHP style pipeline omits ' + attrName);
 });
-assert.ok(!source.includes("elements.style({ attrName: 'titleStyle' })"));
-assert.ok(!phpModule.includes("'titleStyle'"));
-const legacyContent = {
-  title: 'Toutes les dates',
-  show_title: 'on',
-  heading_level: 'h2',
-  show_dates: 'on',
-};
-const resavedLegacyContent = JSON.parse(JSON.stringify({ ...legacyContent, show_times: 'off' }));
-assert.deepStrictEqual(
-  resavedLegacyContent,
-  { ...legacyContent, show_times: 'off' },
-  'A normal field update must preserve unknown legacy title attributes.',
-);
-const legacyCalendarContent = JSON.parse(JSON.stringify({
-  show_calendar_links: 'on',
-  show_times: 'off',
-}));
-assert.deepStrictEqual(
-  legacyCalendarContent,
-  { show_calendar_links: 'on', show_times: 'off' },
-  'A normal field update must preserve the explicit legacy calendar attribute.',
-);
-const newContent = JSON.parse(JSON.stringify({ show_dates: 'on' }));
-['title', 'show_title', 'heading_level'].forEach((field) => {
-  assert.ok(!Object.prototype.hasOwnProperty.call(newContent, field));
-});
 [
-  'wp-seed-event-dates__title',
   'wp-seed-event-date__date',
   'wp-seed-event-date__time',
+  'wp-seed-event-date__separator',
   'wp-seed-event-date__status',
-  'wp-seed-event-calendar-link',
 ].forEach((target) => assert.ok(publicCss.includes('.wp-seed-event-section--dates .' + target), 'Block style target missing: ' + target));
-assert.ok(
-  publicCss.includes('.wp-seed-event-section--dates .wp-seed-event-date.has-date-time-separator > .wp-seed-event-date__separator'),
-  'The separator style target must be scoped to an occurrence that actually renders the date/time separator.',
-);
+assert.ok(!source.includes("elements.style({ attrName: 'titleStyle' })"));
+assert.ok(!phpModule.includes("'titleStyle', 'listStyle'"));
+assert.ok(!publicCss.includes('wp-seed-event-dates__title'));
+assert.ok(!renderer.includes('wp-seed-event-dates__title'));
 assert.ok(!renderer.includes('<br /><span class="wp-seed-event-date__time">'));
 assert.ok(!renderer.includes('<br /><?php echo wp_kses_post( $calendar_link ); ?>'));
 assert.ok(phpModule.includes('resolve_divi_style_value'));
@@ -331,4 +290,53 @@ assert.ok(bootstrap.includes("foreach ( array( $script_path, $style_path ) as $a
 assert.ok(bootstrap.includes("hash_file( 'sha256', $asset_path )"));
 assert.ok(bootstrap.includes("hash( 'sha256', implode( '|', $asset_hashes ) )"));
 assert.ok(bootstrap.includes("'version' => $script_version"));
+
+const exposedStyleGroups = [];
+Object.values(metadata.attributes).forEach((attribute) => {
+  Object.values(attribute?.settings?.decoration || {}).forEach((decoration) => {
+    if (decoration?.render === false) return;
+    const label = decoration?.component?.props?.groupLabel;
+    if (label) exposedStyleGroups.push(label);
+  });
+});
+Object.values(metadata.settings.groups).forEach((group) => {
+  if (group.panel === 'design') exposedStyleGroups.push(group.component.props.groupLabel);
+});
+assert.deepStrictEqual(exposedStyleGroups, [
+  'Module',
+  'Date',
+  'Horaire',
+  'État annulé',
+  'Séparateur Date / Horaire',
+  'Liste',
+]);
+['sectionStyle', 'occurrenceStyle', 'separatorStyle', 'listStyle'].forEach((attrName) => {
+  assert.ok(metadata.attributes[attrName], `Historical style attribute removed: ${attrName}`);
+});
+assert.ok(metadata.attributes.module.settings.decoration.layout.component.props.dynamicSubgroupHost);
+assert.strictEqual(metadata.attributes.titleStyle.settings, undefined);
+['dateStyle', 'timeStyle', 'statusStyle'].forEach((attrName) => {
+  assert.ok(metadata.attributes[attrName].settings.decoration.font.component.props.dynamicSubgroupHost,
+    `${attrName} is not a composable settings host`);
+});
+assert.strictEqual(metadata.attributes.calendarLinkStyle.settings, undefined);
+for (const attrName of ['occurrenceCalendarStyle', 'allCalendarStyle']) {
+  assert.strictEqual(metadata.attributes[attrName].elementType, 'button');
+  assert.strictEqual(metadata.attributes[attrName].settings, undefined);
+  assert.strictEqual(metadata.attributes[attrName].default.decoration.button.desktop.value.icon.enable, 'on');
+  assert.strictEqual(metadata.attributes[attrName].default.decoration.button.desktop.value.icon.settings.type, 'divi');
+  assert.strictEqual(metadata.attributes[attrName].default.decoration.button.desktop.value.icon.placement, 'left');
+}
+assert.strictEqual(contentItems.calendarIconPosition.render, false);
+assert.strictEqual(contentItems.allCalendarIconPosition.render, false);
+legacyCalendarFields.forEach((field) => {
+  assert.ok(!source.includes(field), `Legacy calendar attribute still executes in React: ${field}`);
+  assert.ok(!phpModule.includes(field), `Legacy calendar attribute still executes in PHP: ${field}`);
+});
+['calendarLinkStyle', 'occurrenceCalendarStyle', 'allCalendarStyle'].forEach((attrName) => {
+  assert.ok(!source.includes(`attrName: '${attrName}'`), `Legacy calendar style still executes in React: ${attrName}`);
+  assert.ok(!phpModule.includes(`'${attrName}'`), `Legacy calendar style still executes in PHP: ${attrName}`);
+});
+assert.ok(!renderer.includes('wp-seed-event-calendar-link'));
+assert.ok(!publicCss.includes('wp-seed-event-calendar-link'));
 console.log('Divi event dates module contract: OK');

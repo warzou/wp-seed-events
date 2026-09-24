@@ -13,6 +13,7 @@ const { data } = window.divi;
 
 import metadata from './module.json';
 import { resolveCurrentEventContext } from '../../../visual-builder-event-context';
+import { normalizeOptions } from './share-options';
 
 const loopPostIdContext = '$variable({"type":"content","value":{"name":"loop_post_id","settings":{}}})$';
 
@@ -26,11 +27,11 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
         },
       },
     })}
-    {elements.style({ attrName: 'shareStyle' })}
-    {elements.style({ attrName: 'summaryStyle' })}
     {elements.style({ attrName: 'actionsStyle' })}
-    {elements.style({ attrName: 'buttonStyle' })}
-    {elements.style({ attrName: 'linkStyle' })}
+    {elements.style({ attrName: 'actionStyle' })}
+    {elements.style({ attrName: 'shareActionStyle' })}
+    {elements.style({ attrName: 'copyActionStyle' })}
+    {elements.style({ attrName: 'emailActionStyle' })}
   </StyleContainer>
 );
 
@@ -49,7 +50,10 @@ const EventSharePreview = (props) => {
   const [hasError, setHasError] = useState(false);
   const currentPage = typeof getCurrentPageSetting === 'function' ? getCurrentPageSetting() : {};
   const context = resolveCurrentEventContext({ data, attrs, parentId: props.parentId, loopIndex: props.loopIndex, currentPage });
-  const restRoute = useMemo(() => `/wp-seed-events/v1/divi-event-share-preview?post_id=${context.eventId}&loop_id=${context.eventId}`, [context.cacheKey]);
+  const options = normalizeOptions(attrs);
+  const optionsKey = JSON.stringify(options);
+  const restRoute = useMemo(() => `/wp-seed-events/v1/divi-event-share-preview?${new URLSearchParams({ post_id: context.eventId, loop_id: context.eventId, ...options }).toString()}`, [context.cacheKey, optionsKey]);
+
   useEffect(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -58,7 +62,9 @@ const EventSharePreview = (props) => {
     fetch({ restRoute, method: 'GET', signal: controller.signal }).catch((error) => { if (error?.name !== 'AbortError') setHasError(true); });
     return () => controller.abort();
   }, [restRoute]);
+
   const html = typeof response?.html === 'string' ? response.html : '';
+
   return (
     <ModuleContainer attrs={attrs} elements={elements} id={id} moduleClassName='wp_seed_events_divi_event_share' name={name} scriptDataComponent={ModuleScriptData} stylesComponent={ModuleStyles} classnamesFunction={moduleClassnames}>
       {elements.styleComponents({ attrName: 'module' })}
@@ -74,7 +80,25 @@ const EventSharePreview = (props) => {
 
 const eventShareModule = {
   renderers: { edit: EventSharePreview },
-  placeholderContent: { __loop_post_id: loopPostIdContext },
+  placeholderContent: {
+    __loop_post_id: loopPostIdContext,
+    content: {
+      innerContent: {
+        desktop: {
+          value: {
+            display_mode: 'text_icon',
+			action_order: 'share_copy_email',
+            label: 'Partager',
+            show_share: 'on',
+            show_copy: 'on',
+            show_email: 'on',
+            copy_label: 'Copier le lien',
+            email_label: 'Par email',
+          },
+        },
+      },
+    },
+  },
 };
 
 addFilter('divi.moduleLibrary.moduleMapping', 'wpSeedEvents.eventShareFolder', (modules) => {
@@ -91,7 +115,7 @@ addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.e
   registerFolder({
     name: 'wp-seed-events',
     path: '',
-    title: 'WP Seed Events',
+    title: 'WPSEvents',
     icon: '',
     category: 'module',
   });

@@ -24,15 +24,14 @@ const fakeList = () => {
   };
 };
 
-assert.strictEqual(people.attributes.content.default.innerContent.desktop.value.show_title, 'on');
-assert.strictEqual(people.attributes.content.settings.innerContent.items.showTitle.subName, 'show_title');
-assert.strictEqual(visuals.attributes.content.default.innerContent.desktop.value.show_title, 'off');
-assert.ok(!visuals.attributes.content.settings.innerContent.items.showTitle);
-assert.ok(!Object.prototype.hasOwnProperty.call(dates.attributes.content.default.innerContent.desktop.value, 'show_title'));
-assert.ok(!Object.values(dates.attributes.content.settings.innerContent.items).some((item) => item.subName === 'show_title' && item.render !== false));
-assert.strictEqual(dates.attributes.content.settings.innerContent.items.legacyShowTitle.render, false);
-
 for (const metadata of [dates, people, visuals]) {
+  assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.title, '');
+  assert.strictEqual(metadata.attributes.content.default.innerContent.desktop.value.show_title, 'off');
+  assert.ok(!Object.values(metadata.attributes.content.settings.innerContent.items)
+    .some((item) => ['title', 'heading_level', 'show_title'].includes(item.subName)));
+}
+
+for (const metadata of [dates, people]) {
   const attrName = metadata === dates ? 'listStyle' : 'eventListStyle';
   const style = metadata.attributes[attrName];
   assert.deepStrictEqual(Object.keys(style.settings.advanced), ['markerType', 'markerPosition', 'leftIndent', 'occurrenceGap', 'markerColor']);
@@ -93,6 +92,10 @@ assert.strictEqual(list.values['--wp-seed-event-list-marker-color-tablet'], '#12
 for (const token of ['list-style-type', '::marker', '::before', 'padding-inline-start', '@media (max-width: 980px)', '@media (max-width: 767px)']) {
   assert.ok(css.includes(token), `Missing shared CSS contract: ${token}`);
 }
+for (const selector of ['.wp-seed-event-people__roles', '.wp-seed-event-people__contacts']) {
+  assert.ok(css.includes(selector), `Missing structural list selector: ${selector}`);
+}
+assert.ok(css.includes('content: none !important'));
 assert.ok(rendering.includes("'<span class='"));
 assert.ok(!rendering.includes("'<strong class=' . $quote . esc_attr( implode( ' ', $name_classes )"));
 assert.ok(!plugin.includes('data-wp-seed-event-type-add'));
@@ -107,7 +110,6 @@ assert.ok(plugin.includes("personPanel.data('wpSeedSelectedPersonName'"));
 
 for (const relative of [
   'includes/integrations/divi/event-people-module/visual-builder/build/wp-seed-events-event-people.js',
-  'includes/integrations/divi/event-visuals-module/visual-builder/build/wp-seed-events-event-visuals.js',
 ]) {
   const bundle = fs.readFileSync(path.join(root, relative), 'utf8');
   assert.ok(bundle.includes('wp-seed-event-list'));

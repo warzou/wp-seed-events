@@ -36,10 +36,10 @@ class WP_Seed_Events_Divi_Dynamic_Content_Image extends WP_Seed_Events_Divi_Dyna
 		if ( '' !== $loop_name && ! isset( $options[ $loop_name ] ) ) {
 			$options[ $loop_name ] = array(
 				'id'     => $loop_name,
-				'label'  => $this->get_label(),
+				'label'  => $this->get_loop_label(),
 				'type'   => $this->get_type(),
 				'custom' => false,
-				'group'  => esc_html__( 'WP Seed Events — Boucle', 'wp-seed-events' ),
+				'group'  => esc_html__( 'WPSEvents', 'wp-seed-events' ),
 				'fields' => array(),
 			);
 		}

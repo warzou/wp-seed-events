@@ -52,9 +52,6 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'post_id'             => array( 'sanitize_callback' => 'absint' ),
 					'loop_id'             => array( 'sanitize_callback' => 'absint' ),
 					'mode'                => array( 'sanitize_callback' => 'sanitize_key' ),
-					'title'               => array( 'sanitize_callback' => 'sanitize_text_field' ),
-					'show_title'          => array( 'sanitize_callback' => 'sanitize_key' ),
-					'heading_level'       => array( 'sanitize_callback' => 'sanitize_key' ),
 					'scope'               => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_cancelled'      => array( 'sanitize_callback' => 'sanitize_key' ),
 					'format'              => array( 'sanitize_callback' => 'sanitize_key' ),
@@ -63,10 +60,9 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 					'time_layout'         => array( 'sanitize_callback' => 'sanitize_key' ),
 					'time_layout_tablet'  => array( 'sanitize_callback' => 'sanitize_key' ),
 					'time_layout_phone'   => array( 'sanitize_callback' => 'sanitize_key' ),
-					'responsive_time_layout_requested' => array( 'sanitize_callback' => 'rest_sanitize_boolean' ),
+					'responsive_time_layout_requested' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'show_separator'      => array( 'sanitize_callback' => 'sanitize_key' ),
 					'separator_character' => array( 'sanitize_callback' => 'sanitize_text_field' ),
-					'show_calendar_links' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_type'     => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_marker_position' => array( 'sanitize_callback' => 'sanitize_key' ),
 					'list_indent'          => array( 'sanitize_callback' => 'sanitize_text_field' ),
@@ -95,7 +91,8 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			)
 		);
 
-		$values = array(
+		$options = self::normalize_options(
+			array(
 				'mode'                => $request->get_param( 'mode' ),
 				'scope'               => $request->get_param( 'scope' ),
 				'show_cancelled'      => $request->get_param( 'show_cancelled' ),
@@ -116,19 +113,8 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 				'list_indent'          => $request->get_param( 'list_indent' ),
 				'occurrence_gap'       => $request->get_param( 'occurrence_gap' ),
 				'marker_color'         => $request->get_param( 'marker_color' ),
+			)
 		);
-
-		foreach ( array( 'title', 'show_title', 'heading_level' ) as $legacy_title_key ) {
-			if ( $request->has_param( $legacy_title_key ) ) {
-				$values[ $legacy_title_key ] = $request->get_param( $legacy_title_key );
-			}
-		}
-
-		if ( $request->has_param( 'show_calendar_links' ) ) {
-			$values['show_calendar_links'] = $request->get_param( 'show_calendar_links' );
-		}
-
-		$options = self::normalize_options( $values );
 
 		return rest_ensure_response(
 			array(
@@ -143,21 +129,14 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	public static function render_callback( $attrs, $content, $block, $elements ) {
 		$event_id = wp_seed_events_divi_resolve_event_id( wp_seed_events_divi_get_module_event_context( $attrs, $block ) );
 		$content_values = self::get_content_values( $attrs );
-		$parsed_content_values = self::get_content_values( $block->parsed_block['attrs'] ?? array() );
-		foreach ( array( 'title', 'show_title', 'heading_level' ) as $legacy_title_key ) {
-			if ( ! array_key_exists( $legacy_title_key, $content_values )
-				&& array_key_exists( $legacy_title_key, $parsed_content_values ) ) {
-				$content_values[ $legacy_title_key ] = $parsed_content_values[ $legacy_title_key ];
-			}
-		}
 		$options  = self::normalize_options(
 			array_merge(
 				$content_values,
 				self::get_list_values( $attrs ),
 				array(
-					'time_layouts' => self::get_responsive_time_layouts( $attrs ),
+					'time_layouts'      => self::get_responsive_time_layouts( $attrs ),
 					'responsive_time_layout_requested' => self::has_responsive_time_layout_override( $attrs ),
-					'separator_styles' => self::get_responsive_separator_values( $attrs ),
+					'separator_styles'  => self::get_responsive_separator_values( $attrs ),
 				)
 			)
 		);
@@ -231,7 +210,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	}
 
 	/**
-	 * Resolve the responsive time layout using Divi's breakpoint inheritance.
+	 * Resolve the Date/Time layout at each Divi breakpoint.
 	 */
 	private static function get_responsive_time_layouts( $attrs ) {
 		$inheritance = array(
@@ -244,24 +223,24 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		foreach ( $inheritance as $breakpoint => $candidates ) {
 			$value = '';
 			foreach ( $candidates as $candidate ) {
-				$candidate_value = $attrs['content']['innerContent'][ $candidate ]['value']['time_layout'] ?? '';
+				$candidate_value = $attrs['content']['innerContent'][ $candidate ]['value']['time_layout'] ?? null;
 				if ( is_scalar( $candidate_value ) && '' !== trim( (string) $candidate_value ) ) {
 					$value = (string) $candidate_value;
 					break;
 				}
 			}
-			$layouts[ $breakpoint ] = wp_seed_events_public_date_component_layout_option( $value );
+			$layouts[ $breakpoint ] = wp_seed_events_public_date_component_layout_option( '' !== $value ? $value : 'below' );
 		}
 
 		return $layouts;
 	}
 
 	/**
-	 * Tell the renderer whether Divi stored a tablet or phone override.
+	 * Report whether a non-desktop layout value was explicitly saved.
 	 */
 	private static function has_responsive_time_layout_override( $attrs ) {
 		foreach ( array( 'tablet', 'phone' ) as $breakpoint ) {
-			$value = $attrs['content']['innerContent'][ $breakpoint ]['value']['time_layout'] ?? '';
+			$value = $attrs['content']['innerContent'][ $breakpoint ]['value']['time_layout'] ?? null;
 			if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
 				return true;
 			}
@@ -271,7 +250,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	}
 
 	/**
-	 * Normalize the lightweight separator styles with Divi breakpoint inheritance.
+	 * Normalize the four lightweight separator styles with responsive inheritance.
 	 */
 	private static function get_responsive_separator_values( $attrs ) {
 		$advanced = is_array( $attrs['separatorStyle']['advanced'] ?? null )
@@ -288,13 +267,16 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		foreach ( array( 'desktop', 'tablet', 'phone' ) as $breakpoint ) {
 			$styles[ $breakpoint ] = array();
 			foreach ( $config as $field => $field_config ) {
-				$fallback = 'desktop' === $breakpoint
-					? $field_config['default']
-					: $styles[ 'tablet' === $breakpoint ? 'desktop' : 'tablet' ][ $field ];
-				$value = self::resolve_divi_style_value( $advanced[ $field ] ?? array(), $breakpoint, 'value', $field, $fallback );
+				$value = self::resolve_divi_style_value(
+					$advanced[ $field ] ?? array(),
+					$breakpoint,
+					'value',
+					$field,
+					$field_config['default']
+				);
 				$styles[ $breakpoint ][ $field ] = ! empty( $field_config['color'] )
 					? wp_seed_events_public_date_list_marker_color_option( $value )
-					: wp_seed_events_public_date_list_dimension_option( $value, $fallback );
+					: wp_seed_events_public_date_list_dimension_option( $value, $field_config['default'] );
 			}
 		}
 
@@ -431,13 +413,6 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 	 */
 	private static function normalize_options( $values ) {
 		$values = is_array( $values ) ? $values : array();
-		$has_legacy_title = array_key_exists( 'title', $values )
-			&& array_key_exists( 'show_title', $values );
-		$title = $has_legacy_title
-			&& self::is_enabled( $values['show_title'] )
-			&& is_scalar( $values['title'] )
-			? trim( (string) $values['title'] )
-			: '';
 		$mode   = wp_seed_events_public_date_mode_option( $values['mode'] ?? 'all' );
 		$scope  = wp_seed_events_public_date_scope_option( $values['scope'] ?? 'all' );
 		$choice = is_scalar( $values['date_selection'] ?? null )
@@ -462,8 +437,6 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 		}
 
 		return array(
-			'title'               => $title,
-			'heading_level'       => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
 			'mode'                => $mode,
 			'scope'               => $scope,
 			'show_cancelled'      => self::is_enabled( $values['show_cancelled'] ?? 'on' ),
@@ -471,14 +444,11 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			'show_times'          => self::is_enabled( $values['show_times'] ?? 'on' ),
 			'time_layout'         => wp_seed_events_public_date_component_layout_option( $values['time_layout'] ?? 'below' ),
 			'time_layouts'        => is_array( $values['time_layouts'] ?? null ) ? $values['time_layouts'] : array(),
-			'responsive_time_layout_requested' => ! empty( $values['responsive_time_layout_requested'] ),
+			'responsive_time_layout_requested' => self::is_enabled( $values['responsive_time_layout_requested'] ?? 'off' ),
 			'show_separator'      => self::is_enabled( $values['show_separator'] ?? 'off' ),
 			'separator_character' => wp_seed_events_public_date_separator_character_option( $values['separator_character'] ?? "\u{2014}" ),
 			'separator_styles'    => is_array( $values['separator_styles'] ?? null ) ? $values['separator_styles'] : array(),
 			'format'              => wp_seed_events_public_date_format_option( $values['format'] ?? 'long' ),
-			'show_calendar_links' => array_key_exists( 'show_calendar_links', $values )
-				? self::is_enabled( $values['show_calendar_links'] )
-				: false,
 			'list_marker_type'     => $values['list_marker_type'] ?? 'none',
 			'list_marker_position' => $values['list_marker_position'] ?? 'outside',
 			'list_indent'          => $values['list_indent'] ?? '0px',
@@ -534,7 +504,7 @@ class WP_Seed_Events_Divi_Event_Dates_Module implements DependencyInterface {
 			),
 		);
 
-		foreach ( array( 'dateStyle', 'timeStyle', 'separatorStyle', 'statusStyle', 'calendarLinkStyle', 'occurrenceStyle' ) as $attr_name ) {
+		foreach ( array( 'sectionStyle', 'listStyle', 'dateStyle', 'timeStyle', 'separatorStyle', 'statusStyle', 'occurrenceStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 

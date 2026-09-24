@@ -28,17 +28,18 @@ test('canonical module identity is unique', () => {
   assert.strictEqual((source.match(/registerModule\(/g) || []).length, 1);
 });
 test('French label and shared folder are configured', () => {
-  assert.strictEqual(metadata.title, 'WP Seed — Personnes de l’événement');
+  assert.strictEqual(metadata.title, 'WPSEvents — Personnes');
   assert.strictEqual(metadata.folder, 'wp-seed-events');
   assert.strictEqual((source.match(/registerFolder\(\{/g) || []).length, 1);
+  assert.ok(source.includes("title: 'WPSEvents'"));
 });
 test('content fields expose only the final composable people controls', () => {
-  assert.deepStrictEqual(fields, ['contact_layout', 'contact_separator', 'email_clickable', 'heading_level', 'name_contact_separator', 'phone_clickable', 'show_contact_separator', 'show_email', 'show_link', 'show_name', 'show_name_contact_separator', 'show_phone', 'show_title', 'site_clickable', 'title']);
+  assert.deepStrictEqual(fields, ['contact_layout', 'contact_separator', 'email_clickable', 'name_contact_separator', 'phone_clickable', 'show_contact_separator', 'show_email', 'show_link', 'show_name', 'show_name_contact_separator', 'show_phone', 'site_clickable']);
   ['show_roles', 'layout'].forEach((field) => assert.ok(!fields.includes(field)));
 });
 test('renderer defaults are preserved', () => {
   assert.deepStrictEqual(defaults, {
-	title: 'Contacts et intervenants', heading_level: 'h2', role: 'all', people_contract: 'composable-v3', show_name: 'on', show_roles: 'off', show_title: 'on',
+	title: '', heading_level: 'h2', role: 'all', people_contract: 'composable-v3', show_name: 'on', show_roles: 'off', show_title: 'off',
 	show_email: 'on', show_phone: 'on', show_link: 'on', email_clickable: 'on', phone_clickable: 'on', site_clickable: 'on',
 	contact_layout: 'stacked', show_contact_separator: 'off', contact_separator: '\u2014',
 	show_name_contact_separator: 'off', name_contact_separator: '\u2014', layout: 'list',
@@ -76,7 +77,7 @@ test('Content UI groups related controls in a stable business order', () => {
     .filter((group) => group.panel === 'content')
     .sort((a, b) => a.priority - b.priority);
   assert.deepStrictEqual(contentGroups.map((group) => group.component.props.groupLabel), [
-    'Titre', 'Filtrage', 'Nom', 'Email', 'Téléphone', 'Liens', 'Disposition', 'Séparateurs',
+    'Filtrage', 'Nom', 'Email', 'Téléphone', 'Liens', 'Disposition', 'Séparateurs',
   ]);
   const groupedFields = Object.fromEntries(contentGroups.map((group) => [
     group.component.props.groupLabel,
@@ -120,8 +121,12 @@ test('historical role and list layout values stay runtime-only', () => {
   assert.ok(!metadata.attributes.rolesStyle.settings);
   assert.ok(!metadata.attributes.roleStyle.settings);
 });
-test('heading levels are h2 through h6', () => {
-  assert.deepStrictEqual(Object.keys(items.headingLevel.component.props.options), ['h2', 'h3', 'h4', 'h5', 'h6']);
+test('historical heading value remains registered without a new UI control', () => {
+  assert.strictEqual(defaults.heading_level, 'h2');
+  assert.ok(!items.headingLevel);
+  assert.ok(!source.includes("attrName: 'titleStyle'"));
+  assert.ok(!phpModule.includes("wp_seed_events_divi_optional_title( $values"));
+  assert.ok(!publicRenderer.includes('wp-seed-event-people__title'));
 });
 test('publication help is explicit without private flags', () => {
   const serialized = JSON.stringify(metadata);
@@ -229,13 +234,15 @@ test('legacy decorations remain renderable but hidden from the new Style UI', ()
 test('Style UI uses the concise people groups', () => {
   const groups = [];
   Object.values(metadata.attributes).forEach((attribute) => {
-    Object.values(attribute?.settings?.decoration ?? {}).forEach((feature) => groups.push(feature?.component?.props?.groupLabel));
+    Object.values(attribute?.settings?.decoration ?? {}).forEach((feature) => {
+      if (feature?.render !== false) groups.push(feature?.component?.props?.groupLabel);
+    });
   });
   Object.values(metadata.settings.groups).forEach((group) => {
     if (group.panel === 'design') groups.push(group.component.props.groupLabel);
   });
-  assert.deepStrictEqual(groups, ['Module', 'Titre', 'Personne', 'Nom', 'Coordonnées', 'Liste', 'Séparateur Nom / Coordonnées']);
-  assert.strictEqual(new Set(groups).size, 7);
+  assert.deepStrictEqual(groups, ['Module', 'Personne', 'Nom', 'Coordonnées', 'Liste', 'Séparateur Nom / Coordonnées']);
+  assert.strictEqual(new Set(groups).size, 6);
 });
 test('bootstrap registers dependency and app-window bundle once', () => {
   assert.strictEqual((bootstrap.match(/wp_seed_events_divi_register_event_people_module/g) || []).length, 2);

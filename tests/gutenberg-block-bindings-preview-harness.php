@@ -49,6 +49,16 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id ) {
 	return $GLOBALS['preview_values'][ $event_id ][ $field ] ?? '';
 }
 
+function wp_seed_events_dynamic_data_field_format( $field ) {
+	$formats = array(
+		'description'    => 'rich_html',
+		'excerpt'        => 'multiline_text',
+		'practical_info' => 'multiline_text',
+	);
+
+	return $formats[ $field ] ?? 'plain_text';
+}
+
 function wp_seed_events_occurrence_dynamic_data_fields() {
 	return array( 'occurrence_uid' => 'Occurrence UID' );
 }
@@ -141,18 +151,23 @@ preview_assert(
 	'Preview schema and field allowlist differ.'
 );
 preview_assert(
-	array( 'types', 'status', 'display_date', 'place', 'contact', 'excerpt', 'url' ) === wp_seed_events_gutenberg_block_binding_preview_fields(),
+	array( 'types', 'status', 'programming_status', 'programming_text', 'display_date', 'place', 'contact', 'description', 'excerpt', 'practical_info', 'url', 'calendar_all_occurrences_url' ) === wp_seed_events_gutenberg_block_binding_preview_fields(),
 	'Preview field allowlist differs.'
 );
 
 $GLOBALS['preview_values'][914] = array(
 	'types'        => 'Atelier',
 	'status'       => 'À venir',
+	'programming_status' => 'Programmé',
+	'programming_text'   => '',
 	'display_date' => 'Vendredi 31 juillet 2026',
 	'place'        => 'Centre Shania',
 	'contact'      => 'Claire Test',
+	'description'  => '<p>Texte <strong>riche</strong></p>',
 	'excerpt'      => "Une ligne\nUne autre ligne",
+	'practical_info' => "Accueil\nSalle 2",
 	'url'          => 'https://example.test/atelier/exemple/',
+	'calendar_all_occurrences_url' => 'https://example.test/wp-admin/admin-post.php?action=wp_seed_events_download_event_ics&event_id=914',
 );
 $values = wp_seed_events_gutenberg_block_bindings_rest_values(
 	array( 'id' => 914 ),
@@ -160,8 +175,10 @@ $values = wp_seed_events_gutenberg_block_bindings_rest_values(
 	new Preview_Request( 'edit' )
 );
 preview_assert( $GLOBALS['preview_values'][914] === $values, 'Authorized preview values differ.' );
-preview_assert( 7 === $GLOBALS['preview_value_calls'], 'Each allowlisted value must be resolved once.' );
+preview_assert( 12 === $GLOBALS['preview_value_calls'], 'Each allowlisted value must be resolved once.' );
+preview_assert( '<p>Texte <strong>riche</strong></p>' === $values['description'], 'REST preview flattened rich description.' );
 preview_assert( "Une ligne\nUne autre ligne" === $values['excerpt'], 'REST preview flattened multiline excerpt.' );
+preview_assert( "Accueil\nSalle 2" === $values['practical_info'], 'REST preview flattened practical information.' );
 
 $excerpt_block = array(
 	'attrs' => array(

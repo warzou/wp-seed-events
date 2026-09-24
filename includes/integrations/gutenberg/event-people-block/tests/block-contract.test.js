@@ -29,7 +29,7 @@ check('canonical block identity', () => {
   assert.strictEqual(metadata.name, 'wp-seed-events/event-people-block');
   assert.strictEqual(metadata.apiVersion, 3);
   assert.strictEqual(metadata.version, packageManifest.version);
-  assert.strictEqual(metadata.title, 'WP Seed — Personnes de l’événement');
+  assert.strictEqual(metadata.title, 'WPSEvents — Personnes');
   assert.strictEqual(metadata.category, 'widgets');
   assert.strictEqual(metadata.icon, 'groups');
 });
@@ -61,7 +61,7 @@ check('defaults match the people renderer', () => {
       Object.entries(metadata.attributes).map(([name, definition]) => [name, definition.default]),
     ),
     {
-      title: 'Contacts et intervenants',
+      title: '',
       heading_level: 'h2',
       role: 'all',
       roles: [],
@@ -137,8 +137,6 @@ check('no business HTML is built in JavaScript', () => {
 
 check('Inspector exposes roles OR and fine-grained controls', () => {
   [
-    'Titre',
-    'Niveau du titre',
     'R\u00f4les affich\u00e9s',
     'Tous les r\u00f4les',
     'Afficher le nom',
@@ -155,8 +153,8 @@ check('Inspector exposes roles OR and fine-grained controls', () => {
   ].forEach((label) => assert.ok(source.includes(label), 'Missing label: ' + label));
   assert.ok(source.includes("rawRoles.includes( 'all' )"));
   assert.ok(source.includes("roles: uniqueRoles"));
-  assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 2);
-  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 3);
+  assert.strictEqual((source.match(/<TextControl\b/g) || []).length, 1);
+  assert.strictEqual((source.match(/<SelectControl\b/g) || []).length, 2);
   assert.strictEqual((source.match(/<CheckboxControl\b/g) || []).length, 2);
   assert.strictEqual((source.match(/<ToggleControl\b/g) || []).length, 8);
   assert.ok(!source.includes('Rendre le t\u00e9phone cliquable'));

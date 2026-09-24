@@ -26,6 +26,10 @@ Cette fonction lit et normalise les occurrences d'un evenement. Elle retourne to
 | `uid` | `string` | UUID valide stocke, ou chaine vide. |
 | `derived_id` | `string` | Identifiant deterministe `occ-...` derive de l'evenement, de la position et des valeurs temporelles. |
 | `event_id` | `int` | ID de l'evenement. |
+| `promotion_id` | `int` | ID de la promotion valide, ou `0`. |
+| `promotion` | `array` | Objet Promotion public normalise, ou `array()`. |
+| `parcours_year` | `int` | Annee du parcours de 1 a 4, ou `0`. |
+| `parcours_year_label` | `string` | Libelle public de l'annee, ou chaine vide. |
 | `start_date` | `string` | Date `YYYY-MM-DD`, toujours presente. |
 | `end_date` | `string` | Date de fin valide ou chaine vide. |
 | `start_time` | `string` | Heure `HH:MM` valide ou chaine vide. |
@@ -59,18 +63,21 @@ Le resultat est trie par `start_sort` croissant. Les occurrences annulees garden
 
 ## Garanties et elements internes
 
-Le schema ci-dessus est public. La meta source, la table de projection interne, les projections SQL des collections, les options de version d'index, les curseurs et les verrous de reconstruction sont internes. Les consommateurs ne doivent ni lire la meta ou la table d'occurrences directement ni reconstruire le lifecycle.
+Le schema ci-dessus est public. La meta source, la table de projection lifecycle v3, les projections SQL des collections, les options de version d'index, les curseurs et les verrous de reconstruction sont internes. Les consommateurs ne doivent ni lire la meta ou la table d'occurrences directement ni reconstruire le lifecycle.
 
-La table `{$wpdb->prefix}wp_seed_event_occurrences` est une projection reconstruisible, jamais une seconde source de verite. Tant que le lifecycle interne n'est pas pret, les lectures internes reviennent a cette API canonique. Voir [Projection des occurrences et lifecycle interne](OCCURRENCE-PROJECTION-LIFECYCLE-V3.md).
+La table `{$wpdb->prefix}wp_seed_event_occurrences` est une projection reconstruisible, jamais une seconde source de verite. Tant que lifecycle v3 n'est pas pret, les lectures internes reviennent a cette API canonique. Voir [Occurrence Projection and Lifecycle V3](OCCURRENCE-PROJECTION-LIFECYCLE-V3.md).
 
 Les identifiants derives restent deterministes pour une position et des valeurs identiques, mais un consommateur qui exige une identite durable doit privilegier un `uid` non vide.
 
 Voir aussi [Event Data API](EVENT-DATA-API.md) et [Collections publiques](PUBLIC-COLLECTIONS.md).
+Voir aussi [Promotions et annees du parcours](PROMOTION-DOMAIN-API.md).
+
 
 ## Collections multi-evenements
 
 `wp_seed_events_get_event_occurrences()` reste l'API canonique pour normaliser les occurrences d'un evenement. Les collections multi-evenements reutilisent les projections produites depuis ce contrat :
 
 - `wp_seed_events_query_occurrence_collection()` pour une liste plate paginee ;
+- `wp_seed_events_query_grouped_occurrence_collection()` pour le chemin Promotion -> annee -> theme -> occurrences.
 
 Elles ne modifient pas le schema normalise ci-dessus et ne creent aucune seconde source de verite. Voir [Occurrence Collections](OCCURRENCE-COLLECTIONS.md).

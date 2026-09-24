@@ -246,7 +246,7 @@ namespace {
 		p4_assert( 1 === count( \ET\Builder\Packages\ModuleLibrary\ModuleRegistration::$registrations ), 'Registration count differs.' );
 	} );
 	p4_case( '2 canonical identifier', fn() => p4_assert( 'wp-seed-events/event-people' === WP_Seed_Events_Divi_Event_People_Module::MODULE_NAME, 'Wrong ID.' ) );
-	p4_case( '3 French label', fn() => p4_assert( 'WP Seed — Personnes de l’événement' === $metadata['title'], 'Wrong label.' ) );
+	p4_case( '3 French label', fn() => p4_assert( 'WPSEvents — Personnes' === $metadata['title'], 'Wrong label.' ) );
 	p4_case( '4 valid event context', fn() => p4_assert( 10 === wp_seed_events_divi_resolve_event_id( array( 'post_id' => 10, 'post_type' => 'wp_seed_event' ) ), 'Valid context failed.' ) );
 	p4_case( '5 implicit public context', function () { $GLOBALS['wp_seed_events_public_event_id'] = 10; p4_assert( 10 === wp_seed_events_divi_resolve_event_id(), 'Public context failed.' ); unset( $GLOBALS['wp_seed_events_public_event_id'] ); } );
 	p4_case( '6 explicit valid post ID', fn() => p4_assert( 13 === wp_seed_events_divi_resolve_event_id( array( 'post_id' => 13 ) ), 'Explicit event failed.' ) );
@@ -264,11 +264,11 @@ namespace {
 	p4_case( '18 registration alias resolves canonical contacts', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'registration_contact' ) ), 'wp-seed-event-people__item' ), 'Registration alias failed.' ) );
 	p4_case( '19 information alias resolves canonical contacts', fn() => p4_assert( 2 === substr_count( p4_render( 10, array( 'role' => 'information_contact' ) ), 'wp-seed-event-people__item' ), 'Information alias failed.' ) );
 	p4_case( '20 invalid role falls back to all', fn() => p4_assert( 6 === substr_count( p4_render( 10, array( 'role' => 'bad' ) ), 'wp-seed-event-people__item' ), 'Invalid role failed.' ) );
-	p4_case( '21 default title', fn() => p4_assert( p4_contains( 'Contacts et intervenants', p4_render( 13, p4_invoke( 'normalize_options', array() ) ) ), 'Default title missing.' ) );
-	p4_case( '22 custom title', fn() => p4_assert( p4_contains( '>Equipe</h2>', p4_render( 13, array( 'title' => 'Equipe' ) ) ), 'Custom title missing.' ) );
+	p4_case( '21 default title is absent', fn() => p4_assert( ! p4_contains( 'wp-seed-event-people__title', p4_render( 13, p4_invoke( 'normalize_options', array() ) ) ), 'Integrated title rendered.' ) );
+	p4_case( '22 custom title is inert', fn() => p4_assert( ! p4_contains( 'Equipe', p4_render( 13, array( 'title' => 'Equipe' ) ) ), 'Stored title rendered.' ) );
 	p4_case( '23 empty title', fn() => p4_assert( ! p4_contains( 'wp-seed-event-people__title', p4_render( 13, array( 'title' => '' ) ) ), 'Empty title rendered.' ) );
-	p4_case( '24 h2 through h6', function () { foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) { p4_assert( p4_contains( '<' . $level, p4_render( 13, array( 'heading_level' => $level ) ) ), 'Heading missing.' ); } } );
-	p4_case( '25 invalid heading', fn() => p4_assert( p4_contains( '<h2', p4_render( 13, array( 'heading_level' => 'h1' ) ) ), 'Heading fallback failed.' ) );
+	p4_case( '24 h2 through h6 are inert', function () { foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) { p4_assert( ! p4_contains( 'wp-seed-event-people__title', p4_render( 13, array( 'heading_level' => $level ) ) ), 'Heading rendered.' ); } } );
+	p4_case( '25 invalid heading is inert', fn() => p4_assert( ! p4_contains( 'wp-seed-event-people__title', p4_render( 13, array( 'heading_level' => 'h1' ) ) ), 'Heading rendered.' ) );
 	p4_case( '26 roles shown', fn() => p4_assert( p4_contains( 'wp-seed-event-people__roles', p4_render( 13 ) ), 'Roles missing.' ) );
 	p4_case( '27 roles hidden', fn() => p4_assert( ! p4_contains( 'wp-seed-event-people__roles', p4_render( 13, array( 'show_roles' => false ) ) ), 'Roles visible.' ) );
 	p4_case( '28 public email shown', fn() => p4_assert( p4_contains( 'mailto:public@example.test', p4_render( 10 ) ), 'Public email missing.' ) );

@@ -1,6 +1,6 @@
 <?php
 /**
- * Reconstructible occurrence projection used by the internal lifecycle.
+ * Reconstructible occurrence projection used by lifecycle v3.
  *
  * @package WPSeedEvents
  */
@@ -24,6 +24,8 @@ function wp_seed_events_occurrence_projection_schema() {
 		event_id bigint(20) unsigned NOT NULL,
 		occurrence_uid varchar(64) NOT NULL,
 		occurrence_index int(10) unsigned NOT NULL DEFAULT 0,
+		promotion_id bigint(20) unsigned NOT NULL DEFAULT 0,
+		parcours_year tinyint(3) unsigned NOT NULL DEFAULT 0,
 		start_raw varchar(16) NOT NULL DEFAULT '',
 		end_raw varchar(16) NOT NULL DEFAULT '',
 		start_sort varchar(16) NOT NULL DEFAULT '',
@@ -36,9 +38,12 @@ function wp_seed_events_occurrence_projection_schema() {
 		PRIMARY KEY  (id),
 		UNIQUE KEY event_occurrence (event_id,occurrence_uid),
 		KEY event_id (event_id),
+		KEY promotion_id (promotion_id),
+		KEY parcours_year (parcours_year),
 		KEY start_sort (start_sort),
 		KEY is_cancelled (is_cancelled),
 		KEY event_type (event_type),
+		KEY promotion_year_start (promotion_id,parcours_year,is_cancelled,start_sort),
 		KEY collection_filter (event_type,event_status,is_cancelled,start_sort)
 	) {$charset_collate};";
 }
@@ -53,33 +58,11 @@ function wp_seed_events_occurrence_projection_table_exists() {
 }
 
 function wp_seed_events_install_occurrence_projection_table() {
-	global $wpdb;
-
 	if ( ! function_exists( 'dbDelta' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	}
 
 	dbDelta( wp_seed_events_occurrence_projection_schema() );
-
-	$table_name = wp_seed_events_occurrence_projection_table_name();
-	$indexes    = array( 'promotion_year_start', 'promotion_id', 'parcours_year' );
-	$columns    = array( 'promotion_id', 'parcours_year' );
-
-	foreach ( $indexes as $index ) {
-		$exists = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$table_name} WHERE Key_name = %s", $index ) );
-
-		if ( null !== $exists ) {
-			$wpdb->query( "ALTER TABLE {$table_name} DROP INDEX `{$index}`" );
-		}
-	}
-
-	foreach ( $columns as $column ) {
-		$exists = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table_name} LIKE %s", $column ) );
-
-		if ( null !== $exists ) {
-			$wpdb->query( "ALTER TABLE {$table_name} DROP COLUMN `{$column}`" );
-		}
-	}
 
 	return wp_seed_events_occurrence_projection_table_exists();
 }
@@ -124,6 +107,8 @@ function wp_seed_events_occurrence_projection_uid( $occurrence, $event_id, $dupl
 		'end_time'      => (string) ( $occurrence['end_time'] ?? '' ),
 		'all_day'       => ! empty( $occurrence['all_day'] ) ? '1' : '',
 		'cancelled'     => ! empty( $occurrence['is_cancelled'] ) ? '1' : '',
+		'promotion_id'  => absint( $occurrence['promotion_id'] ?? 0 ),
+		'parcours_year' => absint( $occurrence['parcours_year'] ?? 0 ),
 	);
 	$hash        = substr( hash( 'sha256', wp_json_encode( $fingerprint ) ), 0, 48 );
 
@@ -196,6 +181,8 @@ function wp_seed_events_build_occurrence_projection_rows( $event_id ) {
 			'event_id'         => $event_id,
 			'occurrence_uid'   => $occurrence_uid,
 			'occurrence_index' => max( 0, (int) $occurrence_index ),
+			'promotion_id'     => absint( $occurrence['promotion_id'] ?? 0 ),
+			'parcours_year'    => absint( $occurrence['parcours_year'] ?? 0 ),
 			'start_raw'        => $start_raw,
 			'end_raw'          => $end_raw,
 			'start_sort'       => (string) $occurrence['start_sort'],
@@ -248,7 +235,7 @@ function wp_seed_events_sync_occurrence_projection( $event_id ) {
 			$inserted = $wpdb->insert(
 				$table_name,
 				$row,
-				array( '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s' )
+				array( '%d', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s' )
 			);
 
 			if ( false === $inserted ) {
@@ -320,7 +307,7 @@ function wp_seed_events_get_occurrence_projection_rows( $event_id, $prefer_index
 		$wpdb->last_error = '';
 		$rows             = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT event_id, occurrence_uid, occurrence_index, start_raw, end_raw, start_sort, end_sort, is_cancelled, event_type, event_status, is_pinned, updated_at
+				"SELECT event_id, occurrence_uid, occurrence_index, promotion_id, parcours_year, start_raw, end_raw, start_sort, end_sort, is_cancelled, event_type, event_status, is_pinned, updated_at
 				FROM {$table_name}
 				WHERE event_id = %d
 				ORDER BY occurrence_index ASC, id ASC",
@@ -363,7 +350,16 @@ function wp_seed_events_verify_occurrence_projection_integrity() {
 			WHERE events.ID IS NULL OR events.post_type <> 'wp_seed_event'"
 		)
 	);
-	if ( 0 < $duplicates || 0 < $orphans ) {
+	$invalid_pairs = absint(
+		$wpdb->get_var(
+			"SELECT COUNT(*)
+			FROM {$table_name}
+			WHERE (promotion_id = 0 AND parcours_year <> 0)
+				OR (promotion_id <> 0 AND parcours_year NOT BETWEEN 1 AND 4)"
+		)
+	);
+
+	if ( 0 < $duplicates || 0 < $orphans || 0 < $invalid_pairs ) {
 		return new WP_Error( 'occurrence_projection_integrity_failed', 'Occurrence projection integrity check failed.' );
 	}
 

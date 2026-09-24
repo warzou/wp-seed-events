@@ -42,6 +42,7 @@ function get_post_meta( $id, $key ) { return $GLOBALS['sdi_meta'][ absint( $id )
 function update_post_meta() { $GLOBALS['sdi_writes']++; }
 function delete_post_meta() { $GLOBALS['sdi_writes']++; }
 function wp_seed_events_get_event_occurrences() { return array(); }
+function wp_seed_events_normalize_parcours_year( $value ) { return absint( $value ); }
 function wp_seed_events_get_next_active_occurrence() { return array(); }
 function wp_seed_events_get_last_active_occurrence() { return array(); }
 function wp_seed_events_get_event_lifecycle() { return 'undated'; }

@@ -21,6 +21,7 @@ $GLOBALS['wp_seed_events_media_places']      = array();
 $GLOBALS['wp_seed_events_media_permalinks']  = array();
 $GLOBALS['wp_seed_events_media_write_calls'] = array();
 $GLOBALS['wp_seed_events_media_case_count']  = 0;
+$GLOBALS['wp_seed_events_media_occurrences'] = array();
 
 function absint( $value ) {
 	return abs( (int) $value );
@@ -122,7 +123,15 @@ function delete_post_thumbnail( $post_id ) {
 }
 
 function wp_seed_events_get_event_occurrences( $event_id, $args = array() ) {
-	return array();
+	return $GLOBALS['wp_seed_events_media_occurrences'][ absint( $event_id ) ] ?? array();
+}
+
+function admin_url( $path = '' ) {
+	return 'https://example.test/wp-admin/' . ltrim( (string) $path, '/' );
+}
+
+function add_query_arg( $args, $url ) {
+	return (string) $url . '?' . http_build_query( (array) $args, '', '&', PHP_QUERY_RFC3986 );
 }
 
 function wp_seed_events_get_next_active_occurrence( $event_id ) {
@@ -135,6 +144,11 @@ function wp_seed_events_get_last_active_occurrence( $event_id ) {
 
 function wp_seed_events_get_event_lifecycle( $event_id ) {
 	return 'undated';
+}
+
+function wp_seed_events_normalize_parcours_year( $value ) {
+	$value = absint( $value );
+	return $value >= 1 && $value <= 4 ? $value : 0;
 }
 
 function wp_seed_events_event_type_labels_for_event( $event_id ) {
@@ -169,6 +183,7 @@ function get_permalink( $post_id ) {
 
 require dirname( __DIR__ ) . '/includes/public/media.php';
 require dirname( __DIR__ ) . '/includes/public/event-data.php';
+require dirname( __DIR__ ) . '/includes/public/calendar.php';
 
 function wp_seed_events_media_assert( $condition, $message ) {
 	if ( ! $condition ) {
@@ -213,10 +228,19 @@ function wp_seed_events_media_attachment( $attachment_id, $title, $mime_type, $u
 
 $GLOBALS['wp_seed_events_media_posts'][501] = (object) array(
 	'ID'           => 501,
+	'post_name'    => 'media-contract-event',
 	'post_type'    => 'wp_seed_event',
 	'post_status'  => 'publish',
 	'post_title'   => 'Media contract event',
 	'post_content' => 'Event description',
+);
+$GLOBALS['wp_seed_events_media_occurrences'][501] = array(
+	array(
+		'id'           => 'event-501-occurrence-1',
+		'is_active'    => true,
+		'is_future'    => true,
+		'is_cancelled' => false,
+	),
 );
 
 wp_seed_events_media_attachment(
@@ -379,6 +403,11 @@ wp_seed_events_media_case(
 		wp_seed_events_media_assert_same( 'https://example.test/events/event-501/', $data['url'], 'Canonical event URL differs.' );
 		wp_seed_events_media_assert_same( 'https://example.test/place/', $data['place_url'], 'Place URL differs.' );
 		wp_seed_events_media_assert_same( 'https://cdn.example.test/documents/programme-detaille.pdf', $data['event_document_url'], 'Document URL differs.' );
+		wp_seed_events_media_assert_same(
+			'https://example.test/wp-admin/admin-post.php?action=wp_seed_events_download_event_ics&event_id=501',
+			$data['calendar_all_occurrences_url'],
+			'Canonical all-occurrences calendar URL differs.'
+		);
 		foreach ( array( 'event_url', 'canonical_url', 'document_url', 'flyer_url' ) as $alias ) {
 			wp_seed_events_media_assert( ! array_key_exists( $alias, $data ), 'Unexpected URL alias exposed: ' . $alias );
 		}
@@ -390,6 +419,7 @@ wp_seed_events_media_case(
 	function () {
 		$GLOBALS['wp_seed_events_media_posts'][502] = (object) array(
 			'ID'           => 502,
+			'post_name'    => 'empty-event',
 			'post_type'    => 'wp_seed_event',
 			'post_status'  => 'publish',
 			'post_title'   => 'Empty event',
@@ -415,6 +445,7 @@ wp_seed_events_media_case(
 	function () {
 		$GLOBALS['wp_seed_events_media_posts'][503] = (object) array(
 			'ID'           => 503,
+			'post_name'    => 'unsafe-url-event',
 			'post_type'    => 'wp_seed_event',
 			'post_status'  => 'publish',
 			'post_title'   => 'Unsafe URL event',
@@ -441,6 +472,7 @@ wp_seed_events_media_case(
 
 		$GLOBALS['wp_seed_events_media_posts'][504] = (object) array(
 			'ID'           => 504,
+			'post_name'    => 'non-pdf-document',
 			'post_type'    => 'wp_seed_event',
 			'post_status'  => 'publish',
 			'post_title'   => 'Non PDF document',

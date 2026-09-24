@@ -24,13 +24,10 @@ structure deja chargee ne declenche aucune nouvelle resolution.
 
 ## Options V1
 
-- `title` : titre facultatif, `Dates` par defaut ;
-- `heading_level` : `h2` a `h6`, `h2` par defaut ;
 - `mode` : `next`, `first`, `last` ou `all`, `all` par defaut ;
 - `scope` : `all`, `upcoming` ou `past`, `all` par defaut ;
 - `show_cancelled` : affiche les occurrences annulees, `true` par defaut ;
 - `show_times` : affiche les horaires, `true` par defaut ;
-- `show_calendar_links` : affiche les actions calendrier, `true` par defaut.
 - `format` : `long` ou `short`, `long` par defaut.
 
 Les builders présentent ces combinaisons sous des libellés explicites : `next+upcoming` correspond à Prochaine date, `all+upcoming` à Toutes les prochaines dates, `all+past` à Toutes les dates passées et `all+all` à Toutes les dates. Dans les builders, Première date et Dernière date utilisent `scope=all` pour éviter un second contrôle ambigu. Les shortcodes conservent la combinaison avancée `mode` + `scope`. Le contrat PHP reste fondé sur `mode` et `scope`.
@@ -46,8 +43,9 @@ de mise en page.
 Le renderer conserve l'ordre canonique fourni par l'Event Occurrences API.
 
 - `all` conserve toutes les occurrences datees valides ;
-- `upcoming` utilise exclusivement `is_date_future` ;
-- `past` utilise exclusivement `is_date_past` ;
+- `upcoming` utilise exclusivement `is_date_future` ; une occurrence reste à
+  venir jusqu'à sa fin, y compris lorsqu'elle est déjà commencée ;
+- `past` utilise exclusivement `is_date_past`, donc uniquement après la fin ;
 - `show_cancelled=false` exclut ensuite toutes les occurrences annulees.
 
 Les projections `is_date_future` et `is_date_past` sont neutres. Une occurrence
@@ -70,13 +68,12 @@ ajoute les classes d'etat stables suivantes :
 
 Les classes BEM principales sont :
 
-- `wp-seed-event-dates__title` ;
 - `wp-seed-event-date__date` ;
 - `wp-seed-event-date__time` ;
 - `wp-seed-event-date__status`.
 
 Le texte visible `Annulée` est toujours present pour une occurrence annulee.
-Un titre vide supprime le heading et ajoute un `aria-label` a la section.
+La section porte un `aria-label` stable et ne rend aucun titre intégré.
 
 Toutes les valeurs sont echappees. Les donnees invalides sont ignorees avant
 toute sortie afin d'eviter un HTML partiel.
@@ -94,14 +91,10 @@ Le renderer reutilise le formateur horaire existant :
 
 ## Calendrier
 
-Une action individuelle est rendue uniquement pour une occurrence active
-future. Une occurrence passee ou annulee n'est jamais exportable.
-
-L'action globale est rendue uniquement si le resultat filtre contient au moins
-deux occurrences actives futures. Les helpers calendrier acceptent cette liste
-deja normalisee et ne relisent pas l'Event Occurrences API.
-
-Le format ICS et les URLs de telechargement restent inchanges.
+Le renderer Dates ne produit aucun lien ou bouton calendrier. Les anciens
+attributs calendrier des builders restent stockés mais sont inertes. Le format
+ICS et les URLs de téléchargement restent disponibles via Event Data, notamment
+`calendar_all_occurrences_url`, pour un bouton natif Divi ou Gutenberg.
 
 ## Consommateurs
 
@@ -128,13 +121,10 @@ evenement :
 Les attributs V1 sont :
 
 - `id` : identifiant d'evenement facultatif ;
-- `title` : `Dates` par defaut, chaine vide autorisee ;
-- `heading_level` : `h2` a `h6`, `h2` par defaut ;
 - `mode` : `next`, `first`, `last` ou `all`, `all` par defaut ;
 - `scope` : `all`, `upcoming` ou `past`, `all` par defaut ;
 - `show_cancelled` : `yes` ou `no`, `yes` par defaut ;
 - `show_times` : `yes` ou `no`, `yes` par defaut ;
-- `show_calendar_links` : `yes` ou `no`, `yes` par defaut.
 
 Les valeurs invalides reviennent aux valeurs par defaut. Les occurrences
 annulees restent situees dans `upcoming` ou `past` selon leur date et sont
@@ -145,8 +135,7 @@ Exemples :
 ```text
 [wp_seed_event_dates scope="upcoming"]
 [wp_seed_event_dates scope="past" show_cancelled="no"]
-[wp_seed_event_dates title="" show_calendar_links="no"]
-[wp_seed_event_dates id="914" heading_level="h3"]
+[wp_seed_event_dates id="914"]
 ```
 
 Pour compatibilite ascendante, `format="long|short"` reste accepte et
@@ -165,4 +154,4 @@ stockage.
 
 ## Contrat alpha.2 fige
 
-Le contrat public reste `mode`, `scope`, `show_cancelled`, `show_times`, `format` et `show_calendar_links`. Les builders traduisent leurs six libelles explicites vers ce contrat sans modifier les regles metier. Le shortcode conserve les combinaisons avancees et les alias historiques.
+Le contrat public actif reste `mode`, `scope`, `show_cancelled`, `show_dates`, `show_times`, `time_layout`, le séparateur, la liste et `format`. Les builders traduisent leurs choix explicites vers ce contrat sans modifier les règles métier. Le shortcode conserve les combinaisons avancées et les alias historiques non visuels.

@@ -3,13 +3,26 @@
   "apiVersion": 3,
   "name": "wp-seed-events/occurrence-collection",
   "version": "0.2.0-beta.9",
-  "title": "WP Seed Events — Collection d’occurrences",
+  "title": "WPSEvents — Collection",
   "category": "widgets",
   "icon": "schedule",
   "description": "Compose un modèle unique et le répète avec le contexte public de chaque occurrence.",
-  "keywords": ["événement", "occurrence", "WP Seed"],
+  "keywords": ["événement", "occurrence", "promotion", "WP Seed"],
   "textdomain": "wp-seed-events",
   "attributes": {
+    "mode": {
+      "type": "string",
+      "default": "flat",
+      "enum": ["flat", "grouped"]
+    },
+    "promotion": {
+      "type": "string",
+      "default": ""
+    },
+    "parcoursYear": {
+      "type": "integer",
+      "default": 0
+    },
     "eventId": {
       "type": "integer",
       "default": 0
@@ -52,6 +65,10 @@
     "perPage": {
       "type": "integer",
       "default": 20
+    },
+    "groupedLimit": {
+      "type": "integer",
+      "default": 200
     },
     "emptyMessage": {
       "type": "string",

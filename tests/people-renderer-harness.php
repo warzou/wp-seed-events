@@ -316,14 +316,14 @@ p2_case( '26 URL can be hidden independently', function () use ( $complete ) {
 	p2_contains( 'tel:', $html, 'Hiding URL hid phone.' );
 } );
 
-p2_case( '27 default title is Personnes', function () use ( $organizer ) {
+p2_case( '27 default title is builder-owned', function () use ( $organizer ) {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer ) ) );
-	p2_contains( '<h2 class="wp-seed-event-people__title">Personnes</h2>', $html, 'Default title is incorrect.' );
+	p2_not_contains( 'wp-seed-event-people__title', $html, 'Integrated default title rendered.' );
 } );
 
-p2_case( '28 custom title is sanitized', function () use ( $organizer ) {
+p2_case( '28 custom title is stored but inert', function () use ( $organizer ) {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer ) ), array( 'title' => '<em>Équipe</em>' ) );
-	p2_contains( '>Équipe</h2>', $html, 'Custom title is missing.' );
+	p2_not_contains( 'Équipe', $html, 'Custom title rendered.' );
 	p2_not_contains( '<em>', $html, 'Custom title HTML was preserved.' );
 } );
 
@@ -332,16 +332,16 @@ p2_case( '29 empty title omits heading', function () use ( $organizer ) {
 	p2_not_contains( 'wp-seed-event-people__title', $html, 'Empty title rendered a heading.' );
 } );
 
-p2_case( '30 heading levels h2 through h6 are supported', function () use ( $organizer ) {
+p2_case( '30 historical heading levels are inert', function () use ( $organizer ) {
 	foreach ( array( 'h2', 'h3', 'h4', 'h5', 'h6' ) as $level ) {
 		$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer ) ), array( 'heading_level' => $level ) );
-		p2_contains( '<' . $level . ' class="wp-seed-event-people__title">', $html, 'Heading level ' . $level . ' is missing.' );
+		p2_not_contains( 'wp-seed-event-people__title', $html, 'Heading level ' . $level . ' rendered.' );
 	}
 } );
 
-p2_case( '31 invalid heading falls back to h2', function () use ( $organizer ) {
+p2_case( '31 invalid historical heading is inert', function () use ( $organizer ) {
 	$html = wp_seed_events_render_public_event_people_section( p2_event( array( $organizer ) ), array( 'heading_level' => 'h1' ) );
-	p2_contains( '<h2 class="wp-seed-event-people__title">', $html, 'Invalid heading did not fall back to h2.' );
+	p2_not_contains( 'wp-seed-event-people__title', $html, 'Invalid heading rendered.' );
 	p2_not_contains( '<h1', $html, 'Invalid h1 was rendered.' );
 } );
 

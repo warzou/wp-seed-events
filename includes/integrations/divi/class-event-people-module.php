@@ -219,8 +219,6 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 		$is_v3           = 'composable-v3' === $people_contract;
 
 		return array(
-			'title'         => wp_seed_events_divi_optional_title( $values, 'Contacts et intervenants' ),
-			'heading_level' => wp_seed_events_public_heading_level_option( $values['heading_level'] ?? 'h2' ),
 			'roles'         => $roles,
 			'role'          => $legacy_role,
 			'show_name'     => wp_seed_events_public_boolean_option( $values['show_name'] ?? true, true ),
@@ -286,7 +284,7 @@ class WP_Seed_Events_Divi_Event_People_Module implements DependencyInterface {
 			),
 		);
 
-		foreach ( array( 'sectionStyle', 'titleStyle', 'listStyle', 'itemStyle', 'nameStyle', 'rolesStyle', 'roleStyle', 'contactsStyle', 'emailLinkStyle', 'phoneLinkStyle', 'publicLinkStyle', 'contactSeparatorStyle', 'nameContactSeparatorStyle' ) as $attr_name ) {
+		foreach ( array( 'sectionStyle', 'listStyle', 'itemStyle', 'nameStyle', 'rolesStyle', 'roleStyle', 'contactsStyle', 'emailLinkStyle', 'phoneLinkStyle', 'publicLinkStyle', 'contactSeparatorStyle', 'nameContactSeparatorStyle' ) as $attr_name ) {
 			$styles[] = $elements->style( array( 'attrName' => $attr_name ) );
 		}
 

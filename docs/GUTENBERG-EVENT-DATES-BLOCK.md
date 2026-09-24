@@ -52,7 +52,7 @@ L'enregistrement PHP utilise `register_block_type_from_metadata()` une seule foi
 
 ## Attributs
 
-Le bloc expose huit attributs publics historiques et un sentinel interne :
+Le bloc expose ses attributs de date et conserve trois attributs historiques de stockage :
 
 | Attribut | Type | Défaut | Valeurs |
 | --- | --- | --- | --- |
@@ -62,13 +62,10 @@ Le bloc expose huit attributs publics historiques et un sentinel interne :
 | `scope` | chaîne | `all` | `all`, `upcoming`, `past` |
 | `show_cancelled` | booléen | `true` | afficher ou masquer les occurrences annulées |
 | `show_times` | booléen | `true` | afficher ou masquer les horaires |
-| `show_calendar_links` | booléen | `true` | afficher ou masquer les actions calendrier |
-| `calendar_behavior_version` | entier | aucun | `2` pour une nouvelle composition sans action calendrier intégrée |
+| `show_calendar_links` | booléen | `true` | historique, stocké mais inerte |
 | `format` | chaîne | `long` | `long`, `short` |
 
-`show_calendar_links` conserve volontairement son défaut historique `true`. Un ancien commentaire qui omettait cet attribut reste donc lisible sans changement. La variation par défaut de l'inserter crée les nouveaux blocs avec `calendar_behavior_version=2`; ce sentinel n'a aucun défaut de métadonnées et désactive toujours l'action intégrée. Les nouvelles compositions utilisent `calendar_all_occurrences_url` dans un bouton ou un lien Gutenberg natif.
-
-Les valeurs invalides reviennent aux valeurs sûres du contrat : `h2`, `all` et options booléennes activées. Un titre vide supprime le heading sans produire de wrapper vide.
+`title`, `heading_level` et `show_calendar_links` restent lisibles dans les anciens blocs, mais ne sont plus exécutés ni exposés. Les titres et actions sont composés avec des blocs natifs; l'URL calendrier canonique est disponible via le binding `calendar_all_occurrences_url`.
 
 Le filtrage `upcoming` et `past` consomme exclusivement les projections neutres `is_date_future` et `is_date_past` fournies par l'Event Occurrences API. Le bloc ne recalcule aucune date.
 
@@ -78,7 +75,7 @@ Le callback du bloc :
 
 1. résout l'événement depuis le contexte Gutenberg ;
 2. charge son contrat Event Data ;
-3. normalise les attributs et applique la politique calendrier legacy/version 2 ;
+3. normalise les attributs Dates actifs ;
 4. délègue au renderer partagé ;
 5. ajoute le wrapper natif Gutenberg avec `get_block_wrapper_attributes()` uniquement lorsque le renderer retourne du HTML.
 
@@ -120,9 +117,7 @@ L'inspecteur propose des choix explicites en français :
 - `Toutes les dates passées` : `mode=all`, `scope=past` ;
 - `Toutes les dates` : `mode=all`, `scope=all`.
 
-Aucun réglage de portée séparé n'est affiché : le choix principal détermine un résultat non ambigu. Les autres contrôles restent : titre, niveau du titre, occurrences annulées, horaires et format court ou long. Le contrôle calendrier n'est plus proposé aux nouvelles compositions. Les attributs persistants `mode` et `scope` restent inchangés.
-
-Un bloc legacy sans sentinel continue de transmettre sa valeur historique au renderer, y compris lorsque `show_calendar_links` était implicitement omis car égal à son ancien défaut. L'éditeur ne réécrit pas ce bloc et n'ajoute pas le sentinel lors d'une simple réouverture. Aucun `deprecated.migrate()` n'est utilisé : pour un bloc dynamique, les commentaires ancien implicite et nouveau sans sentinel seraient identiques, donc une migration ne pourrait pas déterminer leur origine de manière sûre.
+Aucun réglage de portée séparé n'est affiché : le choix principal détermine un résultat non ambigu. Les autres contrôles actifs portent sur les occurrences annulées, les horaires et le format court ou long. Les attributs persistants `mode` et `scope` restent inchangés.
 
 L'aperçu éditeur utilise le HTML réel du renderer serveur. Il présente des états distincts :
 
@@ -214,13 +209,10 @@ Le bloc n'ajoute aucun CSS métier lourd, aucune valeur Divi et aucune dépendan
 Le renderer partagé conserve :
 
 - une section sémantique ;
-- un heading facultatif limité à `h2`–`h6` ;
-- un `aria-label` lorsque le titre est vide ;
+- un `aria-label` stable ;
 - une liste `ul`/`li` dans l'ordre canonique ;
 - une balise `time` avec `datetime` par occurrence ;
 - le statut visible `Annulée` ;
-- des liens calendrier legacy explicites et accessibles au clavier ;
-- des icônes décoratives avec `aria-hidden="true"` ;
 - aucune sortie partielle pour une date invalide ;
 - aucun wrapper vide lorsqu'aucune occurrence n'est retenue.
 
@@ -234,7 +226,6 @@ Le bloc :
 - n'accepte aucun accès arbitraire à une meta ;
 - n'exécute ni SQL, ni shortcode ;
 - échappe les attributs et textes via le renderer partagé ;
-- filtre le HTML des liens calendrier ;
 - protège sa route d'aperçu par les capacités WordPress ;
 - n'ajoute aucune écriture, migration, table, option ou meta.
 
@@ -309,7 +300,6 @@ Le module Divi `wp-seed-events/event-dates` est l'adaptateur équivalent pour Di
 - aucune mise en page galerie, grille ou carrousel ;
 - aucune intégration Astra ou Spectra spécifique ;
 - aucune exposition REST des metas métier privées ;
-- les actions calendrier intégrées restent rendues uniquement pour les blocs legacy ;
 - les composants Visuels et Personnes restent indépendants du bloc Dates.
 
 Les blocs Visuels et Personnes utilisent leurs propres renderers partagés ; Dynamic Data reste réservé aux valeurs simples.

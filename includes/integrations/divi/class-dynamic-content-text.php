@@ -85,8 +85,20 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 		$label  = isset( $fields[ $this->field ]['label'] ) ? (string) $fields[ $this->field ]['label'] : '';
 
 		return sprintf(
-			esc_html__( 'WP Seed Events %1$s %2$s', 'wp-seed-events' ),
-			"\u{2014}",
+			esc_html__( 'WPSEvents — Page — %s', 'wp-seed-events' ),
+			esc_html( $label )
+		);
+	}
+
+	/**
+	 * Return the label displayed for Divi's loop-aware alias.
+	 */
+	public function get_loop_label(): string {
+		$fields = wp_seed_events_dynamic_data_fields();
+		$label  = isset( $fields[ $this->field ]['label'] ) ? (string) $fields[ $this->field ]['label'] : '';
+
+		return sprintf(
+			esc_html__( 'WPSEvents — %s', 'wp-seed-events' ),
 			esc_html( $label )
 		);
 	}
@@ -106,7 +118,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 			'label'  => $this->get_label(),
 			'type'   => $this->get_type(),
 			'custom' => false,
-			'group'  => esc_html__( 'WP Seed Events', 'wp-seed-events' ),
+			'group'  => esc_html__( 'WPSEvents — Page événement', 'wp-seed-events' ),
 			'fields' => array(),
 		);
 
@@ -116,7 +128,8 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 				$options[ $name ],
 				array(
 					'id'    => $loop_name,
-					'group' => esc_html__( 'WP Seed Events — Boucle', 'wp-seed-events' ),
+					'label' => $this->get_loop_label(),
+					'group' => esc_html__( 'WPSEvents', 'wp-seed-events' ),
 				)
 			);
 		}
@@ -171,9 +184,15 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 	 * @return string
 	 */
 	protected function prepare_resolved_value( $value ): string {
+		$format = wp_seed_events_dynamic_data_field_format( $this->get_field() );
+
+		if ( 'rich_html' === $format ) {
+			return wp_kses_post( (string) $value );
+		}
+
 		$value = esc_html( (string) $value );
 
-		if ( 'excerpt' === $this->get_field() ) {
+		if ( 'multiline_text' === $format ) {
 			return '<span class="wp-seed-events-multiline-text">' . $value . '</span>';
 		}
 

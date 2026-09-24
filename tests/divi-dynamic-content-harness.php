@@ -173,6 +173,14 @@ namespace {
 		return $labels[ (string) $value ] ?? '';
 	}
 
+	function wp_seed_events_render_rich_content( $value ) {
+		return (string) $value;
+	}
+
+	function wp_kses_post( $value ) {
+		return (string) $value;
+	}
+
 	require dirname( __DIR__ ) . '/includes/public/data-registry.php';
 	require dirname( __DIR__ ) . '/includes/integrations/divi/bootstrap.php';
 
@@ -198,6 +206,7 @@ namespace {
 			'url'                     => 'https://example.test/events/event-' . (string) $event_id . '/',
 			'place_url'               => 'http://places.example.test/place-' . (string) $event_id . '/',
 			'event_document_url'      => 'https://cdn.example.test/programme-' . (string) $event_id . '.pdf',
+			'calendar_all_occurrences_url' => 'https://example.test/wp-admin/admin-post.php?action=wp_seed_events_download_event_ics&event_id=' . (string) $event_id,
 			'communication_visual'    => array(
 				'id'        => 9000 + $event_id,
 				'url'       => 'https://cdn.example.test/visual-' . (string) $event_id . '.jpg',
@@ -303,27 +312,32 @@ namespace {
 			'event_document_filename' => 'Nom du document',
 			'url' => 'URL de l’événement', 'place_url' => 'URL du lieu',
 			'event_document_url' => 'URL du document',
+			'calendar_all_occurrences_url' => 'Ajouter toutes les dates au calendrier',
 			'communication_visual' => 'Visuel de communication',
 		);
-		$url_fields   = array( 'url', 'place_url', 'event_document_url' );
+		$url_fields   = array( 'url', 'place_url', 'event_document_url', 'calendar_all_occurrences_url' );
 		$image_fields = array( 'communication_visual' );
 
 		foreach ( $expected_labels as $field => $label ) {
 			$name    = 'wp_seed_events_' . $field;
+			$loop_name = 'loop_' . $name;
 			$options = $sources[ $name ]->register_option_callback( array(), 914, 'content' );
-			d1_divi_assert( isset( $options[ $name ] ), 'missing option: ' . $name );
-			d1_divi_assert( 'WP Seed Events — ' . esc_html( $label ) === $options[ $name ]['label'], 'wrong label: ' . $name . ' got ' . $options[ $name ]['label'] . ' expected ' . 'WP Seed Events — ' . esc_html( $label ) );
-			d1_divi_assert( 'WP Seed Events' === $options[ $name ]['group'], 'wrong group: ' . $name );
+			d1_divi_assert( isset( $options[ $name ], $options[ $loop_name ] ), 'missing event or loop option: ' . $name );
+			d1_divi_assert( 'WPSEvents — Page — ' . esc_html( $label ) === $options[ $name ]['label'], 'wrong page label: ' . $name );
+			d1_divi_assert( 'WPSEvents — Page événement' === $options[ $name ]['group'], 'wrong page group: ' . $name );
+			d1_divi_assert( 'WPSEvents — ' . esc_html( $label ) === $options[ $loop_name ]['label'], 'wrong loop label: ' . $loop_name );
+			d1_divi_assert( 'WPSEvents' === $options[ $loop_name ]['group'], 'wrong loop group: ' . $loop_name );
 			$expected_type = in_array( $field, $url_fields, true )
 				? 'url'
 				: ( in_array( $field, $image_fields, true ) ? 'image' : 'text' );
 			d1_divi_assert( $expected_type === $options[ $name ]['type'], 'wrong type: ' . $name );
+			d1_divi_assert( $expected_type === $options[ $loop_name ]['type'], 'wrong loop type: ' . $loop_name );
 			d1_divi_assert( $options === $sources[ $name ]->register_option_callback( $options, 914, 'content' ), 'option duplicated: ' . $name );
 		}
 	} );
 
-	d1_divi_case( 'three URL sources use one generic public provider family', function () use ( $sources ) {
-		foreach ( array( 'url', 'place_url', 'event_document_url' ) as $field ) {
+	d1_divi_case( 'four URL sources use one generic public provider family', function () use ( $sources ) {
+		foreach ( array( 'url', 'place_url', 'event_document_url', 'calendar_all_occurrences_url' ) as $field ) {
 			$name = 'wp_seed_events_' . $field;
 			d1_divi_assert( $sources[ $name ] instanceof WP_Seed_Events_Divi_Dynamic_Content_URL, 'URL provider class differs: ' . $name );
 			d1_divi_assert(
@@ -377,8 +391,48 @@ namespace {
 
 		d1_divi_assert( isset( $options[ $name ], $options[ $loop_name ] ), 'historical or loop image option missing' );
 		d1_divi_assert( 'image' === $options[ $loop_name ]['type'], 'loop image option type differs' );
-		d1_divi_assert( 'WP Seed Events — Boucle' === $options[ $loop_name ]['group'], 'loop image option group differs' );
-		d1_divi_assert( $options[ $name ]['label'] === $options[ $loop_name ]['label'], 'loop image label differs' );
+		d1_divi_assert( 'WPSEvents' === $options[ $loop_name ]['group'], 'loop image option group differs' );
+		d1_divi_assert( 'WPSEvents — Page — Visuel de communication' === $options[ $name ]['label'], 'page image label differs' );
+		d1_divi_assert( 'WPSEvents — Visuel de communication' === $options[ $loop_name ]['label'], 'loop image label differs' );
+	} );
+
+	d1_divi_case( 'event and loop source contexts stay distinct without breaking historical bindings', function () use ( $sources ) {
+		global $wp_seed_events_public_event_id;
+		$wp_seed_events_public_event_id = 0;
+		$GLOBALS['d1_divi_current_id']  = 998;
+		$GLOBALS['d1_divi_queried_id']  = 0;
+
+		$event_name = 'wp_seed_events_title';
+		$loop_name  = 'loop_wp_seed_events_title';
+		$source     = $sources[ $event_name ];
+
+		d1_divi_assert(
+			'<span data-source="wp_seed_events_title">La Renaissance en JEu</span>' === $source->render_callback( '', array( 'name' => $event_name, 'post_id' => 914 ) ),
+			'event source did not resolve the current event page'
+		);
+		d1_divi_assert(
+			'<span data-source="wp_seed_events_title">Second event</span>' === $source->render_callback( '', array( 'name' => $event_name, 'post_id' => 1205, 'loop_id' => 1011 ) ),
+			'historical event source no longer resolves an explicit loop item'
+		);
+		d1_divi_assert(
+			'<span data-source="loop_wp_seed_events_title">Second event</span>' === $source->render_callback( '', array( 'name' => $loop_name, 'post_id' => 1205, 'loop_id' => 1011 ) ),
+			'loop source did not resolve its explicit loop item'
+		);
+		d1_divi_assert( '' === $source->render_callback( '', array( 'name' => $loop_name, 'post_id' => 914 ) ), 'loop source fell back to the event page' );
+		d1_divi_assert( '' === $source->render_callback( '', array( 'name' => $loop_name, 'post_id' => 1205, 'loop_id' => 998 ) ), 'loop source accepted a non-event item' );
+		d1_divi_assert( '' === $source->render_callback( '', array( 'name' => $event_name, 'post_id' => 998 ) ), 'event source leaked onto an ordinary page' );
+	} );
+
+	d1_divi_case( 'calendar URL resolves the explicit loop item and current event page', function () use ( $sources ) {
+		$name      = 'wp_seed_events_calendar_all_occurrences_url';
+		$loop_name = 'loop_' . $name;
+		$source    = $sources[ $name ];
+		$event     = $source->render_callback( '', array( 'name' => $name, 'post_id' => 914 ) );
+		$loop      = $source->render_callback( '', array( 'name' => $loop_name, 'post_id' => 1205, 'loop_id' => 1011 ) );
+
+		d1_divi_assert( false !== strpos( $event, 'event_id=914' ), 'event-page calendar URL differs' );
+		d1_divi_assert( false !== strpos( $loop, 'event_id=1011' ), 'loop calendar URL differs' );
+		d1_divi_assert( '' === $source->render_callback( '', array( 'name' => $loop_name, 'post_id' => 914 ) ), 'loop calendar URL fell back to the page event' );
 	} );
 
 	d1_divi_case( 'loop communication visual resolves distinct items without leaking', function () use ( $sources ) {

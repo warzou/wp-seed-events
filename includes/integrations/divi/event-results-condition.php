@@ -12,7 +12,7 @@ function wp_seed_events_divi_event_results_condition_name() {
 }
 
 function wp_seed_events_divi_event_results_condition_label() {
-	return 'WP Seed Events — Événements disponibles';
+	return 'WPSEvents — Événements disponibles';
 }
 
 function wp_seed_events_divi_current_event_type_condition_name() {

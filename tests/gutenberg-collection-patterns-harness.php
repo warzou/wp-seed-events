@@ -77,10 +77,9 @@ foreach ( $patterns as $slug => $pattern ) {
 $compact  = $patterns['wp-seed-events/event-collection-compact']['content'];
 $detailed = $patterns['wp-seed-events/event-collection-detailed']['content'];
 
-foreach ( array( 'event-visuals-block', 'post-title', 'event-dates-block', '"mode":"next"', '"show_times":false', '"calendar_behavior_version":2', '"field":"place"', 'wp:button', '"field":"url"' ) as $token ) {
+foreach ( array( 'event-visuals-block', 'post-title', 'event-dates-block', '"mode":"next"', '"show_times":false', '"field":"place"', 'wp:button', '"field":"url"' ) as $token ) {
 	patterns_assert( false !== strpos( $compact, $token ), 'Compact pattern misses ' . $token . '.' );
 }
-patterns_assert( false === strpos( $compact . $detailed, '"show_calendar_links"' ), 'New patterns must not persist the legacy calendar toggle.' );
 patterns_assert( 1 === substr_count( $compact, 'event-dates-block' ), 'Compact pattern must contain one Dates block.' );
 patterns_assert( false === strpos( $compact, '"field":"display_date"' ), 'Compact pattern must not use the provisional synthetic date paragraph.' );
 patterns_assert( false === strpos( $compact, 'post-excerpt' ), 'Compact pattern must remain compact.' );

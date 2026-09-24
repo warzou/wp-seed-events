@@ -15,9 +15,9 @@ const modules = {
 
 const businessFields = new Set([
   'date_selection',
-  'show_flyer', 'show_visuals', 'show_document',
+  'show_flyer', 'show_visuals', 'show_document', 'mode', 'promotion', 'parcours_year',
   'event_id', 'type', 'status', 'pinned', 'include_cancelled', 'from', 'to', 'order',
-  'page', 'per_page', 'collection_instance_id',
+  'page', 'per_page', 'grouped_limit', 'collection_instance_id',
 ]);
 const legacyFields = new Set([
   'show_calendar_links', 'calendar_presentation', 'calendar_label', 'calendar_icon_position',
@@ -47,7 +47,7 @@ Object.entries(modules).forEach(([moduleName, relative]) => {
 });
 
 assert.deepStrictEqual(inventory.people.groups, [
-  'Titre', 'Filtrage', 'Nom', 'Email', 'Téléphone', 'Liens', 'Disposition', 'Séparateurs',
+  'Filtrage', 'Nom', 'Email', 'Téléphone', 'Liens', 'Disposition', 'Séparateurs',
 ]);
 assert.deepStrictEqual(
   inventory.people.rows.filter((row) => row.group === 'Filtrage').map((row) => row.control),

@@ -135,7 +135,6 @@ const ModuleStyles = ({ elements, mode, state, noStyleTag, settings }) => (
       },
     })}
     {elements.style({ attrName: 'sectionStyle' })}
-    {elements.style({ attrName: 'titleStyle' })}
     {elements.style({ attrName: 'listStyle' })}
     {elements.style({ attrName: 'itemStyle' })}
     {elements.style({ attrName: 'nameStyle' })}
@@ -214,8 +213,8 @@ const eventPeopleModule = {
       innerContent: {
         desktop: {
           value: {
-            title: 'Contacts et intervenants',
-            show_title: 'on',
+            title: '',
+            show_title: 'off',
             heading_level: 'h2',
             role: 'all',
 			people_contract: 'composable-v3',
@@ -254,7 +253,7 @@ addAction('divi.moduleLibrary.registerModuleLibraryStore.after', 'wpSeedEvents.e
   registerFolder({
     name: 'wp-seed-events',
     path: '',
-    title: 'WP Seed Events',
+    title: 'WPSEvents',
     icon: '',
     category: 'module',
   });

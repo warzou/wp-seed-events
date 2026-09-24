@@ -21,7 +21,9 @@ registerBlockType(metadata.name, {
     const [state, setState] = useState({ status: 'loading', html: '' });
     const requestId = useRef(0);
     const blockProps = useBlockProps({ 'aria-busy': state.status === 'loading' });
-    const { postId, postType, queryId } = context;
+    const postId = context.postId;
+    const postType = context.postType;
+    const queryId = context.queryId;
 
     useEffect(() => {
       const currentRequest = requestId.current + 1;
@@ -38,9 +40,7 @@ registerBlockType(metadata.name, {
         const html = typeof response?.html === 'string' ? response.html : '';
         setState({ status: html.trim() === '' ? 'empty' : 'ready', html });
       }).catch((error) => {
-        if (error?.name !== 'AbortError' && currentRequest === requestId.current) {
-          setState({ status: 'error', html: '' });
-        }
+        if (error?.name !== 'AbortError' && currentRequest === requestId.current) setState({ status: 'error', html: '' });
       });
       return () => controller?.abort();
     }, [postId, postType, queryId]);

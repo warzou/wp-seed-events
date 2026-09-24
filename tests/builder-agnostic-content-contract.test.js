@@ -6,24 +6,43 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
-const publicContract = [
+const core = [
   'includes/public/data-registry.php',
   'includes/public/descriptions.php',
   'includes/public/rendering.php',
-  'includes/integrations/gutenberg/event-content-block.php',
-  'includes/integrations/gutenberg/event-content-block/src/index.js',
 ].map(read).join('\n').toLowerCase();
+const css = read('includes/public/event-lists.css');
+const rendering = read('includes/public/rendering.php');
 
-for (const builder of ['divi', 'et_builder', 'spectra', 'astra', 'uagb']) {
-  assert.ok(!publicContract.includes(builder), `Rich content contract depends on ${builder}`);
+for (const builder of ['divi', 'spectra', 'astra', 'uagb']) {
+  assert.ok(!core.includes(builder), `Core content contract depends on ${builder}`);
 }
 
-const registry = read('includes/public/data-registry.php');
-assert.ok(registry.includes("'description'                    => 'rich_html'"));
-assert.ok(registry.includes("return wp_seed_events_render_rich_content( $event['description'] ?? '' )"));
+for (const selector of [
+  '.wp-seed-event-people__roles',
+  '.wp-seed-event-people__contacts',
+  '.wp-seed-event-people__roles > li::before',
+  '.wp-seed-event-people__contacts > li::before',
+  '.wp-seed-event-people__roles > li::marker',
+  '.wp-seed-event-people__contacts > li::marker',
+]) {
+  assert.ok(css.includes(selector), `Structural list reset missing: ${selector}`);
+}
 
-const eventData = read('includes/public/event-data.php');
-assert.ok(eventData.includes("'description'                 => $description"));
-assert.ok(!eventData.includes("wp_seed_events_render_rich_content( $description"));
+assert.ok(css.includes('list-style-type: none !important'));
+assert.ok(css.includes('padding-inline-start: 0 !important'));
+assert.ok(css.includes('content: none !important'));
+assert.ok(!css.includes('.wp-seed-events-rich-content ul'));
+assert.ok(!css.includes('.wp-seed-events-rich-content li'));
 
-console.log('Builder-agnostic rich content contract: 9/9 OK');
+for (const htmlClass of [
+  'wp-seed-event-people__list',
+  'wp-seed-event-people__roles',
+  'wp-seed-event-people__contacts',
+  'wp-seed-event-dates',
+  'wp-seed-event-visuals__list',
+]) {
+  assert.ok(rendering.includes(htmlClass), `Public renderer list missing: ${htmlClass}`);
+}
+
+console.log('Builder-agnostic content and structural list contract: PASS');

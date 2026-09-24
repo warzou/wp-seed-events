@@ -92,7 +92,7 @@ const DEFAULT_QUERY = {
 
 registerBlockVariation( 'core/query', {
   name: NAMESPACE,
-  title: __( 'WP Seed Events — Collection d’événements', 'wp-seed-events' ),
+  title: __( 'WPSEvents — Collection', 'wp-seed-events' ),
   description: __(
     'Composez librement une carte répétée à partir de la sélection métier WP Seed Events.',
     'wp-seed-events',

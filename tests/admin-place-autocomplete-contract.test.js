@@ -24,10 +24,11 @@ assert.ok(source.includes("$suggestion_search  = implode( ' ', array( $place->po
 for (const field of ['name', 'address', 'link']) {
   assert.ok(source.includes(`panelField(panel,'${field}').val(${field === 'name' ? 'selectedName' : "$(this).attr('data-wp-seed-place-" + field + "')||''"})`));
 }
+assert.ok(source.includes("panelField(panel,'link_label').val($(this).attr('data-wp-seed-place-link-label')||'')"));
 assert.ok(source.includes("hiddenField(root,'new_name').val(data.name)"));
 assert.ok(source.includes('Informations complémentaires pour cet événement'));
 assert.ok(placeSource.includes('URL (facultative)'));
-assert.ok(placeSource.includes('<strong>Affichage</strong>'));
+assert.ok(placeSource.includes('<legend>Site</legend>'));
 assert.ok(placeSource.includes('data-wp-seed-place-panel-field="link_visible"'));
 assert.ok(placeSource.includes('data-wp-seed-place-link-visible'));
 assert.ok(!placeSource.includes('data-wp-seed-place-delete'));
@@ -36,7 +37,12 @@ assert.ok(!eventSaveSource.includes('wp_delete_post'));
 assert.ok(!eventSaveSource.includes('wp_seed_delete_place_id'));
 assert.ok(placesAdminSource.includes("'delete' === $admin_action"), 'Global deletion must remain on All Places.');
 assert.ok(source.includes("panelField(panel,'link_visible').prop('checked','1'===$(this).attr('data-wp-seed-place-link-visible'))"));
-assert.ok(source.includes("panelField(panel,'details').val($(this).attr('data-wp-seed-place-details')||'')"));
-assert.ok(source.includes("get_post_meta( $place->ID, '_wp_seed_place_details', true )"));
+assert.ok(!source.includes("panelField(panel,'details').val($(this).attr('data-wp-seed-place-details')||'')"));
+assert.ok(source.includes("data-wp-seed-place-link-label"));
+assert.ok(source.includes("wp_seed_events_website_pair_is_valid( $link, $link_label )"));
+assert.ok(source.includes("wp_seed_events_website_pair_is_valid( $update_place_link, $update_place_link_label )"));
+assert.ok(source.includes("'_wp_seed_place_link_label'"));
+assert.ok(source.includes("'wp_seed_events_place',\n\t\t'Où a lieu mon évènement ?',"));
+assert.ok(!source.includes('get_user_option_closedpostboxes_wp_seed_event'));
 
-console.log('Admin place single autocomplete and deletion-boundary contract: 29 assertions PASS');
+console.log('Admin place autocomplete, website pair, and default-open contract: PASS');
