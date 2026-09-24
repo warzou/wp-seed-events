@@ -187,7 +187,7 @@ class WP_Seed_Events_Divi_Dynamic_Content_Text extends DynamicContentOptionBase 
 		$format = wp_seed_events_dynamic_data_field_format( $this->get_field() );
 
 		if ( 'rich_html' === $format ) {
-			return wp_kses_post( (string) $value );
+			return (string) $value;
 		}
 
 		$value = esc_html( (string) $value );

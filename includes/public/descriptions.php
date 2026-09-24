@@ -32,7 +32,7 @@ function wp_seed_events_normalize_multiline_description( $value ) {
  *
  * Event Data keeps the authored post_content value. Rendering consumers call
  * this helper so blocks, shortcodes and paragraph handling follow WordPress,
- * while the final allow-list remains the public post HTML contract.
+ * while authored HTML is sanitized before WordPress generates embeds and media.
  *
  * @param mixed $value Authored rich content.
  * @return string
@@ -44,7 +44,7 @@ function wp_seed_events_render_rich_content( $value ) {
 		return '';
 	}
 
-	return wp_kses_post( apply_filters( 'the_content', $value ) );
+	return apply_filters( 'the_content', wp_kses_post( $value ) );
 }
 function wp_seed_events_description_content_to_text( $content ) {
 	$content = str_replace( array( "\r\n", "\r" ), "\n", (string) $content );

@@ -178,7 +178,8 @@ namespace {
 	}
 
 	function wp_kses_post( $value ) {
-		return (string) $value;
+		$value = preg_replace( '#<iframe\b[^>]*>.*?</iframe>#is', '', (string) $value );
+		return preg_replace( '#<source\b[^>]*>#is', '', (string) $value );
 	}
 
 	require dirname( __DIR__ ) . '/includes/public/data-registry.php';
@@ -261,6 +262,13 @@ namespace {
 
 	wp_seed_events_divi_load_next_date();
 	$sources = d1_divi_sources_by_name();
+	d1_divi_case( 'rich media survives the Divi description wrapper', function () use ( $sources ) {
+		$original = $GLOBALS['d1_divi_events'][914]['description'];
+		$GLOBALS['d1_divi_events'][914]['description'] = '<iframe src="https://www.youtube.com/embed/FYDHujeCJJc"></iframe><audio controls="controls"><source src="https://www.rpl-radio.fr/podcasts/retrouvertonenfantinterieur.mp3" type="audio/mpeg"></audio>';
+		$output = $sources['wp_seed_events_description']->render_callback( '', array( 'name' => 'wp_seed_events_description', 'post_id' => 914 ) );
+		d1_divi_assert( false !== strpos( $output, '<iframe ' ) && false !== strpos( $output, '<source ' ), 'Divi stripped generated rich media' );
+		$GLOBALS['d1_divi_events'][914]['description'] = $original;
+	} );
 
 	d1_divi_case( 'frontend retries Dynamic Content registration after Divi loads', function () {
 		$matches = array_values(
