@@ -49,7 +49,13 @@ function wp_seed_events_render_rich_content( $value ) {
 	$previous_post     = $GLOBALS['post'] ?? null;
 
 	try {
-		return apply_filters( 'the_content', $value );
+		$html = (string) apply_filters( 'the_content', $value );
+
+		if ( '' === trim( $html ) ) {
+			return '';
+		}
+
+		return sprintf( '<div class="wp-seed-events-rich-content">%s</div>', $html );
 	} finally {
 		if ( $had_previous_post ) {
 			$GLOBALS['post'] = $previous_post;

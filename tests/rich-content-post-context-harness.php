@@ -35,6 +35,13 @@ function apply_filters( $hook, $value ) {
 			$value
 		);
 	}
+	if ( false !== strpos( $value, 'https://media.example.test/stage.mp4' ) ) {
+		$value = str_replace(
+			'https://media.example.test/stage.mp4',
+			'<div style="width: 640px;" class="wp-video"><video class="wp-video-shortcode" width="640" height="360"></video></div>',
+			$value
+		);
+	}
 
 	return $value;
 }
@@ -49,16 +56,20 @@ function qa_assert( $condition, $message ) {
 
 $layout_post = (object) array( 'ID' => 2773 );
 $cases = array(
-	'text'    => array( '<p>Texte seul</p>', array( '<p>Texte seul</p>' ) ),
-	'youtube' => array( 'https://youtu.be/qa-video', array( '<iframe', 'youtube.com/embed/qa-video' ) ),
-	'audio'   => array( 'https://media.example.test/interview.mp3', array( '<audio', '<source', 'interview.mp3' ) ),
-	'both'    => array( "https://youtu.be/qa-video\n\nhttps://media.example.test/interview.mp3", array( '<iframe', '<audio', '<source' ) ),
+	'text'            => array( '<p>Texte seul</p>', array( '<p>Texte seul</p>' ) ),
+	'youtube'         => array( 'https://youtu.be/qa-video', array( '<iframe', 'youtube.com/embed/qa-video' ) ),
+	'video'           => array( 'https://media.example.test/stage.mp4', array( '<div style="width: 640px;" class="wp-video">', '<video', 'width="640"', 'height="360"' ) ),
+	'audio'           => array( 'https://media.example.test/interview.mp3', array( '<audio', '<source', 'interview.mp3' ) ),
+	'youtube and audio' => array( "https://youtu.be/qa-video\n\nhttps://media.example.test/interview.mp3", array( '<iframe', '<audio', '<source' ) ),
+	'video and audio' => array( "https://media.example.test/stage.mp4\n\nhttps://media.example.test/interview.mp3", array( '<div style="width: 640px;" class="wp-video">', '<video', '<audio', '<source' ) ),
+	'text and media'  => array( "<p>Texte éditorial</p>\n\nhttps://media.example.test/stage.mp4\n\nhttps://media.example.test/interview.mp3", array( '<p>Texte éditorial</p>', '<video', '<audio', '<source' ) ),
 );
 
 foreach ( $cases as $name => $case ) {
 	$GLOBALS['post']            = $layout_post;
 	$GLOBALS['qa_filter_calls'] = 0;
 	$result = wp_seed_events_render_rich_content( $case[0] );
+	qa_assert( 0 === strpos( $result, '<div class="wp-seed-events-rich-content">' ), $name . ': missing generic Rich Content wrapper' );
 	foreach ( $case[1] as $expected ) {
 		qa_assert( false !== strpos( $result, $expected ), $name . ': missing ' . $expected );
 	}
@@ -84,4 +95,4 @@ try {
 }
 qa_assert( $GLOBALS['post'] === $layout_post, 'Post was not restored after exception' );
 
-echo "Rich Content post context: 4 media cases, null, undefined, exception PASS\n";
+echo "Rich Content post context and media: 7 content cases, null, undefined, exception PASS\n";
