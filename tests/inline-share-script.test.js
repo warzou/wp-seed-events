@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../includes/public/sharing.php'), 'utf8');
-const script = source.match(/<script>([\s\S]*?)<\/script>/)[1];
+const script = fs.readFileSync(require('node:path').join(__dirname, '../includes/public/event-share.js'), 'utf8');
 async function scenario({secure=true, reject=false, fallback=true, nested=true, url='https://example.org/event/'}={}) {
   let handler, copied, restored=false;
   const timers=[];

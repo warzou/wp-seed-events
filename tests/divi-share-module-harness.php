@@ -68,6 +68,39 @@ namespace {
 		return abs( (int) $value );
 	}
 
+	function __( $value ) {
+		return $value;
+	}
+
+	function sanitize_text_field( $value ) {
+		return trim( strip_tags( (string) $value ) );
+	}
+
+	function sanitize_key( $value ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
+	}
+
+	function wp_seed_events_share_display_mode( $value ) {
+		return in_array( $value, array( 'text_icon', 'text', 'icon' ), true ) ? $value : 'text_icon';
+	}
+
+	function wp_seed_events_share_action_order_key( $value ) {
+		$valid = array( 'share_copy_email', 'share_email_copy', 'copy_share_email', 'copy_email_share', 'email_share_copy', 'email_copy_share' );
+		return in_array( $value, $valid, true ) ? $value : 'share_copy_email';
+	}
+
+	function wp_seed_events_share_text_option( $value, $default ) {
+		$value = is_scalar( $value ) ? trim( strip_tags( (string) $value ) ) : '';
+		return '' !== $value ? $value : $default;
+	}
+
+	function wp_seed_events_public_boolean_option( $value, $default ) {
+		return is_bool( $value ) ? $value : ( ! in_array( $value, array( 'off', '0' ), true ) );
+	}
+
+	function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
+	function sanitize_html_class( $value ) { return preg_replace( "/[^A-Za-z0-9_-]/", "", $value ); }
+
 	function wp_seed_events_divi_get_module_event_context( $attrs, $block ) {
 		$GLOBALS['share_context'] = array( $attrs, $block );
 		return array( 'post_id' => $GLOBALS['share_event_id'] );

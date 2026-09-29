@@ -1,0 +1,5 @@
+.wp-seed-event-share [hidden] { display: none !important; }
+	.wp-seed-event-share__actions { display: flex; flex-wrap: wrap; gap: .625rem; }
+	.wp-seed-event-share__panel { flex-basis: 100%; width: fit-content; padding: .75rem; border: 1px solid currentColor; border-radius: .5rem; }
+	.wp-seed-event-share--inline [data-wp-seed-event-share-native] { font-weight: 700; }
+	.wp-seed-event-share--inline :is(button, a):focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }

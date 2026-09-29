@@ -134,7 +134,8 @@ $excludedRuntimePatterns += @(
     ($shareModuleRuntimeRoot + '/package-lock.json'),
     ($shareModuleRuntimeRoot + '/webpack.config.js'),
     ($shareModuleRuntimeRoot + '/tests/*'),
-    ($shareModuleRuntimeRoot + '/src/index.jsx')
+    ($shareModuleRuntimeRoot + '/src/index.jsx'),
+    ($shareModuleRuntimeRoot + '/src/share-options.js')
 )
 
 foreach ($shareModuleAsset in @($shareModuleJson, $shareModuleBundle)) {

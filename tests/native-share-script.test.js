@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { JSDOM } = require('jsdom');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../includes/public/sharing.php'), 'utf8');
-const script = source.match(/<script>([\s\S]*?)<\/script>/)[1];
+const script = fs.readFileSync(require('node:path').join(__dirname, '../includes/public/event-share.js'), 'utf8');
 function fixture({support=true, secure=true, error, sync=false, pending=false}={}) {
   const dom = new JSDOM(`<button id="outside">Outside</button><div data-wp-seed-event-share>
     <button type="button" hidden data-wp-seed-event-share-native aria-expanded="false" aria-controls="panel" data-share-title="Été &amp; rencontre" data-share-url="https://example.org/events/été/?a=1&amp;b=2">Partager</button>
