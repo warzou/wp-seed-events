@@ -98,6 +98,12 @@ function wp_seed_events_dynamic_data_fields() {
 			'type'        => 'text',
 			'description' => 'Description courte effective de l\'événement.',
 		),
+		'description_excerpt' => array(
+			'key'         => 'description_excerpt',
+			'label'       => 'Extrait du contenu',
+			'type'        => 'text',
+			'description' => 'Les 28 premiers mots du contenu, sans modifier le résumé manuel.',
+		),
 		'practical_info' => array(
 			'key'         => 'practical_info',
 			'label'       => 'Informations pratiques',
@@ -163,6 +169,7 @@ function wp_seed_events_dynamic_data_fields() {
 		'contact'                        => 'multiline_text',
 		'description'                    => 'rich_html',
 		'excerpt'                        => 'multiline_text',
+		'description_excerpt'            => 'plain_text',
 		'practical_info'                 => 'multiline_text',
 		'event_document_filename'        => 'plain_text',
 		'event_document_display_name'    => 'plain_text',
@@ -408,6 +415,8 @@ function wp_seed_events_dynamic_data_get_value( $field, $event_id = 0, $context 
 			return wp_seed_events_render_rich_content( $event['description'] ?? '' );
 		case 'excerpt':
 			return wp_seed_events_dynamic_data_multiline_text( $event['excerpt'] ?? '' );
+		case 'description_excerpt':
+			return wp_seed_events_trim_multiline_words( wp_seed_events_description_content_to_text( $event['description'] ?? '' ), 28 );
 		case 'practical_info':
 			return wp_seed_events_dynamic_data_multiline_text( $event['practical_info'] ?? '' );
 		case 'event_document_filename':

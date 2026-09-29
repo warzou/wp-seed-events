@@ -26,7 +26,8 @@ function wp_seed_events_event_share_data( $event ) {
 	);
 }
 
-function wp_seed_events_render_event_share_menu( $event ) {
+/** Render the legacy menu by default; inline is an additive presentation. */
+function wp_seed_events_render_event_share_menu( $event, $layout = 'menu' ) {
 	$share = wp_seed_events_event_share_data( $event );
 
 	if ( array() === $share ) {
@@ -34,6 +35,16 @@ function wp_seed_events_render_event_share_menu( $event ) {
 	}
 
 	$GLOBALS['wp_seed_events_share_script_required'] = true;
+
+	if ( 'inline' === $layout ) {
+		return '<div class="wp-seed-event-share wp-seed-event-share--inline" data-wp-seed-event-share>'
+			. '<p class="wp-seed-event-share__label">' . esc_html__( 'Partager', 'wp-seed-events' ) . '</p>'
+			. '<div class="wp-seed-event-share__actions">'
+			. '<button type="button" data-wp-seed-event-share-copy data-share-url="' . esc_url( $share['url'] ) . '">'
+			. '<span aria-hidden="true">&#x2398;</span> <span data-wp-seed-event-share-label>' . esc_html__( 'Copier le lien', 'wp-seed-events' ) . '</span></button>'
+			. '<a href="' . esc_url( $share['email_url'] ) . '"><span aria-hidden="true">&#x2709;</span> ' . esc_html__( 'E-mail', 'wp-seed-events' ) . '</a>'
+			. '</div><p class="wp-seed-event-share__feedback" role="status" aria-live="polite" aria-atomic="true" data-wp-seed-event-share-feedback></p></div>';
+	}
 
 	ob_start();
 	?>
@@ -56,6 +67,18 @@ function wp_seed_events_render_event_share_menu( $event ) {
 	return trim( ob_get_clean() );
 }
 
+/** Available in the core Shortcode block, without a builder dependency. */
+function wp_seed_events_event_share_shortcode( $atts ) {
+	$atts = shortcode_atts( array( 'id' => 0, 'layout' => 'inline' ), $atts, 'wp_seed_event_share' );
+	$event_id = wp_seed_events_public_shortcode_event_id( $atts['id'] );
+	$html = wp_seed_events_render_event_share_menu( wp_seed_events_public_event_data( $event_id ), $atts['layout'] );
+	if ( '' !== $html && isset( $GLOBALS['wp_seed_events_template_share_context'] )
+		&& $event_id === $GLOBALS['wp_seed_events_template_share_context']['event_id'] ) {
+		$GLOBALS['wp_seed_events_template_share_context']['rendered'] = true;
+	}
+	return $html;
+}
+
 function wp_seed_events_render_public_share_script() {
 	if ( empty( $GLOBALS['wp_seed_events_share_script_required'] ) ) {
 		return;
@@ -68,6 +91,7 @@ function wp_seed_events_render_public_share_script() {
 		function fallbackCopy(text) {
 			var input = document.createElement('textarea');
 			var copied = false;
+			var previousFocus = document.activeElement;
 
 			input.value = text;
 			input.setAttribute('readonly', '');
@@ -83,28 +107,33 @@ function wp_seed_events_render_public_share_script() {
 			}
 
 			document.body.removeChild(input);
+			if (previousFocus && typeof previousFocus.focus === 'function') {
+				previousFocus.focus();
+			}
 			return copied;
 		}
 
 		function report(button, success) {
 			var root = button.closest('[data-wp-seed-event-share]');
 			var feedback = root ? root.querySelector('[data-wp-seed-event-share-feedback]') : null;
-			var originalLabel = button.getAttribute('data-original-label') || button.textContent;
+			var label = button.querySelector('[data-wp-seed-event-share-label]') || button;
+			var originalLabel = button.getAttribute('data-original-label') || label.textContent;
 
 			button.setAttribute('data-original-label', originalLabel);
-			button.textContent = success ? 'Lien copié' : 'Copie impossible';
+			label.textContent = success ? 'Lien copié' : 'Copie impossible';
 
 			if (feedback) {
 				feedback.textContent = success ? 'Le lien de l’événement a été copié.' : 'Le lien n’a pas pu être copié.';
 			}
 
 			window.setTimeout(function () {
-				button.textContent = originalLabel;
+				label.textContent = originalLabel;
 			}, 2000);
 		}
 
 		document.addEventListener('click', function (event) {
-			var button = event.target.closest('[data-wp-seed-event-share-copy]');
+			var button = event.target && typeof event.target.closest === 'function'
+				? event.target.closest('[data-wp-seed-event-share-copy]') : null;
 
 			if (!button) {
 				return;

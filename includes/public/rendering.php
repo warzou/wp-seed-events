@@ -499,10 +499,21 @@ function wp_seed_events_render_public_event_single( $post_id, $use_template_page
 	}
 
 	if ( $use_template_page ) {
-		$template_output = wp_seed_events_render_public_event_template_page( $event );
+		$previous_share_context = $GLOBALS['wp_seed_events_template_share_context'] ?? null;
+		$GLOBALS['wp_seed_events_template_share_context'] = array( 'event_id' => (int) $event['id'], 'rendered' => false );
+		try {
+			$template_output = wp_seed_events_render_public_event_template_page( $event );
+			$share_rendered = $GLOBALS['wp_seed_events_template_share_context']['rendered'];
+		} finally {
+			if ( null === $previous_share_context ) {
+				unset( $GLOBALS['wp_seed_events_template_share_context'] );
+			} else {
+				$GLOBALS['wp_seed_events_template_share_context'] = $previous_share_context;
+			}
+		}
 
 		if ( '' !== trim( $template_output ) ) {
-			return trim( $template_output . "\n" . wp_seed_events_render_event_share_menu( $event ) );
+			return trim( $template_output . "\n" . ( $share_rendered ? '' : wp_seed_events_render_event_share_menu( $event ) ) );
 		}
 	}
 

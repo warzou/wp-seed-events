@@ -141,18 +141,22 @@ preview_assert(
 	'Preview schema and field allowlist differ.'
 );
 preview_assert(
-	array( 'types', 'status', 'display_date', 'place', 'contact', 'excerpt', 'url' ) === wp_seed_events_gutenberg_block_binding_preview_fields(),
+	array( 'types', 'status', 'programming_status', 'programming_text', 'display_date', 'place', 'contact', 'excerpt', 'description_excerpt', 'url', 'calendar_all_occurrences_url' ) === wp_seed_events_gutenberg_block_binding_preview_fields(),
 	'Preview field allowlist differs.'
 );
 
 $GLOBALS['preview_values'][914] = array(
 	'types'        => 'Atelier',
 	'status'       => 'À venir',
+	'programming_status' => '',
+	'programming_text' => '',
 	'display_date' => 'Vendredi 31 juillet 2026',
 	'place'        => 'Centre Shania',
 	'contact'      => 'Claire Test',
 	'excerpt'      => "Une ligne\nUne autre ligne",
+	'description_excerpt' => 'Contenu éditorial calculé.',
 	'url'          => 'https://example.test/atelier/exemple/',
+	'calendar_all_occurrences_url' => '',
 );
 $values = wp_seed_events_gutenberg_block_bindings_rest_values(
 	array( 'id' => 914 ),
@@ -160,8 +164,9 @@ $values = wp_seed_events_gutenberg_block_bindings_rest_values(
 	new Preview_Request( 'edit' )
 );
 preview_assert( $GLOBALS['preview_values'][914] === $values, 'Authorized preview values differ.' );
-preview_assert( 7 === $GLOBALS['preview_value_calls'], 'Each allowlisted value must be resolved once.' );
+preview_assert( count( wp_seed_events_gutenberg_block_binding_preview_fields() ) === $GLOBALS['preview_value_calls'], 'Each allowlisted value must be resolved once.' );
 preview_assert( "Une ligne\nUne autre ligne" === $values['excerpt'], 'REST preview flattened multiline excerpt.' );
+preview_assert( 'Contenu éditorial calculé.' === $values['description_excerpt'], 'REST preview must expose the independent content excerpt.' );
 
 $excerpt_block = array(
 	'attrs' => array(
