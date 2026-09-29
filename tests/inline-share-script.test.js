@@ -11,11 +11,11 @@ async function scenario({secure=true, reject=false, fallback=true, nested=true, 
   const root={querySelector:()=>feedback};
   const button={textContent:'Copier le lien', closest:()=>root, querySelector:()=>nested?label:null, getAttribute:k=>attrs[k], setAttribute:(k,v)=>attrs[k]=v};
   const input={style:{},setAttribute(){},select(){}};
-  const document={activeElement:{focus(){restored=true;}},createElement:()=>input,body:{appendChild(){},removeChild(){}},execCommand(){if(fallback)copied=input.value;return fallback;},addEventListener:(event,fn)=>handler=fn};
+  const document={querySelectorAll:()=>[],activeElement:{focus(){restored=true;}},createElement:()=>input,body:{appendChild(){},removeChild(){}},execCommand(){if(fallback)copied=input.value;return fallback;},addEventListener:(event,fn)=>{if(event==='click')handler=fn;}};
   const navigator={clipboard:{writeText:async text=>{if(reject)throw Error('denied');copied=text;}}};
   vm.runInNewContext(script,{document,navigator,window:{isSecureContext:secure,setTimeout:fn=>timers.push(fn)}});
   handler({target:{}}); // A non-element event target must not throw.
-  handler({target:{closest:()=>button}});
+  handler({target:{closest:selector=>selector.includes('share-native')?null:button}});
   await new Promise(resolve=>setImmediate(resolve));
   return {copied,feedback,label: nested?label:button,restored,timers};
 }

@@ -26,8 +26,14 @@ function wp_seed_events_event_share_data( $event ) {
 	);
 }
 
-/** Render the legacy menu by default; inline is an additive presentation. */
-function wp_seed_events_render_event_share_menu( $event, $layout = 'menu' ) {
+/** The primary action supports native sharing and its associated fallback. */
+function wp_seed_events_render_native_share_button( $share, $panel_id = '' ) {
+	return '<button type="button" hidden data-wp-seed-event-share-native aria-expanded="false" aria-controls="' . esc_attr( $panel_id ) . '" data-share-title="' . esc_attr( $share['title'] )
+		. '" data-share-url="' . esc_url( $share['url'] ) . '">' . esc_html__( 'Partager', 'wp-seed-events' ) . '</button>';
+}
+
+/** PRIMARY_SHARE_ONLY by default. secondary_actions accepts none, copy, email or both. */
+function wp_seed_events_render_event_share_menu( $event, $layout = 'inline', $options = array() ) {
 	$share = wp_seed_events_event_share_data( $event );
 
 	if ( array() === $share ) {
@@ -36,42 +42,29 @@ function wp_seed_events_render_event_share_menu( $event, $layout = 'menu' ) {
 
 	$GLOBALS['wp_seed_events_share_script_required'] = true;
 
-	if ( 'inline' === $layout ) {
-		return '<div class="wp-seed-event-share wp-seed-event-share--inline" data-wp-seed-event-share>'
-			. '<p class="wp-seed-event-share__label">' . esc_html__( 'Partager', 'wp-seed-events' ) . '</p>'
-			. '<div class="wp-seed-event-share__actions">'
-			. '<button type="button" data-wp-seed-event-share-copy data-share-url="' . esc_url( $share['url'] ) . '">'
-			. '<span aria-hidden="true">&#x2398;</span> <span data-wp-seed-event-share-label>' . esc_html__( 'Copier le lien', 'wp-seed-events' ) . '</span></button>'
-			. '<a href="' . esc_url( $share['email_url'] ) . '"><span aria-hidden="true">&#x2709;</span> ' . esc_html__( 'E-mail', 'wp-seed-events' ) . '</a>'
-			. '</div><p class="wp-seed-event-share__feedback" role="status" aria-live="polite" aria-atomic="true" data-wp-seed-event-share-feedback></p></div>';
-	}
-
-	ob_start();
-	?>
-	<div class="wp-seed-event-share" data-wp-seed-event-share>
-		<details class="wp-seed-event-share__menu">
-			<summary><span aria-hidden="true">&#x1F517;</span> <?php echo esc_html__( 'Partager', 'wp-seed-events' ); ?></summary>
-			<div class="wp-seed-event-share__actions">
-				<p>
-					<button type="button" data-wp-seed-event-share-copy data-share-url="<?php echo esc_url( $share['url'] ); ?>"><?php echo esc_html__( 'Copier le lien', 'wp-seed-events' ); ?></button>
-				</p>
-				<p>
-					<a href="<?php echo esc_url( $share['email_url'] ); ?>"><?php echo esc_html__( 'Envoyer par email', 'wp-seed-events' ); ?></a>
-				</p>
-				<p class="screen-reader-text" aria-live="polite" data-wp-seed-event-share-feedback></p>
-			</div>
-		</details>
-	</div>
-	<?php
-
-	return trim( ob_get_clean() );
+	static $instance = 0;
+	$panel_id = 'wp-seed-event-share-panel-' . ++$instance;
+	$secondary = $options['secondary_actions'] ?? 'none';
+	$copy = '<button type="button" disabled data-wp-seed-event-share-copy data-share-url="' . esc_url( $share['url'] ) . '">'
+		. '<span aria-hidden="true">&#x2398;</span> <span data-wp-seed-event-share-label>' . esc_html__( 'Copier le lien', 'wp-seed-events' ) . '</span></button>';
+	$email = '<a href="' . esc_url( $share['email_url'] ) . '"><span aria-hidden="true">&#x2709;</span> ' . esc_html__( 'E-mail', 'wp-seed-events' ) . '</a>';
+	// Both historical layout values use the same compact, builder-independent component.
+	return '<div class="wp-seed-event-share wp-seed-event-share--inline" data-wp-seed-event-share>'
+		. '<div class="wp-seed-event-share__actions">'
+		. wp_seed_events_render_native_share_button( $share, $panel_id )
+		. ( in_array( $secondary, array( 'copy', 'both' ), true ) ? $copy : '' )
+		. ( in_array( $secondary, array( 'email', 'both' ), true ) ? $email : '' )
+		. '</div><div class="wp-seed-event-share__panel wp-seed-event-share__actions" id="' . esc_attr( $panel_id ) . '" hidden data-wp-seed-event-share-panel role="group" aria-label="' . esc_attr( esc_html__( 'Options de partage', 'wp-seed-events' ) ) . '">'
+		. $copy . $email . '</div>'
+		. '<noscript>' . $email . '</noscript>'
+		. '<p class="wp-seed-event-share__feedback" role="status" aria-live="polite" aria-atomic="true" data-wp-seed-event-share-feedback></p></div>';
 }
 
 /** Available in the core Shortcode block, without a builder dependency. */
 function wp_seed_events_event_share_shortcode( $atts ) {
-	$atts = shortcode_atts( array( 'id' => 0, 'layout' => 'inline' ), $atts, 'wp_seed_event_share' );
+	$atts = shortcode_atts( array( 'id' => 0, 'layout' => 'inline', 'secondary_actions' => 'none' ), $atts, 'wp_seed_event_share' );
 	$event_id = wp_seed_events_public_shortcode_event_id( $atts['id'] );
-	$html = wp_seed_events_render_event_share_menu( wp_seed_events_public_event_data( $event_id ), $atts['layout'] );
+	$html = wp_seed_events_render_event_share_menu( wp_seed_events_public_event_data( $event_id ), $atts['layout'], array( 'secondary_actions' => $atts['secondary_actions'] ) );
 	if ( '' !== $html && isset( $GLOBALS['wp_seed_events_template_share_context'] )
 		&& $event_id === $GLOBALS['wp_seed_events_template_share_context']['event_id'] ) {
 		$GLOBALS['wp_seed_events_template_share_context']['rendered'] = true;
@@ -84,9 +77,90 @@ function wp_seed_events_render_public_share_script() {
 		return;
 	}
 	?>
+	<style>
+	.wp-seed-event-share [hidden] { display: none !important; }
+	.wp-seed-event-share__actions { display: flex; flex-wrap: wrap; gap: .625rem; }
+	.wp-seed-event-share__panel { flex-basis: 100%; width: fit-content; padding: .75rem; border: 1px solid currentColor; border-radius: .5rem; }
+	.wp-seed-event-share--inline [data-wp-seed-event-share-native] { font-weight: 700; }
+	.wp-seed-event-share--inline :is(button, a):focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+	</style>
 	<script>
 	(function () {
 		'use strict';
+		if (window.wpSeedEventsPublicShareInitialized) { return; }
+		window.wpSeedEventsPublicShareInitialized = true;
+
+		function nativeSupported() {
+			return window.isSecureContext && typeof navigator.share === 'function';
+		}
+
+		document.querySelectorAll('[data-wp-seed-event-share-native]').forEach(function (button) {
+			button.hidden = false;
+		});
+		document.querySelectorAll('[data-wp-seed-event-share-copy]').forEach(function (button) {
+			button.disabled = false;
+		});
+
+		function shareFeedback(button, message) {
+			var root = button.closest('[data-wp-seed-event-share]');
+			var feedback = root ? root.querySelector('[data-wp-seed-event-share-feedback]') : null;
+			if (feedback) { feedback.textContent = message; }
+		}
+
+		function togglePanel(button, open, restoreFocus) {
+			var root = button.closest('[data-wp-seed-event-share]');
+			var panel = root ? root.querySelector('[data-wp-seed-event-share-panel]') : null;
+			if (!panel) { return; }
+			panel.hidden = !open;
+			button.setAttribute('aria-expanded', open ? 'true' : 'false');
+			if (open) {
+				var first = panel.querySelector('button, a');
+				if (first) { first.focus(); }
+			} else if (restoreFocus) { button.focus(); }
+		}
+
+		function closePanels(event, escape) {
+			document.querySelectorAll('[data-wp-seed-event-share-native][aria-expanded="true"]').forEach(function (button) {
+				var root = button.closest('[data-wp-seed-event-share]');
+				if (escape || !root.contains(event.target)) {
+					togglePanel(button, false, escape);
+					if (escape) { event.preventDefault(); }
+				}
+			});
+		}
+		document.addEventListener('keydown', function (event) {
+			if (event.key === 'Escape') { closePanels(event, true); }
+		});
+
+		function nativeShare(button) {
+			var url = button.getAttribute('data-share-url') || '';
+			var title = button.getAttribute('data-share-title') || '';
+			if (button.disabled) { return; }
+			shareFeedback(button, '');
+			if (button.getAttribute('aria-expanded') === 'true') {
+				togglePanel(button, false, true);
+				return;
+			}
+			function failed(error) {
+				if (!error || error.name !== 'AbortError') {
+					togglePanel(button, true, false);
+				}
+			}
+			if (!nativeSupported() || !url) {
+				failed();
+				return;
+			}
+			button.disabled = true;
+			try {
+				// Call during the click, before awaiting anything: Web Share needs user activation.
+				Promise.resolve(navigator.share({ title: title, url: url })).then(function () {
+					// Resolution does not certify delivery to another application.
+				}, failed).then(function () { button.disabled = false; });
+			} catch (error) {
+				failed(error);
+				button.disabled = false;
+			}
+		}
 
 		function fallbackCopy(text) {
 			var input = document.createElement('textarea');
@@ -132,6 +206,13 @@ function wp_seed_events_render_public_share_script() {
 		}
 
 		document.addEventListener('click', function (event) {
+			closePanels(event, false);
+			var nativeButton = event.target && typeof event.target.closest === 'function'
+				? event.target.closest('[data-wp-seed-event-share-native]') : null;
+			if (nativeButton) {
+				nativeShare(nativeButton);
+				return;
+			}
 			var button = event.target && typeof event.target.closest === 'function'
 				? event.target.closest('[data-wp-seed-event-share-copy]') : null;
 
@@ -146,7 +227,7 @@ function wp_seed_events_render_public_share_script() {
 				return;
 			}
 
-			if (navigator.clipboard && window.isSecureContext) {
+			if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext) {
 				navigator.clipboard.writeText(url).then(
 					function () {
 						report(button, true);
