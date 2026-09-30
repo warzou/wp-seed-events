@@ -15,3 +15,11 @@ The Divi module retains its existing Divi-native popup adapter and original-link
 Site-specific columns belong to the site composition, never to the generic renderer. Avoid fixed image heights or equal-height panels. Tablet stacking and maximum media column widths are site choices.
 
 Run `npm run test:visuals` with PHP in PATH. This covers the native typed block adapter, default/explicit actions, no-JS source, shortcode, cropped portrait/landscape/square/tall sizes, and native focus compatibility. Builder metadata and compiled defaults are checked by the existing Gutenberg/Divi contracts.
+
+## Focus on native popup close
+
+WordPress Core already restores the opener; its integration is unchanged. Some native adapters disable their own return-focus option. `event-lightbox-focus.js` exposes `wpSeedEventsLightboxFocus.capture(trigger, component)`, returning a restoration callback that keeps the exact opener, uses `focus({ preventScroll: true })`, and falls back within the same connected component if the opener disappears or becomes unavailable. It never implements a dialog or assumes a theme.
+
+The existing Divi adapter supplies the actual `currItem.el[0]` at native Open and restores at native AfterClose, after the native focus trap and teardown have finished. Escape, X and backdrop converge on that lifecycle. Capture survives repeated module initialization. No global Magnific Popup configuration, theme code, markup, styles or Core focus behavior is changed.
+
+Run `npm run test:visuals` for opener identity, all close paths, reinitialization, replacement/removed/disabled openers and native WordPress focus containment. The browser acceptance test must Tab onto a visual, Enter, Escape, then check `document.activeElement === trigger` after the native close animation.

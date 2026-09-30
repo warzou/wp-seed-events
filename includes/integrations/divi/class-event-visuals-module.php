@@ -237,6 +237,14 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 		}
 
 		if ( wp_script_is( 'wp-seed-events-divi-visuals-lightbox', 'registered' ) ) {
+			$focus_script = dirname( __DIR__, 2 ) . '/public/event-lightbox-focus.js';
+			wp_enqueue_script(
+				'wp-seed-events-lightbox-focus',
+				plugins_url( 'event-lightbox-focus.js', $focus_script ),
+				array(),
+				substr( hash_file( 'sha256', $focus_script ), 0, 12 ),
+				true
+			);
 			wp_enqueue_script( 'wp-seed-events-divi-visuals-lightbox' );
 		}
 	}

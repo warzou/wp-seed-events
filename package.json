@@ -42,7 +42,7 @@
     "build:divi:share": "cross-env NODE_ENV=production webpack --config includes/integrations/divi/event-share-module/visual-builder/webpack.config.js",
     "build:divi:occurrences": "cross-env NODE_ENV=production webpack --config includes/integrations/divi/occurrence-collection-module/visual-builder/webpack.config.js",
     "test:share-compat": "node tests/share-compatibility.test.js && node includes/integrations/divi/event-share-module/visual-builder/tests/share-options.test.js",
-    "test:visuals": "node tests/native-lightbox-focus.test.js && php tests/visuals-renderer-harness.php && php tests/visuals-shortcode-harness.php && php tests/visuals-image-ratio-harness.php"
+    "test:visuals": "node tests/event-lightbox-return-focus.test.js && node tests/native-lightbox-focus.test.js && php tests/visuals-renderer-harness.php && php tests/visuals-shortcode-harness.php && php tests/visuals-image-ratio-harness.php"
   },
   "devDependencies": {
     "@babel/core": "^7.24.5",

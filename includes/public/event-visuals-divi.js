@@ -1,5 +1,6 @@
 (function ($, window, document) {
 	'use strict';
+	var focusReturns = new WeakMap();
 
 	function initializeModule(module) {
 		if (typeof window.et_pb_image_lightbox_init !== 'function' || typeof $.fn.magnificPopup !== 'function') {
@@ -10,6 +11,20 @@
 
 		if (links.length) {
 			window.et_pb_image_lightbox_init(links);
+			// The native adapter supplies its real opener and its completed-close event.
+			links.off('mfpOpen.wpSeedEventsFocus mfpAfterClose.wpSeedEventsFocus')
+				.on('mfpOpen.wpSeedEventsFocus', function () {
+					var popup = $.magnificPopup.instance;
+					var trigger = popup.currItem && popup.currItem.el && popup.currItem.el[0];
+					focusReturns.set(module, window.wpSeedEventsLightboxFocus && trigger
+						? window.wpSeedEventsLightboxFocus.capture(trigger, module) : null);
+				})
+				.on('mfpAfterClose.wpSeedEventsFocus', function () {
+					// AfterClose runs after native teardown and its focus trap have finished.
+					var restoreFocus = focusReturns.get(module);
+					focusReturns.delete(module);
+					if (restoreFocus) restoreFocus();
+				});
 		}
 	}
 
