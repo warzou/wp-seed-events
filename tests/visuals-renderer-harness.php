@@ -102,7 +102,7 @@ function get_post_meta( $post_id, $key = '', $single = false ) {
 	return '';
 }
 
-function block_core_image_render_lightbox( $html, $block, $instance ) {
+function block_core_image_render_lightbox( $html, $block, WP_Block $instance ) {
 	$GLOBALS['wp_seed_events_lightbox_calls'][] = array(
 		'id'      => absint( $block['attrs']['id'] ?? 0 ),
 		'enabled' => true === ( $block['attrs']['lightbox']['enabled'] ?? false ),
@@ -112,6 +112,20 @@ function block_core_image_render_lightbox( $html, $block, $instance ) {
 	return str_replace( '<figure ', '<figure data-native-lightbox="1" ', $html );
 }
 
+class WP_Block {
+	public $context;
+	private $block;
+	function __construct( $block, $context ) { $this->block = $block; $this->context = $context; }
+	function render() {
+		wp_seed_events_visuals_assert( 'core/image' === $this->block['blockName'], 'Not a native image block.' );
+		wp_seed_events_visuals_assert( 'contain' === $this->block['attrs']['scale'], 'Image can crop.' );
+		return block_core_image_render_lightbox( $this->block['innerHTML'], $this->block, $this );
+	}
+}
+function wp_enqueue_style( $handle ) {}
+function wp_enqueue_script( ...$args ) {}
+function plugins_url( $file, $path ) { return $file; }
+function add_action( ...$args ) {}
 require dirname( __DIR__ ) . '/includes/public/lightbox.php';
 require dirname( __DIR__ ) . '/includes/public/rendering.php';
 
@@ -354,7 +368,7 @@ wp_seed_events_visuals_case(
 	function () use ( $flyer ) {
 		$html = wp_seed_events_render_public_event_visuals_section(
 			wp_seed_events_visuals_event( array( $flyer ) ),
-			array( 'link_original' => true )
+			array( 'click_action' => 'original' )
 		);
 
 		wp_seed_events_visuals_contains( 'wp-seed-event-visuals__image-link', $html, 'Original image link is missing.' );
@@ -369,7 +383,7 @@ wp_seed_events_visuals_case(
 	function () use ( $flyer ) {
 		$html = wp_seed_events_render_public_event_visuals_section(
 			wp_seed_events_visuals_event( array( $flyer ) ),
-			array( 'link_original' => false )
+			array( 'click_action' => 'none' )
 		);
 
 		wp_seed_events_visuals_not_contains( 'wp-seed-event-visuals__image-link', $html, 'Original image link rendered while disabled.' );
@@ -621,7 +635,7 @@ wp_seed_events_visuals_case(
 	function () use ( $flyer, $visuals_source ) {
 		$html = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array( $flyer ) ) );
 
-		foreach ( array( 'et_pb', 'divi', 'wp-block-', 'gutenberg', 'spectra', 'uagb', 'ifolders' ) as $forbidden ) {
+		foreach ( array( 'et_pb', 'divi', 'wp-block-wp-seed-events-', 'gutenberg', 'spectra', 'uagb', 'ifolders' ) as $forbidden ) {
 			wp_seed_events_visuals_not_contains( $forbidden, strtolower( $html . $visuals_source ), 'Builder-specific dependency found: ' . $forbidden );
 		}
 
@@ -746,13 +760,13 @@ wp_seed_events_visuals_case(
 );
 
 wp_seed_events_visuals_case(
-	'39 lightbox remains opt-in',
+	'39 lightbox defaults on with no-JS fallback',
 	function () use ( $flyer ) {
 		$GLOBALS['wp_seed_events_lightbox_calls'] = array();
 		$html = wp_seed_events_render_public_event_visuals_section( wp_seed_events_visuals_event( array( $flyer ) ) );
 
-		wp_seed_events_visuals_assert( array() === $GLOBALS['wp_seed_events_lightbox_calls'], 'Untouched renderer invoked the lightbox adapter.' );
-		wp_seed_events_visuals_not_contains( 'data-native-lightbox', $html, 'Untouched renderer changed its historical markup.' );
+		wp_seed_events_visuals_assert( 1 === count( $GLOBALS['wp_seed_events_lightbox_calls'] ), 'Default renderer did not invoke native lightbox.' );
+		wp_seed_events_visuals_contains( '<noscript><a', $html, 'No-JS source fallback missing.' );
 	}
 );
 

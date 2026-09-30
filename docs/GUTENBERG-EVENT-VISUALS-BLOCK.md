@@ -186,3 +186,7 @@ Le ZIP inclut uniquement les trois assets compilés avec le PHP du bloc. Il excl
 - aucune ouverture imposée dans un nouvel onglet ;
 - aucune requête métier de collection dans le bloc ;
 - aucun adaptateur Astra ou Spectra spécifique.
+
+## Image lightbox update
+
+New instances enable the lightbox by default; explicit none/original choices remain supported. See [Event image lightbox](EVENT-IMAGE-LIGHTBOX.md) for current ratio, accessibility and fallback behavior. Earlier absence-of-lightbox notes describe the initial implementation.

@@ -25,7 +25,7 @@
         "title": "", "show_title": "off", "heading_level": "h2",
         "show_document": "on", "link_original": "on", "lightbox": "off",
         "show_flyer": "on", "show_visuals": "on", "show_captions": "off",
-        "image_size": "large", "click_action": "none"
+        "image_size": "large", "click_action": "lightbox"
       }}}},
       "settings": {"innerContent": {"groupType": "group-items", "items": {
         "showFlyer": {"groupSlug": "contentVisuals", "priority": 10, "render": true, "subName": "show_flyer", "label": "Flyer recto", "features": {"responsive": false, "dynamicContent": false}, "component": {"name": "divi/toggle", "type": "field", "props": {"options": {"off": "Masquer", "on": "Afficher"}}}},

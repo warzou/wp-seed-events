@@ -111,7 +111,7 @@ function Edit( { attributes, setAttributes, context = {} } ) {
     attributes.image_size,
     'large',
   );
-  const clickAction = validOption( CLICK_OPTIONS, attributes.click_action, 'none' );
+  const clickAction = validOption( CLICK_OPTIONS, attributes.click_action, 'lightbox' );
   const layout = validOption( LAYOUT_OPTIONS, attributes.layout, 'grid' );
   const [ preview, setPreview ] = useState( {
     status: 'loading',

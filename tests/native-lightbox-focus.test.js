@@ -1,0 +1,25 @@
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const path = require('node:path');
+const script = fs.readFileSync(path.join(__dirname, '../includes/public/event-visuals-lightbox.js'), 'utf8');
+let handler, clicks = 0, owned = true, open = true;
+const document = { activeElement: null, addEventListener: (name, fn) => { handler = fn; }, querySelector: () => open ? overlay : null };
+const button = (hidden = false) => ({ hidden, disabled: false, getClientRects: () => hidden ? [] : [1], focus() { document.activeElement = this; }, click() { clicks++; } });
+const close = button(), prev = button(true), next = button(true);
+const overlay = { querySelector: (q) => q.includes('__figure') ? owned : close, querySelectorAll: () => [close, prev, next], contains: (e) => e === overlay || [close, prev, next].includes(e) };
+vm.runInNewContext(script, { document });
+const key = (name, shiftKey = false) => { const e = { key: name, shiftKey, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } }; handler(e); return e; };
+document.activeElement = overlay; assert.ok(key('Tab').prevented); assert.equal(document.activeElement, close);
+assert.ok(key('Tab').prevented); assert.equal(document.activeElement, close);
+assert.ok(key('Tab', true).prevented); assert.equal(document.activeElement, close);
+assert.equal(key('Escape').prevented, false); assert.equal(clicks, 0);
+document.activeElement = {}; assert.ok(key('Escape').prevented); assert.equal(clicks, 1);
+owned = false; assert.equal(key('Tab').prevented, false); assert.equal(key('Escape').prevented, false);
+owned = true; open = false; assert.equal(key('Tab').prevented, false);
+console.log('Native lightbox focus: hidden controls excluded, forward/reverse wrap, Escape and unrelated Core images PASS');
+
+const css = fs.readFileSync(path.join(__dirname, '../includes/public/event-visuals.css'), 'utf8');
+const imageRule = css.match(/\.wp-seed-event-visuals \.wp-seed-event-visuals__image \{([^}]+)\}/)[1];
+assert.ok(!imageRule.includes('aspect-ratio: auto'), 'Do not remove the HTML intrinsic ratio used by lazy auto-sizes');
+assert.ok(imageRule.includes('height: auto') && imageRule.includes('object-fit: contain'));

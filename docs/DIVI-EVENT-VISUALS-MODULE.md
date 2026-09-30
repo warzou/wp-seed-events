@@ -173,3 +173,7 @@ Un evenement prive, incompatible ou sans visuel reste vide. Aucun fallback vers 
 La nouvelle UI fusionne `link_original` et `lightbox` dans `click_action` : `none`, `lightbox` ou `original`.
 Divi utilise sa lightbox native. Le module charge les assets natifs Divi et appelle `et_pb_image_lightbox_init` lorsqu'il est le seul consommateur de la page ; aucune visionneuse n'est réimplémentée. La collection interne accepte les dispositions verticale, horizontale et grille,
 avec espacements, alignement, justification, wrap et colonnes responsive.
+
+## Image lightbox update
+
+New instances enable the lightbox by default; explicit none/original choices remain supported. See [Event image lightbox](EVENT-IMAGE-LIGHTBOX.md) for current ratio, accessibility and fallback behavior. Earlier absence-of-lightbox notes describe the initial implementation.

@@ -221,6 +221,22 @@ function wp_seed_events_public_document_name_position_option( $value ) {
 	return 'next_line' === sanitize_key( is_scalar( $value ) ? (string) $value : '' ) ? 'next_line' : 'inline';
 }
 
+/** A registered thumbnail may be hard-cropped; use full when its ratio differs. */
+function wp_seed_events_public_visuals_uncropped_size( $attachment_id, $size ) {
+	if ( ! function_exists( 'wp_get_attachment_image_src' ) || 'full' === $size ) {
+		return $size;
+	}
+	$full = wp_get_attachment_image_src( $attachment_id, 'full' );
+	$selected = wp_get_attachment_image_src( $attachment_id, $size );
+	if ( $full && $selected && $full[2] > 0 && $selected[2] > 0 && $full[1] > 0 ) {
+		// Permit at most one pixel of resize rounding, not an arbitrary crop percentage.
+		if ( abs( $full[1] * $selected[2] - $full[2] * $selected[1] ) > max( $full[1], $full[2] ) ) {
+			return 'full';
+		}
+	}
+	return $size;
+}
+
 function wp_seed_events_public_visuals_image_size_option( $value ) {
 	if ( ! is_scalar( $value ) ) {
 		return 'large';
@@ -792,7 +808,7 @@ function wp_seed_events_event_visuals_shortcode( $atts ) {
 			'show_captions'  => false,
 			'image_size'     => 'large',
 			'link_original'  => true,
-			'lightbox'       => false,
+			'lightbox'       => true,
 			'click_action'   => '',
 			'layout'         => 'grid',
 			'horizontal_gap' => '',
@@ -1383,7 +1399,7 @@ function wp_seed_events_render_public_event_visuals_section( $event, $options = 
 			'show_captions'  => false,
 			'image_size'     => 'large',
 			'link_original'  => true,
-			'lightbox'       => false,
+			'lightbox'       => true,
 			'click_action'   => '',
 			'layout'         => 'grid',
 			'horizontal_gap' => '',
@@ -1441,7 +1457,7 @@ function wp_seed_events_render_public_event_visuals_section( $event, $options = 
 		$alt            = isset( $media['alt'] ) && is_scalar( $media['alt'] ) ? (string) $media['alt'] : '';
 		$image          = wp_get_attachment_image(
 			$attachment_id,
-			$image_size,
+			wp_seed_events_public_visuals_uncropped_size( $attachment_id, $image_size ),
 			false,
 			array(
 				'alt'     => $alt,
@@ -1476,7 +1492,7 @@ function wp_seed_events_render_public_event_visuals_section( $event, $options = 
 		$figure .= '</figure>';
 
 		if ( $lightbox ) {
-			$figure = wp_seed_events_render_wordpress_lightbox_figure( $figure, $attachment_id, $gallery_id );
+			$figure = wp_seed_events_render_wordpress_lightbox_figure( $figure, $attachment_id, $gallery_id, $media_url );
 		}
 
 		$rendered_items[] = '<li class=' . $quote . esc_attr( 'wp-seed-event-visuals__item wp-seed-event-visuals__item--' . $item['type'] ) . $quote . '>' . $figure . '</li>';

@@ -122,6 +122,7 @@ function wp_seed_events_get_event_data( $event_id ) {
 	return $GLOBALS['wp_seed_events_visuals_shortcode_data'][ absint( $event_id ) ] ?? array();
 }
 
+require dirname( __DIR__ ) . '/includes/public/lightbox.php';
 require dirname( __DIR__ ) . '/includes/public/rendering.php';
 
 function wp_seed_events_visuals_shortcode_media( $id, $overrides = array() ) {
@@ -383,8 +384,8 @@ wp_seed_events_visuals_shortcode_case(
 wp_seed_events_visuals_shortcode_case(
 	'15 original links true and false',
 	function () {
-		$linked   = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'link_original' => 'true' ) );
-		$unlinked = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'link_original' => 'false' ) );
+		$linked   = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'click_action' => 'original' ) );
+		$unlinked = wp_seed_events_event_visuals_shortcode( array( 'id' => 1011, 'click_action' => 'none' ) );
 
 		wp_seed_events_visuals_shortcode_contains( 'wp-seed-event-visuals__image-link', $linked, 'Original link was not enabled.' );
 		wp_seed_events_visuals_shortcode_not_contains( 'wp-seed-event-visuals__image-link', $unlinked, 'Original link was not disabled.' );

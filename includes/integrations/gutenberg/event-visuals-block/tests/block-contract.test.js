@@ -17,7 +17,7 @@ test('built metadata matches source', () => assert.deepStrictEqual(built, metada
 test('legacy document storage remains readable but UI is image-only', () => { assert.ok(Object.hasOwn(metadata.attributes, 'show_document')); assert.ok(!source.includes('Afficher le document')); });
 test('one click action has exact values', () => assert.deepStrictEqual(metadata.attributes.click_action.enum, ['none', 'lightbox', 'original']));
 test('layouts have exact values', () => assert.deepStrictEqual(metadata.attributes.layout.enum, ['vertical', 'horizontal', 'grid']));
-test('new instances default to no click', () => assert.strictEqual(metadata.attributes.click_action.default, 'none'));
+test('new instances default to native lightbox', () => assert.strictEqual(metadata.attributes.click_action.default, 'lightbox'));
 test('responsive grid columns exist', () => ['columns', 'columns_tablet', 'columns_phone'].forEach((key) => assert.ok(Object.hasOwn(metadata.attributes, key))));
 test('collection controls exist', () => ['horizontal_gap', 'vertical_gap', 'align_items', 'justify_content', 'wrap'].forEach((key) => assert.ok(Object.hasOwn(metadata.attributes, key))));
 test('context is card-local', () => assert.deepStrictEqual(metadata.usesContext, ['postId', 'postType', 'queryId']));

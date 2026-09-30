@@ -113,3 +113,39 @@
 		grid-template-columns: repeat(var(--wp-seed-visuals-columns-phone, 1), minmax(0, 1fr));
 	}
 }
+
+/* Preserve informational images; constrain width, never their natural height. */
+.wp-seed-event-visuals .wp-seed-event-visuals__figure {
+	height: auto;
+	max-height: none;
+	overflow: visible;
+	aspect-ratio: auto;
+}
+.wp-seed-event-visuals .wp-seed-event-visuals__image {
+	width: auto;
+	height: auto;
+	max-width: 100%;
+	max-height: none;
+	object-fit: contain;
+}
+.wp-seed-event-visuals .wp-lightbox-container img { cursor: zoom-in; }
+.wp-seed-event-visuals .lightbox-trigger:focus-visible {
+	outline: 3px solid currentColor;
+	outline-offset: 4px;
+}
+/* Only our selected image changes Core's shared overlay appearance. */
+.wp-lightbox-overlay:has(.wp-seed-event-visuals__figure) .scrim {
+	background-color: #101620 !important;
+	opacity: .96;
+}
+.wp-lightbox-overlay:has(.wp-seed-event-visuals__figure) button {
+	fill: #fff !important;
+	color: #fff;
+}
+
+.wp-lightbox-overlay .wp-seed-event-visuals__figure img { object-fit: contain !important; }
+html:has(.wp-lightbox-overlay.active .wp-seed-event-visuals__figure),
+body:has(.wp-lightbox-overlay.active .wp-seed-event-visuals__figure) {
+	overflow: hidden !important;
+	overscroll-behavior: none;
+}

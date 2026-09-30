@@ -59,7 +59,7 @@
     },
     "click_action": {
       "type": "string",
-      "default": "none",
+      "default": "lightbox",
       "enum": [
         "none",
         "lightbox",

@@ -44,7 +44,7 @@
       "type": "boolean",
       "default": false
     },
-    "click_action": {"type": "string", "default": "none", "enum": ["none", "lightbox", "original"]},
+    "click_action": {"type": "string", "default": "lightbox", "enum": ["none", "lightbox", "original"]},
     "layout": {
       "type": "string",
       "default": "grid",

@@ -288,7 +288,7 @@ class WP_Seed_Events_Divi_Event_Visuals_Module implements DependencyInterface {
 			'image_size'     => 'large',
 			'click_action'   => '',
 			'link_original'  => 'on',
-			'lightbox'       => 'off',
+			'lightbox'       => 'on',
 			'layout'         => 'grid',
 			'horizontal_gap' => '',
 			'vertical_gap'   => '',
